@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{{ template "fragments/html_head" .Meta }}
+
+<body>
+    {{ template "fragments/header" }}
+
+    <main>
+       <article class="content">
+            <header class="content-header">
+                <h1>{{ .Meta.Title }}</h1>
+                {{ if not .Meta.Published.IsZero }}
+                    {{- $published := .Meta.Published.Format "January 2, 2006" }}
+                    {{- $updated := .Meta.Updated.Format "January 2, 2006" }}
+                    <span class="date">Posted on {{ $published }}</span>
+                    {{ if ne $published $updated }}
+                        <span class="date">Updated on {{ $updated }}</span>
+                    {{ end }}
+                {{ end }}
+            </header>
+            {{ .Content }}
+        </article>
+    </main>
+</body>
+
+</html>

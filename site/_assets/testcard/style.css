@@ -1,0 +1,11 @@
+body {
+    margin: 0;
+    background-color: #000000;
+}
+canvas {
+    display: block;  /* prevents scrollbar */
+    width: 100vw;
+    height: 100vh;
+    padding: 0;
+    margin: 0;
+}

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{{ template "fragments/html_head" .Meta }}
+
+<body>
+    {{ template "fragments/header" }}
+
+    <main>
+      <header class="content">
+         <h1>Bits and Bobs</h1>
+         {{ .Content }}
+      </header>
+
+      <section class="content">
+         <h2>Table of Contents</h2>
+
+         {{ range .Site.Articles }}
+            <article class="sub-content">
+               <header class="sub-content-header">
+                  {{- $published := .Meta.Published.Format "January 2006" }}
+                  {{- $updated := .Meta.Updated.Format "January 2006" }}
+                  <h3><a href="{{ .Path }}">{{ .Meta.Title }}</a></h3>
+                  <span>{{ $published }}{{ if ne $published $updated }}, updated {{ $updated }}{{ end }}</span>
+               </header>
+               <p>{{ .Meta.Abstract }}</p>
+            </article>
+         {{ end }}
+      </section>
+    </main>
+</body>
+
+</html>

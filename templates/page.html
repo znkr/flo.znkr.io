@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{{ template "fragments/html_head" .Meta }}
+
+<body>
+    {{ template "fragments/header" }}
+
+    <main>
+       <article class="content">
+            {{ .Content }}
+        </article>
+    </main>
+</body>
+
+</html>

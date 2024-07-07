@@ -1,0 +1,20 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" href="/_assets/style.css">
+
+    <link rel="icon" href="/_assets/icon.svg" type="image/svg+xml" sizes="any">
+    <link rel="icon" href="/_assets/icon.png" type="image/png" sizes="48x48">
+
+    <link rel="alternate" title="flo.znkr.io" type="application/atom+xml" href="/feed.atom">
+
+    {{- if .GoImport }}
+    <meta name="go-import" content="{{ .GoImport }}">
+    {{- end }}
+    {{- if .Redirect }}
+    <meta http-equiv="refresh" content="0;URL='{{ .Redirect }}'">
+    {{- end }}
+
+    <title>{{ .Title }} - flo.znkr.io</title>
+</head>

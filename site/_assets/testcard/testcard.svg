@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-920 -820 1840 1640" preserveAspectRatio="xMidYMid slice">
+    <defs>
+        <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse" fill="none">
+            <rect width="100" height="100" stroke="#fefefe" stroke-width="5" fill="#3e3e3e" />
+        </pattern>
+        
+        <linearGradient id="red-gradient">
+            <stop stop-color="#fd0d5e" offset="0%" />
+            <stop stop-color="#000000" offset="100%" />
+        </linearGradient>
+        <linearGradient id="violet-gradient">
+            <stop stop-color="#5f40fe" offset="0%" />
+            <stop stop-color="#000000" offset="100%" />
+        </linearGradient>
+        
+        <linearGradient id="multiburst-1MHz" spreadMethod="reflect" x1="0%" x2="10.54%">
+            <stop stop-color="#fefefe" offset="0%" />
+            <stop stop-color="#f7f7f7" offset="10%" />
+            <stop stop-color="#e5e5e5" offset="20%" />
+            <stop stop-color="#c9c9c9" offset="30%" />
+            <stop stop-color="#a6a6a6" offset="40%" />
+            <stop stop-color="#7f7f7f" offset="50%" />
+            <stop stop-color="#575757" offset="60%" />
+            <stop stop-color="#343434" offset="70%" />
+            <stop stop-color="#181818" offset="80%" />
+            <stop stop-color="#060606" offset="90%" />
+            <stop stop-color="#000000" offset="100%" />
+        </linearGradient>
+        <linearGradient id="multiburst-2MHz" spreadMethod="reflect" x1="0%" x2="5.15%">
+            <stop stop-color="#fefefe" offset="0%" />
+            <stop stop-color="#f7f7f7" offset="10%" />
+            <stop stop-color="#e5e5e5" offset="20%" />
+            <stop stop-color="#c9c9c9" offset="30%" />
+            <stop stop-color="#a6a6a6" offset="40%" />
+            <stop stop-color="#7f7f7f" offset="50%" />
+            <stop stop-color="#575757" offset="60%" />
+            <stop stop-color="#343434" offset="70%" />
+            <stop stop-color="#181818" offset="80%" />
+            <stop stop-color="#060606" offset="90%" />
+            <stop stop-color="#000000" offset="100%" />
+        </linearGradient>
+        <linearGradient id="multiburst-3MHz" spreadMethod="reflect" x1="0%" x2="3.4%">
+            <stop stop-color="#fefefe" offset="0%" />
+            <stop stop-color="#f7f7f7" offset="10%" />
+            <stop stop-color="#e5e5e5" offset="20%" />
+            <stop stop-color="#c9c9c9" offset="30%" />
+            <stop stop-color="#a6a6a6" offset="40%" />
+            <stop stop-color="#7f7f7f" offset="50%" />
+            <stop stop-color="#575757" offset="60%" />
+            <stop stop-color="#343434" offset="70%" />
+            <stop stop-color="#181818" offset="80%" />
+            <stop stop-color="#060606" offset="90%" />
+            <stop stop-color="#000000" offset="100%" />
+        </linearGradient>
+    </defs>
+
+    <!-- background with grid -->
+    <rect x="-920" y="-820" width="1840" height="1640" fill="url(#grid)" />
+
+    <!-- top row: colors -->
+    <g>
+        <rect x="-600" y="-500" width="150" height="300" fill="#bebebe" />
+        <rect x="-450" y="-500" width="150" height="300" fill="#bfbf00" />
+        <rect x="-300" y="-500" width="150" height="300" fill="#00bfbf" />
+        <rect x="-150" y="-500" width="150" height="300" fill="#00bf00" />
+        <rect x="0" y="-500" width="150" height="300" fill="#bf00bf" />
+        <rect x="150" y="-500" width="150" height="300" fill="#bf0000" />
+        <rect x="300" y="-500" width="150" height="300" fill="#0000bf" />
+        <rect x="450" y="-500" width="150" height="300" fill="#000000" />
+    </g>
+
+    <!-- second row: grayscale -->
+    <g>
+        <rect x="-600" y="-200" width="240" height="200" fill="#000000" />
+        <rect x="-360" y="-200" width="240" height="200" fill="#3e3e3e" />
+        <rect x="-120" y="-200" width="240" height="200" fill="#7f7f7f" />
+        <rect x="120" y="-200" width="240" height="200" fill="#bebebe" />
+        <rect x="360" y="-200" width="240" height="200" fill="#fefefe" />
+    </g>
+
+    <!-- third row: channel id -->
+    <g>
+        <rect x="-600" y="0" width="1200" height="100" fill="#fefefe" />
+        <rect x="-360" y="0" width="720" height="100" fill="#000000" />
+        <text x="-230" y="70" font-family="Verdana" font-size="50" fill="#fefefe">ZNKR</text>
+        <text x="150" y="70" font-family="Verdana" font-size="50" fill="#fefefe">IO</text>
+    </g>
+
+    <!-- fourth row: multi-burst -->
+    <g>
+        <rect x="-600" y="100" width="143" height="100" fill="#fefefe" />
+        <rect x="-457" y="100" width="26" height="100" fill="#7f7f7f" />
+        <rect x="-431" y="100" width="184" height="100" fill="url(#multiburst-1MHz)" />
+        <rect x="-247" y="100" width="26" height="100" fill="#7f7f7f" />
+        <rect x="-221" y="100" width="184" height="100" fill="url(#multiburst-2MHz)" />
+        <rect x="-37" y="100" width="74" height="100" fill="#7f7f7f" />
+        <rect x="37" y="100" width="184" height="100" fill="url(#multiburst-3MHz)" />
+        <rect x="221" y="100" width="26" height="100" fill="#7f7f7f" />
+        <rect x="245" y="100" width="300" height="100" fill="#b07f00" />
+        <rect x="545" y="100" width="55" height="100" fill="#7f7f7f" />
+    </g>
+
+    <!-- fifth row: black impulse triangle -->
+    <g>
+        <rect x="-600" y="200" width="1200" height="100" fill="#fefefe" />
+        <path d="M -25 200 L -25 300 20 200" fill="#000000" />
+    </g>
+
+    <!-- sixth row: gradients and uncolor field -->
+    <g>
+        <rect x="-600" y="300" width="800" height="100" fill="url(#red-gradient)" />
+        <rect x="-600" y="400" width="800" height="100" fill="url(#violet-gradient)" />
+        <rect x="200" y="300" width="400" height="200" fill="#5e5e5e" />
+    </g>
+
+    <!-- convergence cross -->
+    <g>
+        <rect x="-3" y="-200" width="5" height="400" fill="#fefefe" />
+        <rect x="-600" y="-3" width="1200" height="5" fill="#fefefe" />
+    </g>
+
+    <!--
+        outline for middle part to integrate well with the grid.
+        without this, the grid would only be half as thick around
+        the border of the middle part
+    -->
+    <rect x="-600" y="-500" width="1200" height="1000" fill="none" stroke="#fefefe" stroke-width="5" />
+
+    <!-- big circle -->
+    <circle cx="0" cy="0" r="670.82" fill="none" stroke="#fefefe" stroke-width="5" />
+</svg>
