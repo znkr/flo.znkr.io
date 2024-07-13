@@ -5,7 +5,6 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
-	"html"
 	"html/template"
 	"io/fs"
 	"mime"
@@ -23,7 +22,8 @@ var ErrNotFound = errors.New("not found")
 
 // Site is an in-memory representation of the to be generated site.
 type Site struct {
-	docs map[string]Doc
+	templates *template.Template
+	docs      map[string]Doc
 }
 
 // Doc is a single document of the site, that is anything that can be served as a static file.
@@ -49,12 +49,6 @@ type Metadata struct {
 	Article   bool
 }
 
-var passthrough = &passthroughRenderer{}
-
-type renderer interface {
-	render(meta *Metadata, data []byte) ([]byte, error)
-}
-
 // Load loads a site from the directory dir.
 func Load(dir string) (*Site, error) {
 	s := &Site{
@@ -68,15 +62,14 @@ func Load(dir string) (*Site, error) {
 			Title: "flo.znkr.io",
 		},
 		contentRenderer: passthrough,
-		pageRenderer: &feedRenderer{
-			site: s,
-		},
+		pageRenderer:    &feedRenderer{},
 	}
 
 	templates, err := loadTemplates(dir)
 	if err != nil {
 		return nil, fmt.Errorf("loading templates: %v", err)
 	}
+	s.templates = templates
 
 	sitedir := filepath.Join(dir, "site")
 	err = filepath.WalkDir(sitedir, func(fpath string, d fs.DirEntry, err error) error {
@@ -125,7 +118,6 @@ func Load(dir string) (*Site, error) {
 						return fmt.Errorf("template not found %s", tname)
 					}
 					doc.pageRenderer = &templateRenderer{
-						site:     s,
 						template: t,
 					}
 				}
@@ -193,59 +185,57 @@ func readFile(file string) (*Metadata, []byte, error) {
 }
 
 // Get returns the document for the given path, or ErrNotFound if the document cannot be found.
-func (s *Site) Get(path string) (Doc, error) {
-	c, ok := s.docs[path]
+func (s *Site) Get(path string) (*Doc, error) {
+	d, ok := s.docs[path]
 	if !ok {
-		return Doc{}, ErrNotFound
+		return nil, ErrNotFound
 	}
-	return c, nil
+	return &d, nil
 }
 
-func (s *Site) Articles() []Doc {
-	var ret []Doc
+func (s *Site) Articles() []*Doc {
+	var ret []*Doc
 	for _, d := range s.docs {
 		if d.meta == nil || !d.meta.Article {
 			continue
 		}
-		ret = append(ret, d)
+		ret = append(ret, &d)
 	}
-	slices.SortFunc(ret, func(a, b Doc) int {
+	slices.SortFunc(ret, func(a, b *Doc) int {
 		return b.meta.Published.Compare(a.meta.Published)
 	})
 	return ret
 }
 
-func (s *Site) Docs() []Doc {
-	var ret []Doc
+func (s *Site) Docs() []*Doc {
+	var ret []*Doc
 	for _, d := range s.docs {
-		ret = append(ret, d)
+		ret = append(ret, &d)
 	}
-	slices.SortFunc(ret, func(a, b Doc) int {
+	slices.SortFunc(ret, func(a, b *Doc) int {
 		return cmp.Compare(a.Path(), b.Path())
 	})
 	return ret
 }
 
-func (d *Doc) MimeType() string { return d.mime }
-func (d *Doc) Meta() *Metadata  { return d.meta }
-func (d *Doc) Path() string     { return d.path }
-
-func (d *Doc) RenderContent() ([]byte, error) {
-	b, err := d.contentRenderer.render(d.meta, d.data)
+func (s *Site) RenderContent(d *Doc) ([]byte, error) {
+	b, err := d.contentRenderer.render(s, d.meta, d.data)
 	if err != nil {
 		return nil, fmt.Errorf("rendering content of %s: %v", d.path, err)
 	}
 
-	dirs, err := directives.Parse(b)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse directives for %s: %v", d.path, err)
-	}
-
-	for _, dir := range dirs {
-		var err error
-		b, err = d.applyDirective(b, dir)
+	if d.contentRenderer != passthrough {
+		dirs, err := directives.Parse(b)
 		if err != nil {
-			return nil, fmt.Errorf("failed to apply directives for %s: %v", d.path, err)
+			return nil, fmt.Errorf("failed to parse directives for %s: %v", d.path, err)
+		}
+
+		for _, dir := range dirs {
+			var err error
+			b, err = s.applyDirective(d, b, dir)
+			if err != nil {
+				return nil, fmt.Errorf("failed to apply directives for %s: %v", d.path, err)
+			}
 		}
 	}
 
@@ -253,19 +243,19 @@ func (d *Doc) RenderContent() ([]byte, error) {
 }
 
 // RenderPage renders doc as a page.
-func (d *Doc) RenderPage() ([]byte, error) {
-	data, err := d.RenderContent()
+func (s *Site) RenderPage(d *Doc) ([]byte, error) {
+	data, err := s.RenderContent(d)
 	if err != nil {
 		return nil, err
 	}
-	b, err := d.pageRenderer.render(d.meta, data)
+	b, err := d.pageRenderer.render(s, d.meta, data)
 	if err != nil {
 		return nil, fmt.Errorf("rendering page for %s: %v", d.path, err)
 	}
 	return b, nil
 }
 
-func (d *Doc) applyDirective(in []byte, dir directives.Directive) ([]byte, error) {
+func (s *Site) applyDirective(d *Doc, in []byte, dir directives.Directive) ([]byte, error) {
 	switch dir.Name {
 	case "meta":
 		return in, nil
@@ -278,17 +268,32 @@ func (d *Doc) applyDirective(in []byte, dir directives.Directive) ([]byte, error
 		if err != nil {
 			return nil, fmt.Errorf("inline-snipped: %v", err)
 		}
+
+		t := s.templates.Lookup("fragments/include_snippet")
 		var buf bytes.Buffer
 		buf.Write(in[:dir.Pos])
-		buf.WriteString("<pre><code>")
-		buf.WriteString(html.EscapeString(string(b)))
-		buf.WriteString("</code></pre>")
+		err = t.Execute(&buf, struct {
+			File     string
+			FilePath string
+			Content  string
+		}{
+			File:     file,
+			FilePath: filepath.Join(d.path, file),
+			Content:  string(b),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("rendering include-snipped: %v", err)
+		}
 		buf.Write(in[dir.End:])
 		return buf.Bytes(), nil
 	default:
 		return nil, fmt.Errorf("unknown directive: %s", dir.Name)
 	}
 }
+
+func (d *Doc) MimeType() string { return d.mime }
+func (d *Doc) Meta() *Metadata  { return d.meta }
+func (d *Doc) Path() string     { return d.path }
 
 func parseMetadata(in []byte) (*Metadata, []byte, error) {
 	meta := Metadata{}

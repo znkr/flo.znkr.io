@@ -13,15 +13,21 @@ import (
 	"golang.org/x/tools/blog/atom"
 )
 
+var passthrough = &passthroughRenderer{}
+
+type renderer interface {
+	render(site *Site, meta *Metadata, data []byte) ([]byte, error)
+}
+
 type passthroughRenderer struct{}
 
-func (r *passthroughRenderer) render(meta *Metadata, data []byte) ([]byte, error) {
+func (r *passthroughRenderer) render(site *Site, meta *Metadata, data []byte) ([]byte, error) {
 	return data, nil
 }
 
 type markdownRenderer struct{}
 
-func (r *markdownRenderer) render(meta *Metadata, data []byte) ([]byte, error) {
+func (r *markdownRenderer) render(site *Site, meta *Metadata, data []byte) ([]byte, error) {
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.Footnote),
 		goldmark.WithParserOptions(
@@ -39,11 +45,10 @@ func (r *markdownRenderer) render(meta *Metadata, data []byte) ([]byte, error) {
 }
 
 type templateRenderer struct {
-	site     *Site
 	template *template.Template
 }
 
-func (r *templateRenderer) render(meta *Metadata, data []byte) ([]byte, error) {
+func (r *templateRenderer) render(site *Site, meta *Metadata, data []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	err := r.template.Execute(&buf, struct {
 		Meta    *Metadata
@@ -51,7 +56,7 @@ func (r *templateRenderer) render(meta *Metadata, data []byte) ([]byte, error) {
 		Content template.HTML
 	}{
 		Meta:    meta,
-		Site:    r.site,
+		Site:    site,
 		Content: template.HTML(data),
 	})
 	if err != nil {
@@ -60,12 +65,10 @@ func (r *templateRenderer) render(meta *Metadata, data []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-type feedRenderer struct {
-	site *Site
-}
+type feedRenderer struct{}
 
-func (r *feedRenderer) render(meta *Metadata, data []byte) ([]byte, error) {
-	articles := r.site.Articles()
+func (r *feedRenderer) render(site *Site, meta *Metadata, data []byte) ([]byte, error) {
+	articles := site.Articles()
 	updated := articles[0].meta.Updated
 
 	feed := atom.Feed{
@@ -79,7 +82,7 @@ func (r *feedRenderer) render(meta *Metadata, data []byte) ([]byte, error) {
 	}
 
 	for _, doc := range articles {
-		html, err := doc.RenderContent()
+		html, err := site.RenderContent(doc)
 		if err != nil {
 			return nil, err
 		}

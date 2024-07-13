@@ -39,7 +39,7 @@ func Pack(filename string, s *site.Site) error {
 	dirs := make(map[string]bool)
 
 	for _, d := range s.Docs() {
-		b, err := d.RenderPage()
+		b, err := s.RenderPage(d)
 		if err != nil {
 			return err
 		}

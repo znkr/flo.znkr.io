@@ -37,7 +37,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	b, err := doc.RenderPage()
+	b, err := h.site.RenderPage(doc)
 	if err != nil {
 		panic(err)
 	}
