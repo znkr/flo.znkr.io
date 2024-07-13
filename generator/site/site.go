@@ -1,9 +1,11 @@
 package site
 
 import (
+	"bytes"
 	"cmp"
 	"errors"
 	"fmt"
+	"html"
 	"html/template"
 	"io/fs"
 	"mime"
@@ -12,18 +14,25 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"flo.znkr.io/generator/directives"
 )
 
+// ErrNotFound is returned when documents are requested that don't exist.
 var ErrNotFound = errors.New("not found")
 
+// Site is an in-memory representation of the to be generated site.
 type Site struct {
 	docs map[string]Doc
 }
 
+// Doc is a single document of the site, that is anything that can be served as a static file.
 type Doc struct {
 	path            string
+	dir             string // directory of the file, used as a relative directory to load related files
 	mime            string
 	meta            *Metadata
+	directives      []directives.Directive
 	data            []byte
 	contentRenderer renderer
 	pageRenderer    renderer
@@ -46,6 +55,7 @@ type renderer interface {
 	render(meta *Metadata, data []byte) ([]byte, error)
 }
 
+// Load loads a site from the directory dir.
 func Load(dir string) (*Site, error) {
 	s := &Site{
 		docs: make(map[string]Doc),
@@ -79,6 +89,7 @@ func Load(dir string) (*Site, error) {
 		}
 
 		doc := Doc{
+			dir:             filepath.Dir(fpath),
 			contentRenderer: passthrough,
 			pageRenderer:    passthrough,
 		}
@@ -169,15 +180,19 @@ func readFile(file string) (*Metadata, []byte, error) {
 		return nil, nil, fmt.Errorf("reading file: %v", err)
 	}
 
-	var meta *Metadata
-	meta, data, err = parseMetadata(data)
-	if err != nil {
-		return nil, nil, fmt.Errorf("parsing metadata: %v", err)
-	}
+	if strings.HasSuffix(file, ".md") {
+		var meta *Metadata
+		meta, data, err = parseMetadata(data)
+		if err != nil {
+			return nil, nil, fmt.Errorf("parsing metadata: %v", err)
+		}
 
-	return meta, data, err
+		return meta, data, err
+	}
+	return nil, data, err
 }
 
+// Get returns the document for the given path, or ErrNotFound if the document cannot be found.
 func (s *Site) Get(path string) (Doc, error) {
 	c, ok := s.docs[path]
 	if !ok {
@@ -220,9 +235,24 @@ func (d *Doc) RenderContent() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("rendering content of %s: %v", d.path, err)
 	}
+
+	dirs, err := directives.Parse(b)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse directives for %s: %v", d.path, err)
+	}
+
+	for _, dir := range dirs {
+		var err error
+		b, err = d.applyDirective(b, dir)
+		if err != nil {
+			return nil, fmt.Errorf("failed to apply directives for %s: %v", d.path, err)
+		}
+	}
+
 	return b, nil
 }
 
+// RenderPage renders doc as a page.
 func (d *Doc) RenderPage() ([]byte, error) {
 	data, err := d.RenderContent()
 	if err != nil {
@@ -233,4 +263,96 @@ func (d *Doc) RenderPage() ([]byte, error) {
 		return nil, fmt.Errorf("rendering page for %s: %v", d.path, err)
 	}
 	return b, nil
+}
+
+func (d *Doc) applyDirective(in []byte, dir directives.Directive) ([]byte, error) {
+	switch dir.Name {
+	case "meta":
+		return in, nil
+	case "include-snippet":
+		file := dir.Attrs["file"]
+		if file == "" {
+			return nil, fmt.Errorf("inline-snipped: missing or empty file attribute")
+		}
+		b, err := os.ReadFile(filepath.Join(d.dir, file))
+		if err != nil {
+			return nil, fmt.Errorf("inline-snipped: %v", err)
+		}
+		var buf bytes.Buffer
+		buf.Write(in[:dir.Pos])
+		buf.WriteString("<pre><code>")
+		buf.WriteString(html.EscapeString(string(b)))
+		buf.WriteString("</code></pre>")
+		buf.Write(in[dir.End:])
+		return buf.Bytes(), nil
+	default:
+		return nil, fmt.Errorf("unknown directive: %s", dir.Name)
+	}
+}
+
+func parseMetadata(in []byte) (*Metadata, []byte, error) {
+	meta := Metadata{}
+
+	// Take title from first header. This assumes that every document starts with the header
+	// and doesn't have anything before it.
+	if len(in) > 2 && in[0] == '#' && in[1] == ' ' {
+		eol := slices.Index(in, '\n')
+		if eol < 0 {
+			return nil, in, nil
+		}
+		meta.Title = strings.TrimSpace(string(in[1:eol]))
+		in = in[eol:]
+	}
+
+	metadir, err := directives.ParseFirst(in, "meta")
+	switch {
+	case err == nil:
+		// nothing to do
+	case errors.Is(err, directives.ErrNotFound):
+		return &meta, in, nil
+	default:
+		return nil, nil, err
+	}
+
+	parseTime := func(key string) (time.Time, error) {
+		v, ok := metadir.Attrs[key]
+		if !ok {
+			return time.Time{}, nil
+		}
+		t, err := time.ParseInLocation("2006-01-02", v, tz)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("parsing %s: %v", key, err)
+		}
+		return t, nil
+	}
+	published, err := parseTime("published")
+	if err != nil {
+		return nil, nil, err
+	}
+	updated, err := parseTime("updated")
+	if err != nil {
+		return nil, nil, err
+	}
+	if updated.IsZero() {
+		updated = published
+	}
+
+	meta.Published = published
+	meta.Updated = updated
+	meta.Abstract = metadir.Attrs["summary"]
+	meta.GoImport = metadir.Attrs["go-import"]
+	meta.Redirect = metadir.Attrs["redirect"]
+	meta.Template = metadir.Attrs["template"]
+	meta.Article = metadir.Attrs["article"] != "false"
+	return &meta, in, nil
+}
+
+var tz *time.Location
+
+func init() {
+	var err error
+	tz, err = time.LoadLocation("Europe/Berlin")
+	if err != nil {
+		panic(err)
+	}
 }

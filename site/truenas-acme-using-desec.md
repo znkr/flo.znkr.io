@@ -1,10 +1,13 @@
-~~~
-    title: TrueNAS ACME using deSEC.io
-published: 2024-07-05
- abstract: TrueNAS only supports two DNS providers out of the box and needs a shell script when you
-           want to use a different provider. Unfortunately, there's not a lot of documentation about
-           how to write such a shell script.
-~~~
+# TrueNAS ACME using deSEC.io
+
+<!--#meta
+    published="2024-07-05"
+    summary="""
+        TrueNAS only supports two DNS providers out of the box and needs a shell script when you
+        want to use a different provider. Unfortunately, there's not a lot of documentation about
+        how to write such a shell script.
+        """
+-->
 
 TrueNAS can secure connections to its WebUI using ACME-provisioned TLS certificates. Because I don't
 want to expose TrueNAS to the internet, the best possible way to get a certificate is to use ACME

@@ -9,11 +9,13 @@ import (
 	"flo.znkr.io/generator/site"
 )
 
+// Server serves a single site via HTTP.
 type Server struct {
 	http    *http.Server
 	handler *proxyHandler
 }
 
+// New creates a new server, but doesn't start it.
 func New(addr string, site *site.Site) *Server {
 	h := new(proxyHandler)
 	h.set(&handler{
@@ -29,10 +31,12 @@ func New(addr string, site *site.Site) *Server {
 	}
 }
 
-func (s *Server) SetSite(site *site.Site) {
+// ReplaceSite replaces the site to serve with the one provided.
+func (s *Server) ReplaceSite(site *site.Site) {
 	s.handler.set(&handler{site: site})
 }
 
+// Start starts the server, it blocks until [Shutdown] is called.
 func (s *Server) Start() error {
 	if err := s.http.ListenAndServe(); err != nil {
 		return fmt.Errorf("starting HTTP server: %v", err)
@@ -40,6 +44,7 @@ func (s *Server) Start() error {
 	return nil
 }
 
+// Shutdown gracefully stops the sever.
 func (s *Server) Shutdown(ctx context.Context) error {
 	if err := s.http.Shutdown(ctx); err != nil {
 		return fmt.Errorf("shutting down HTTP sever: %v", err)

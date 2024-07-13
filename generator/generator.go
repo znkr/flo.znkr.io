@@ -109,7 +109,7 @@ var serveCmd = &cobra.Command{
 					log.Printf("failed to update site: %v", err)
 					continue
 				}
-				server.SetSite(s)
+				server.ReplaceSite(s)
 				d := time.Since(start)
 				log.Printf("Site reloaded (%v)", d)
 			case err := <-watcher.Errors:

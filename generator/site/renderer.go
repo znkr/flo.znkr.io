@@ -34,6 +34,7 @@ func (r *markdownRenderer) render(meta *Metadata, data []byte) ([]byte, error) {
 	if err := md.Convert(data, &buf); err != nil {
 		return nil, fmt.Errorf("rendering markdown: %v", err)
 	}
+
 	return buf.Bytes(), nil
 }
 

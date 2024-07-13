@@ -1,8 +1,9 @@
-~~~
-   title: About
-   template: page
-   article: false
-~~~
+# About
+
+<!--#meta
+   template="page"
+   article="false"
+-->
 
 <header style="display: flex; align-items: baseline;">
    <h1 style="margin-right: 0.5rem;">Florian Zenker</h1>
