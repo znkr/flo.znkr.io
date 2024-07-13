@@ -1,10 +1,13 @@
-~~~
-    title: Point-to-Point Routing
-published: 2024-07-06
- abstract: Adventures in IP routing when connecting my laptop's dock to my NAS via a 10G
-           point-to-point link in parallel to my 1G LAN link. Turns out, it's not too hard
-           to use the 10G link transparently.
-~~~
+# Point-to-Point Routing
+
+<!--#meta
+    published="2024-07-06"
+    summary="""
+        Adventures in IP routing when connecting my laptop's dock to my NAS via a 10G
+        point-to-point link in parallel to my 1G LAN link. Turns out, it's not too hard
+        to use the 10G link transparently.
+        """
+-->
 
 ## Background
 
