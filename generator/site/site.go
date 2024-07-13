@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"io/fs"
 	"mime"
 	"os"
@@ -230,13 +231,17 @@ func (s *Site) RenderContent(d *Doc) ([]byte, error) {
 			return nil, fmt.Errorf("failed to parse directives for %s: %v", d.path, err)
 		}
 
+		var buf bytes.Buffer
+		pos := 0
 		for _, dir := range dirs {
-			var err error
-			b, err = s.applyDirective(d, b, dir)
-			if err != nil {
+			buf.Write(b[pos:dir.Pos])
+			if err := s.applyDirective(&buf, d, dir); err != nil {
 				return nil, fmt.Errorf("failed to apply directives for %s: %v", d.path, err)
 			}
+			pos = dir.End
 		}
+		buf.Write(b[pos:])
+		b = buf.Bytes()
 	}
 
 	return b, nil
@@ -255,24 +260,22 @@ func (s *Site) RenderPage(d *Doc) ([]byte, error) {
 	return b, nil
 }
 
-func (s *Site) applyDirective(d *Doc, in []byte, dir directives.Directive) ([]byte, error) {
+func (s *Site) applyDirective(w io.Writer, d *Doc, dir directives.Directive) error {
 	switch dir.Name {
 	case "meta":
-		return in, nil
+		return nil
 	case "include-snippet":
 		file := dir.Attrs["file"]
 		if file == "" {
-			return nil, fmt.Errorf("inline-snipped: missing or empty file attribute")
+			return fmt.Errorf("inline-snipped: missing or empty file attribute")
 		}
 		b, err := os.ReadFile(filepath.Join(d.dir, file))
 		if err != nil {
-			return nil, fmt.Errorf("inline-snipped: %v", err)
+			return fmt.Errorf("inline-snipped: %v", err)
 		}
 
 		t := s.templates.Lookup("fragments/include_snippet")
-		var buf bytes.Buffer
-		buf.Write(in[:dir.Pos])
-		err = t.Execute(&buf, struct {
+		err = t.Execute(w, struct {
 			File     string
 			FilePath string
 			Content  string
@@ -282,12 +285,11 @@ func (s *Site) applyDirective(d *Doc, in []byte, dir directives.Directive) ([]by
 			Content:  string(b),
 		})
 		if err != nil {
-			return nil, fmt.Errorf("rendering include-snipped: %v", err)
+			return fmt.Errorf("rendering include-snipped: %v", err)
 		}
-		buf.Write(in[dir.End:])
-		return buf.Bytes(), nil
+		return nil
 	default:
-		return nil, fmt.Errorf("unknown directive: %s", dir.Name)
+		return fmt.Errorf("unknown directive: %s", dir.Name)
 	}
 }
 
