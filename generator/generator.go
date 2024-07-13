@@ -68,7 +68,8 @@ var serveCmd = &cobra.Command{
 			for i := range wl {
 				wl[i], _ = filepath.Rel(dir, wl[i])
 			}
-			log.Printf("Watching %v", wl)
+			slices.Sort(wl)
+			log.Printf("Watching:\n    %v", strings.Join(wl, "\n    "))
 		}
 
 		// Setup signals to react to Ctrl-C.
