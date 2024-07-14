@@ -185,13 +185,13 @@ func readFile(file string) (*Metadata, []byte, error) {
 	return nil, data, err
 }
 
-// Get returns the document for the given path, or ErrNotFound if the document cannot be found.
-func (s *Site) Get(path string) (*Doc, error) {
+// Get returns the document for the given path, or nil if the document cannot be found.
+func (s *Site) Get(path string) *Doc {
 	d, ok := s.docs[path]
 	if !ok {
-		return nil, ErrNotFound
+		return nil
 	}
-	return &d, nil
+	return &d
 }
 
 func (s *Site) Articles() []*Doc {

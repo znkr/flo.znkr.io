@@ -1,7 +1,6 @@
 package server
 
 import (
-	"errors"
 	"log"
 	"net/http"
 	"sync/atomic"
@@ -24,13 +23,9 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	doc, err := s.Get(req.URL.EscapedPath())
-	switch {
-	case errors.Is(err, site.ErrNotFound):
+	doc := s.Get(req.URL.EscapedPath())
+	if doc == nil {
 		w.WriteHeader(http.StatusNotFound)
-		return
-	case err != nil:
-		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
