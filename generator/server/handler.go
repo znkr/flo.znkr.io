@@ -25,19 +25,24 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	doc := s.Get(req.URL.EscapedPath())
 	if doc == nil {
+		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusNotFound)
+		if req.Method == http.MethodGet {
+			w.Write([]byte("not found"))
+		}
 		return
 	}
 
 	w.Header().Set("Content-Type", doc.MimeType())
-
 	if req.Method == http.MethodHead {
 		return
 	}
 
 	b, err := s.RenderPage(doc)
 	if err != nil {
+		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
 		log.Printf("failed to serve %v: %v", req.URL.EscapedPath(), err)
 		return
 	}
