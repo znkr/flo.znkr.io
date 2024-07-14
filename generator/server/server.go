@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sync"
 
 	"flo.znkr.io/generator/site"
 )
@@ -12,15 +11,13 @@ import (
 // Server serves a single site via HTTP.
 type Server struct {
 	http    *http.Server
-	handler *proxyHandler
+	handler *handler
 }
 
 // New creates a new server, but doesn't start it.
 func New(addr string, site *site.Site) *Server {
-	h := new(proxyHandler)
-	h.set(&handler{
-		site: site,
-	})
+	h := &handler{}
+	h.site.Store(site)
 	server := &http.Server{
 		Addr:    addr,
 		Handler: h,
@@ -33,7 +30,7 @@ func New(addr string, site *site.Site) *Server {
 
 // ReplaceSite replaces the site to serve with the one provided.
 func (s *Server) ReplaceSite(site *site.Site) {
-	s.handler.set(&handler{site: site})
+	s.handler.site.Store(site)
 }
 
 // Start starts the server, it blocks until [Shutdown] is called.
@@ -50,22 +47,4 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		return fmt.Errorf("shutting down HTTP sever: %v", err)
 	}
 	return nil
-}
-
-type proxyHandler struct {
-	mu      sync.Mutex
-	handler http.Handler
-}
-
-func (h *proxyHandler) set(handler http.Handler) {
-	h.mu.Lock()
-	h.handler = handler
-	h.mu.Unlock()
-}
-
-func (h *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	h.mu.Lock()
-	hh := h.handler
-	h.mu.Unlock()
-	hh.ServeHTTP(w, req)
 }

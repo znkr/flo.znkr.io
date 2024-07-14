@@ -3,15 +3,18 @@ package server
 import (
 	"errors"
 	"net/http"
+	"sync/atomic"
 
 	"flo.znkr.io/generator/site"
 )
 
 type handler struct {
-	site *site.Site
+	site atomic.Pointer[site.Site]
 }
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	s := h.site.Load()
+
 	switch req.Method {
 	case http.MethodGet:
 	case http.MethodHead:
@@ -20,7 +23,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	doc, err := h.site.Get(req.URL.EscapedPath())
+	doc, err := s.Get(req.URL.EscapedPath())
 	switch {
 	case errors.Is(err, site.ErrNotFound):
 		w.WriteHeader(http.StatusNotFound)
@@ -37,7 +40,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	b, err := h.site.RenderPage(doc)
+	b, err := s.RenderPage(doc)
 	if err != nil {
 		panic(err)
 	}
