@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"sync/atomic"
 
@@ -34,7 +35,6 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", doc.MimeType())
-	w.WriteHeader(http.StatusOK)
 
 	if req.Method == http.MethodHead {
 		return
@@ -42,10 +42,13 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	b, err := s.RenderPage(doc)
 	if err != nil {
-		panic(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Printf("failed to serve %v: %v", req.URL.EscapedPath(), err)
+		return
 	}
 
+	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(b); err != nil {
-		panic(err)
+		log.Printf("failed to write response: %v", err)
 	}
 }
