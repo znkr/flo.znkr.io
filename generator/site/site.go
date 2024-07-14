@@ -274,13 +274,15 @@ func (s *Site) applyDirective(w io.Writer, d *Doc, dir directives.Directive) err
 			return fmt.Errorf("inline-snipped: %v", err)
 		}
 
+		display := cmp.Or(dir.Attrs["display"], file)
+
 		t := s.templates.Lookup("fragments/include_snippet")
 		err = t.Execute(w, struct {
 			File     string
 			FilePath string
 			Content  string
 		}{
-			File:     file,
+			File:     display,
 			FilePath: filepath.Join(d.path, file),
 			Content:  string(b),
 		})
