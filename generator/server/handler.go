@@ -23,7 +23,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	doc := s.Get(req.URL.EscapedPath())
+	doc := s.Doc(req.URL.EscapedPath())
 	if doc == nil {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusNotFound)
