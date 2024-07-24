@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"flo.znkr.io/generator/directives"
+	"flo.znkr.io/generator/highlight"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -104,17 +105,26 @@ func (r *directivesRenderer) render(s *Site, doc *Doc, data []byte) ([]byte, err
 				return nil, fmt.Errorf("include-snippet: %v", err)
 			}
 
-			display := cmp.Or(dir.Attrs["display"], file)
+			lopt := highlight.Filename(file)
+			if lang, ok := dir.Attrs["lang"]; ok {
+				lopt = highlight.Lang(lang)
+			}
+			lines, err := highlight.Highlight(string(b), lopt)
+			if err != nil {
+				return nil, fmt.Errorf("include-snippet: %v", err)
 
+			}
+
+			display := cmp.Or(dir.Attrs["display"], file)
 			t := s.templates.Lookup("fragments/include_snippet")
 			err = t.Execute(&buf, struct {
 				File     string
 				FilePath string
-				Content  string
+				Lines    []highlight.Line
 			}{
 				File:     display,
 				FilePath: filepath.Join(doc.Path(), file),
-				Content:  string(b),
+				Lines:    lines,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("rendering include-snipped: %v", err)

@@ -6,6 +6,7 @@
     --color-background-accented-extra: #ababab;
     --color-text: #000000;
     --color-text-soft: #404040;
+    --color-text-soft-extra: #808080;
     --color-text-link: #247BA0;
 }
 
@@ -127,31 +128,87 @@ main {
     font-size: 1rem;
 }
 
-.content pre,
-.code-snippet a {
+.content pre {
     background: var(--color-background-accented);
-    width: auto;
+    width: 100%;
     padding: 0.626rem 1.25rem;
     border-radius: 0.3125rem;
     font-family: monospace;
 }
 
-.code-snippet pre {
-    border-radius: 0 0 0.3125rem 0.3125rem !important;
-    padding-top: 0.5em;
+.code-snippet {
+    width: 100%;
+    font-family: monospace;
+    border-collapse: collapse;
+    border-spacing: 0;
+    border: 0;
+    background: var(--color-background-accented);
+    border-radius: 0 0 0.3125rem 0.3125rem;
     margin-top: 0;
 }
 
+.code-snippet tr {
+    height: 1.4em;
+}
 
-.code-snippet a {
-    display: block;
-    background: var(--color-background-accented-extra);
-    color: var(--color-background);
-    border-radius: 0.3125rem 0.3125rem 0 0 !important;
+.code-snippet tr:first-child td {
     padding-top: 0.5em;
+}
+
+.code-snippet tr:last-child td {
     padding-bottom: 0.5em;
+}
+
+.code-snippet caption {
+    caption-side: top;
+    text-align: left;
+    background: var(--color-background-accented-extra);
+    border-radius: 0.3125rem 0.3125rem 0 0;
+    padding: 0.4em 1.0em;
     margin-bottom: 0;
 }
+
+.code-snippet a {
+    font-weight: normal;
+    color: var(--color-background);
+}
+
+.code-snippet .line-no {
+    text-align: right;
+    color: var(--color-text-soft-extra);
+
+    -webkit-user-select: none;
+    user-select: none;
+    margin-right: 0.4em;
+    padding: 0 0.5em 0 0.4em
+}
+
+.code-snippet .code {
+    white-space: pre;
+    padding: 0 0.5em 0 0.4em;
+    -moz-tab-size: 4;
+    -o-tab-size: 4;
+    tab-size: 4;
+}
+
+
+.hl-b {
+    font-weight: bold;
+}
+
+.hl-bl {
+    font-weight: bold;
+}
+
+.hl-i {
+    font-style: italic;
+}
+
+.hl-ii {
+    font-style: italic;
+    color: var(--color-text-soft);
+}
+
 
 .content-header {
     text-align: center;

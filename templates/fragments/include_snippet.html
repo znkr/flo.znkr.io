@@ -1,4 +1,14 @@
-<section class="code-snippet">
-<a href="https://github.com/znkr/flo.znkr.io/tree/main/site{{ .FilePath }}">{{ .File }}</a>
-<pre><code>{{ .Content }}</code></pre>
-</section>
+<table class="code-snippet">
+<caption>
+    <a href="https://github.com/znkr/flo.znkr.io/tree/main/site{{ .FilePath }}">{{ .File }}</a>
+</caption>
+</thead>
+<tbody>
+    {{- range .Lines}}
+    <tr>
+        <td class="line-no">{{ .LineNo }}</td>
+        <td class="code"><code>{{ .Content }}</code></td>
+    </tr>
+    {{- end -}}
+</tbody>
+</table>
