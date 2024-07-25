@@ -1,6 +1,6 @@
 module flo.znkr.io
 
-go 1.22.1
+go 1.22.5
 
 require (
 	github.com/alecthomas/chroma/v2 v2.14.0
