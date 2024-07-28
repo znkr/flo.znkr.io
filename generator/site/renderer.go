@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"flo.znkr.io/generator/diff"
 	"flo.znkr.io/generator/directives"
 	"flo.znkr.io/generator/highlight"
 	"github.com/yuin/goldmark"
@@ -95,6 +96,7 @@ func (r *directivesRenderer) render(s *Site, doc *Doc, data []byte) ([]byte, err
 		switch dir.Name {
 		case "meta":
 			// nothing to do
+
 		case "include-snippet":
 			file := dir.Attrs["file"]
 			if file == "" {
@@ -105,14 +107,13 @@ func (r *directivesRenderer) render(s *Site, doc *Doc, data []byte) ([]byte, err
 				return nil, fmt.Errorf("include-snippet: %v", err)
 			}
 
-			lopt := highlight.Filename(file)
+			lopt := highlight.LangFromFilename(file)
 			if lang, ok := dir.Attrs["lang"]; ok {
 				lopt = highlight.Lang(lang)
 			}
 			lines, err := highlight.Highlight(string(b), lopt)
 			if err != nil {
 				return nil, fmt.Errorf("include-snippet: %v", err)
-
 			}
 
 			display := cmp.Or(dir.Attrs["display"], file)
@@ -129,6 +130,50 @@ func (r *directivesRenderer) render(s *Site, doc *Doc, data []byte) ([]byte, err
 			if err != nil {
 				return nil, fmt.Errorf("rendering include-snipped: %v", err)
 			}
+
+		case "include-diff":
+			afile := dir.Attrs["a"]
+			if afile == "" {
+				return nil, fmt.Errorf("include-diff: missing or empty file attribute")
+			}
+			a, err := os.ReadFile(filepath.Join(doc.Dir(), afile))
+			if err != nil {
+				return nil, fmt.Errorf("include-snippet: %v", err)
+			}
+
+			bfile := dir.Attrs["b"]
+			if afile == "" {
+				return nil, fmt.Errorf("include-diff: missing or empty file attribute")
+			}
+			b, err := os.ReadFile(filepath.Join(doc.Dir(), bfile))
+			if err != nil {
+				return nil, fmt.Errorf("include-diff: %v", err)
+			}
+
+			lopt := highlight.LangFromFilename(afile)
+			if lang, ok := dir.Attrs["lang"]; ok {
+				lopt = highlight.Lang(lang)
+			}
+			ab, err := highlight.Diff(string(a), string(b), lopt)
+			if err != nil {
+				return nil, fmt.Errorf("include-diff: %v", err)
+			}
+
+			display := cmp.Or(dir.Attrs["display"], bfile)
+			t := s.templates.Lookup("fragments/include_diff")
+			err = t.Execute(&buf, struct {
+				File     string
+				FilePath string
+				Diff     []diff.Edit[highlight.Line]
+			}{
+				File:     display,
+				FilePath: filepath.Join(doc.Path(), bfile),
+				Diff:     ab,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("rendering include-diff: %v", err)
+			}
+
 		default:
 			return nil, fmt.Errorf("unknown directive: %s", dir.Name)
 		}

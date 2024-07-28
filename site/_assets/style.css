@@ -3,6 +3,7 @@
     --color-text-header: #000000;
     --color-background: #ffffff;
     --color-background-accented: #eeeeee;
+    --color-background-accented-dimmed: #e4e4e4;
     --color-background-accented-extra: #ababab;
     --color-text: #000000;
     --color-text-soft: #404040;
@@ -147,6 +148,15 @@ main {
     margin-top: 0;
 }
 
+.code-snippet .hunk {
+    color: var(--color-text-soft-extra);
+}
+
+.code-snippet .delete {
+    background: var(--color-background-accented-dimmed);
+    color: var(--color-text-soft-extra);
+}
+
 .code-snippet tr {
     height: 1.4em;
 }
@@ -157,6 +167,10 @@ main {
 
 .code-snippet tr:last-child td {
     padding-bottom: 0.5em;
+}
+
+.code-snippet tr td:first-child {
+    padding-left: 0.4em
 }
 
 .code-snippet caption {
@@ -173,19 +187,19 @@ main {
     color: var(--color-background);
 }
 
-.code-snippet .line-no {
+.code-snippet .line-no,
+.code-snippet .op {
     text-align: right;
     color: var(--color-text-soft-extra);
 
     -webkit-user-select: none;
     user-select: none;
     margin-right: 0.4em;
-    padding: 0 0.5em 0 0.4em
 }
 
 .code-snippet .code {
     white-space: pre;
-    padding: 0 0.5em 0 0.4em;
+    padding: 0 0.5em 0 0.625em;
     -moz-tab-size: 4;
     -o-tab-size: 4;
     tab-size: 4;
