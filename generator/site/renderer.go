@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"flo.znkr.io/generator/diff"
 	"flo.znkr.io/generator/directives"
 	"flo.znkr.io/generator/highlight"
 	"github.com/yuin/goldmark"
@@ -164,7 +163,7 @@ func (r *directivesRenderer) render(s *Site, doc *Doc, data []byte) ([]byte, err
 			err = t.Execute(&buf, struct {
 				File     string
 				FilePath string
-				Diff     []diff.Edit[highlight.Line]
+				Diff     []highlight.Edit
 			}{
 				File:     display,
 				FilePath: filepath.Join(doc.Path(), bfile),

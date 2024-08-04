@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"html"
 	"html/template"
-	"slices"
 	"strings"
 
 	"flo.znkr.io/generator/diff"
@@ -67,43 +66,61 @@ func Highlight(in string, opts ...Option) ([]Line, error) {
 	return ret, nil
 }
 
-func Diff(a, b string, opts ...Option) ([]diff.Edit[Line], error) {
+type Edit struct {
+	Op      diff.Op
+	XLineNo int
+	YLineNo int
+	Content template.HTML
+}
+
+func (ed *Edit) IsMatch() bool  { return ed.Op == diff.Match }
+func (ed *Edit) IsDelete() bool { return ed.Op == diff.Delete }
+func (ed *Edit) IsInsert() bool { return ed.Op == diff.Insert }
+
+func Diff(a, b string, opts ...Option) ([]Edit, error) {
 	hl := fromOptions(opts)
-	alines, err := hl.lines(a)
+
+	hlalines, err := hl.lines(a)
 	if err != nil {
 		return nil, fmt.Errorf("parsing a: %v", err)
 	}
-	blines, err := hl.lines(b)
+	hlblines, err := hl.lines(b)
 	if err != nil {
 		return nil, fmt.Errorf("parsing b: %v", err)
 	}
 
-	edits := diff.Diff(alines, blines, func(xs, ys []chroma.Token) bool { return slices.Equal(xs, ys) })
+	var alines []string
+	for _, l := range hlalines {
+		var sb strings.Builder
+		for _, t := range l {
+			sb.WriteString(t.Value)
+		}
+		alines = append(alines, sb.String())
+	}
+	var blines []string
+	for _, l := range hlblines {
+		var sb strings.Builder
+		for _, t := range l {
+			sb.WriteString(t.Value)
+		}
+		blines = append(blines, sb.String())
+	}
+	edits := diff.Diff(alines, blines)
 
-	ret := make([]diff.Edit[Line], 0, len(edits))
-	s, t := 1, 1
+	ret := make([]Edit, 0, len(edits))
+	s, t := 0, 0
 	for _, edit := range edits {
 		switch edit.Op {
 		case diff.Match:
+			ret = append(ret, Edit{edit.Op, s + 1, t + 1, template.HTML(hl.highlight(hlalines[s]))})
 			s++
 			t++
-			ret = append(ret, diff.Edit[Line]{
-				Op: edit.Op,
-				X:  Line{s, template.HTML(hl.highlight(edit.X))},
-				Y:  Line{t, template.HTML(hl.highlight(edit.Y))},
-			})
 		case diff.Delete:
+			ret = append(ret, Edit{edit.Op, s + 1, -1, template.HTML(hl.highlight(hlalines[s]))})
 			s++
-			ret = append(ret, diff.Edit[Line]{
-				Op: edit.Op,
-				X:  Line{s, template.HTML(hl.highlight(edit.X))},
-			})
 		case diff.Insert:
+			ret = append(ret, Edit{edit.Op, -1, t + 1, template.HTML(hl.highlight(hlblines[t]))})
 			t++
-			ret = append(ret, diff.Edit[Line]{
-				Op: edit.Op,
-				Y:  Line{t, template.HTML(hl.highlight(edit.Y))},
-			})
 		}
 	}
 	return ret, nil

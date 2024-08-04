@@ -7,24 +7,24 @@
     {{- range .Diff -}}
         {{- if .IsMatch -}}
             <tr class="match">
-                <td class="line-no">{{ .X.LineNo }}</td>
-                <td class="line-no">{{ .Y.LineNo }}</td>
+                <td class="line-no">{{ .XLineNo }}</td>
+                <td class="line-no">{{ .YLineNo }}</td>
                 <td class="op"> </td>
-                <td class="code"><code>{{ .X.Content }}</code></td>
+                <td class="code"><code>{{ .Content }}</code></td>
             </tr>
         {{- else if .IsDelete -}}
             <tr class="delete">
-                <td class="line-no">{{ .X.LineNo }}</td>
+                <td class="line-no">{{ .XLineNo }}</td>
                 <td class="line-no"></td>
                 <td class="op">-</td>
-                <td class="code"><code>{{ .X.Content }}</code></td>
+                <td class="code"><code>{{ .Content }}</code></td>
             </tr>
         {{- else if .IsInsert -}}
             <tr class="insert">
                 <td class="line-no"></td>
-                <td class="line-no">{{ .Y.LineNo }}</td>
+                <td class="line-no">{{ .YLineNo }}</td>
                 <td class="op">+</td>
-                <td class="code"><code>{{ .Y.Content }}</code></td>
+                <td class="code"><code>{{ .Content }}</code></td>
             </tr>
         {{- end -}}
     {{- end -}}

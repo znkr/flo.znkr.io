@@ -1,17 +1,3 @@
-// Copyright 2024 Florian Zenker (flo@znkr.io)
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 // Package diff provides functionality for diffing two slices of an arbitrary type with an arbitrary
 // equality operator.
 package diff
@@ -27,8 +13,10 @@ package diff
 // https://blog.jcoglan.com/2017/02/17/the-myers-diff-algorithm-part-3/
 
 import (
+	"cmp"
 	"fmt"
 	"slices"
+	"unicode"
 )
 
 const debug bool = false
@@ -51,38 +39,33 @@ const (
 //     set to the zero value
 //   - For Insert, Y is set to he element of the right slice that's missing in the left one and X is
 //     set to the zero value
-type Edit[T any] struct {
-	Op   Op
-	X, Y T
+type Edit struct {
+	Op     Op
+	String string
 }
 
-func (ed *Edit[T]) IsMatch() bool  { return ed.Op == Match }
-func (ed *Edit[T]) IsDelete() bool { return ed.Op == Delete }
-func (ed *Edit[T]) IsInsert() bool { return ed.Op == Insert }
-
 // Diff performs an element wise diff of x and y using eq for equality comparison.
-func Diff[T any](x, y []T, eq func(x, y T) bool) []Edit[T] {
-	var edits, suffix []Edit[T]
-	var zero T
+func Diff(x, y []string) []Edit {
+	var edits, suffix []Edit
 
 	// Try to reduce the amount of work necessary by skipping a common prefix
-	if lcp := longestCommonPrefix(x, y, eq); lcp > 0 {
-		edits = slices.Grow(edits, lcp)
-		for i := range lcp {
-			edits = append(edits, Edit[T]{Match, x[i], y[i]})
+	if n := longestCommonPrefix(x, y); n > 0 {
+		edits = slices.Grow(edits, n)
+		for i := range n {
+			edits = append(edits, Edit{Match, x[i]})
 		}
-		x = x[lcp:]
-		y = y[lcp:]
+		x = x[n:]
+		y = y[n:]
 	}
 
 	// Try to reduce the amount of work necessary by skipping a common suffix
-	if lcs := longestCommonSuffix(x, y, eq); lcs > 0 {
-		suffix = make([]Edit[T], 0, lcs)
-		for i := range lcs {
-			suffix = append(suffix, Edit[T]{Match, x[len(x)-lcs+i], y[len(y)-lcs+i]})
+	if n := longestCommonSuffix(x, y); n > 0 {
+		suffix = make([]Edit, 0, n)
+		for i := range n {
+			suffix = append(suffix, Edit{Match, x[len(x)-n+i]})
 		}
-		x = x[:len(x)-lcs]
-		y = y[:len(y)-lcs]
+		x = x[:len(x)-n]
+		y = y[:len(y)-n]
 	}
 
 	switch {
@@ -91,50 +74,49 @@ func Diff[T any](x, y []T, eq func(x, y T) bool) []Edit[T] {
 	case len(x) == 0:
 		edits = slices.Grow(edits, len(y))
 		for i := range y {
-			edits = append(edits, Edit[T]{Insert, zero, y[i]})
+			edits = append(edits, Edit{Insert, y[i]})
 		}
 	case len(y) == 0:
 		edits = slices.Grow(edits, len(x))
 		for i := range x {
-			edits = append(edits, Edit[T]{Delete, x[i], zero})
+			edits = append(edits, Edit{Delete, x[i]})
 		}
 	default:
-		edits = findShortestEditSequence(edits, x, y, eq)
+		edits = findShortestEditSequence(edits, x, y)
 	}
 
-	return append(edits, suffix...)
+	return postProcess(append(edits, suffix...))
 }
 
-func longestCommonPrefix[T any](x, y []T, eq func(x, y T) bool) int {
+func longestCommonPrefix(x, y []string) int {
 	n := min(len(x), len(y))
 	for i := range n {
-		if !eq(x[i], y[i]) {
+		if x[i] != y[i] {
 			return i
 		}
 	}
 	return n
 }
 
-func longestCommonSuffix[T any](x, y []T, eq func(x, y T) bool) int {
+func longestCommonSuffix(x, y []string) int {
 	n := min(len(x), len(y))
 	if n == 0 {
 		return 0
 	}
 	for i := range n - 1 {
-		if !eq(x[len(x)-i-1], y[len(y)-i-1]) {
+		if x[len(x)-i-1] != y[len(y)-i-1] {
 			return i
 		}
 	}
 	return n - 1
 }
 
-func findShortestEditSequence[T any](edits []Edit[T], x, y []T, eq func(x, y T) bool) []Edit[T] {
-	var zero T
+func findShortestEditSequence(edits []Edit, x, y []string) []Edit {
 	if len(x)+len(y) < 0 {
 		panic("inputs too large")
 	}
 
-	v := computeMyersGraph(x, y, eq)
+	v := computeMyersGraph(x, y)
 
 	// Appends diffs in reverse order by backtracking along the edges in the MyersGraph to diffs and
 	// reverses them in place.
@@ -167,7 +149,7 @@ func findShortestEditSequence[T any](edits []Edit[T], x, y []T, eq func(x, y T) 
 		prevT := prevS - prevK
 
 		for prevS < s && prevT < t {
-			edits = append(edits, Edit[T]{Match, x[s-1], y[t-1]})
+			edits = append(edits, Edit{Match, x[s-1]})
 			s--
 			t--
 		}
@@ -182,14 +164,14 @@ func findShortestEditSequence[T any](edits []Edit[T], x, y []T, eq func(x, y T) 
 			}
 		}
 		if prevS == s {
-			edits = append(edits, Edit[T]{Insert, zero, y[prevT]})
+			edits = append(edits, Edit{Insert, y[prevT]})
 		} else {
 			if debug {
 				if prevT != t {
 					panic("invariant violation")
 				}
 			}
-			edits = append(edits, Edit[T]{Delete, x[prevS], zero})
+			edits = append(edits, Edit{Delete, x[prevS]})
 		}
 
 		s = prevS
@@ -243,7 +225,7 @@ func (g *myersGraph) index(d, k int) int {
 	return i + j
 }
 
-func computeMyersGraph[T any](x, y []T, eq func(x, y T) bool) myersGraph {
+func computeMyersGraph(x, y []string) myersGraph {
 	v := myersGraph{maxDepth: -1}
 	dMax := len(x) + len(y)
 	for d := range dMax + 1 {
@@ -260,7 +242,7 @@ func computeMyersGraph[T any](x, y []T, eq func(x, y T) bool) myersGraph {
 			t := s - k
 
 			if s < len(x) && t < len(y) {
-				lcp := longestCommonPrefix(x[s:], y[t:], eq)
+				lcp := longestCommonPrefix(x[s:], y[t:])
 				s += lcp
 				t += lcp
 			}
@@ -273,4 +255,244 @@ func computeMyersGraph[T any](x, y []T, eq func(x, y T) bool) myersGraph {
 		}
 	}
 	panic("never reached")
+}
+
+// The heuristics below are copied from https://github.com/git/git/tree/master/xdiff, however it's
+// quite likely that I got something wrong and that they are doing something different than they
+// should be doing.
+
+// Never move a group more than this many lines.
+const maxSliding = 100
+
+func postProcess(edits []Edit) []Edit {
+	for start, end := 0, 0; start < len(edits); start = end {
+		op := edits[start].Op
+		// find next group
+		for end = start; end < len(edits); end++ {
+			if edits[end].Op != op {
+				break
+			}
+		}
+
+		if op == Match {
+			// Don't touch match groups
+			continue
+		}
+
+		groupSize := 0     // size of the group
+		earliestEnd := end // highest line that the group can be shifted to
+		for ; groupSize != end-start; groupSize = end - start {
+			// slide up as much as possible and merge with adjacent groups
+			for start > 0 && edits[start-1].String == edits[end-1].String {
+				edits[start-1], edits[end-1] = edits[end-1], edits[start-1]
+				start--
+				end--
+
+				for start > 0 && edits[start-1].Op == op {
+					start--
+				}
+			}
+
+			earliestEnd = end
+
+			// slide down as much as possible and merge with adjacent groups
+			for end < len(edits) && edits[start].String == edits[end].String {
+				edits[start], edits[end] = edits[end], edits[start]
+				start++
+				end++
+
+				for end < len(edits) && edits[end].Op == op {
+					end++
+				}
+			}
+		}
+
+		if end == earliestEnd {
+			// no shifting possible
+			continue
+		}
+
+		// The group can be shifted around somewhat, we can use the possible shift range to apply
+		// heuristics that make the diff easier to read. Right now, the group is shifted to it's
+		// lowest position, so we only have to consider upward shifts.
+
+		shift := max(earliestEnd, end-groupSize-1, end-maxSliding)
+		bestShift := -1
+		bestScore := score{}
+		for ; shift <= end; shift++ {
+			s := score{}
+			s.add(measureSplit(edits, shift))
+			s.add(measureSplit(edits, shift-groupSize))
+			if bestShift == -1 || s.isBetterThan(bestScore) {
+				bestShift = shift
+				bestScore = s
+			}
+		}
+
+		for end > bestShift {
+			edits[start-1], edits[end-1] = edits[end-1], edits[start-1]
+			start--
+			end--
+		}
+	}
+	return edits
+}
+
+type measure struct {
+	eof        bool
+	indent     int
+	preBlank   int
+	preIndent  int
+	postBlank  int
+	postIndent int
+}
+
+// Don't consider more than this number of consecutive blank lines. This is to bound the work
+// and avoid integer overflows.
+const maxBlanks = 20
+
+func measureSplit(edits []Edit, split int) measure {
+	m := measure{}
+	if split >= len(edits) {
+		m.eof = true
+		m.indent = -1
+	} else {
+		m.indent = getIndent(edits[split])
+	}
+
+	m.preIndent = -1
+	for i := split - 1; i >= 0; i-- {
+		m.preIndent = getIndent(edits[i])
+		if m.preIndent != -1 {
+			break
+		}
+		m.preBlank++
+		if m.preBlank == maxBlanks {
+			m.preIndent = 0
+			break
+		}
+	}
+
+	m.postIndent = -1
+	for i := split + 1; i < len(edits); i++ {
+		m.postIndent = getIndent(edits[i])
+		if m.postIndent != -1 {
+			break
+		}
+		m.postBlank++
+		if m.postBlank == maxBlanks {
+			m.postIndent = 0
+			break
+		}
+	}
+	return m
+}
+
+// We don't care if a line is indented more than this and clamp the value to maxIndent. That way,
+// we don't overflow an int and avoid unnecessary work on input that's not human readable text.
+const maxIndent = 200
+
+func getIndent(edit Edit) int {
+	indent := 0
+	for _, r := range edit.String {
+		if !unicode.IsSpace(r) {
+			return indent
+		}
+		switch r {
+		case ' ':
+			indent++
+		case '\t':
+			indent += 8 - indent&8
+		default:
+			// ignore all other spaces
+		}
+		if indent >= maxIndent {
+			return maxIndent
+		}
+	}
+	return -1 // only whitespace
+}
+
+type score struct {
+	effectiveIndent int // smaller is better
+	penalty         int // smaller is better
+}
+
+const startOfFilePenalty = 1               // No no-blank lines before the split
+const endOfFilePenalty = 21                // No non-blank lines after the split
+const totalBlankWeight = -30               // Weight for number of blank lines around the split
+const postBlankWeight = 6                  // Weight for number of blank lines after the split
+const relativeIndentPenalty = -4           // Indented more than predecessor
+const relativeIndentWithBlankPenalty = 10  // Indented more than predecessor, with blank lines
+const relativeOutdentPenalty = 24          // Indented less than predecessor
+const relativeOutdentWithBlankPenalty = 17 // Indented less than predecessor, with blank lines
+const relativeDentPenalty = 23             // Indented less than predecessor but not less than successor
+const relativeDentWithBlankPenalty = 17    // Indented less than predecessor but not less than successor, with blank lines
+
+// We only consider whether the sum of the effective indents for splits are less than (-1), equal
+// to (0), or greater than (+1) each other. The resulting value is multiplied by the following
+// weight and combined with the penalty to determine the better of two scores.
+const indentWeight = 60
+
+func (s *score) add(m measure) {
+	if m.preIndent == 01 && m.preBlank == 0 {
+		s.penalty += startOfFilePenalty
+	}
+	if m.eof {
+		s.penalty += endOfFilePenalty
+	}
+
+	postBlank := 0
+	if m.indent == -1 {
+		postBlank = 1 + m.postBlank
+	}
+	totalBlank := m.preBlank + postBlank
+
+	// Penalties based on nearby blank lines
+	s.penalty += totalBlankWeight * totalBlank
+	s.penalty += postBlankWeight * postBlank
+
+	indent := m.indent
+	if indent == -1 {
+		indent = m.postIndent
+	}
+
+	s.effectiveIndent += indent
+
+	if indent == -1 || m.preIndent == -1 {
+		// No additional adjustment needed.
+	} else if indent > m.preIndent {
+		// The line is indented more than it's predecessors.
+		if totalBlank != 0 {
+			s.penalty += relativeIndentWithBlankPenalty
+		} else {
+			s.penalty = relativeIndentPenalty
+		}
+	} else if indent == m.preIndent {
+		// Same indentation as previous line, no adjustments need.
+	} else {
+		// Line is indented more than it's  predecessor. It could be the block terminator of the
+		// previous block, but it could also be the start of a new block (e.g., an "else" block, or
+		// maybe the previous block didn't have a block terminator).Try to distinguish those cases
+		// based on what comes next.
+		if m.postIndent != -1 && m.postIndent > indent {
+			// The following line is indented more. So it's likely that this line is the start of a
+			// block.
+			if totalBlank != 0 {
+				s.penalty += relativeOutdentWithBlankPenalty
+			} else {
+				s.penalty += relativeOutdentPenalty
+			}
+		} else {
+			if totalBlank != 0 {
+				s.penalty += relativeDentWithBlankPenalty
+			} else {
+				s.penalty += relativeDentPenalty
+			}
+		}
+	}
+}
+
+func (s *score) isBetterThan(t score) bool {
+	return indentWeight*cmp.Compare(s.effectiveIndent, t.effectiveIndent)+s.penalty-t.penalty <= 0
 }
