@@ -153,7 +153,7 @@ func (r *directivesRenderer) render(s *Site, doc *Doc, data []byte) ([]byte, err
 			if lang, ok := dir.Attrs["lang"]; ok {
 				lopt = highlight.Lang(lang)
 			}
-			ab, err := highlight.Diff(string(a), string(b), lopt)
+			diff, err := highlight.Diff(string(a), string(b), lopt)
 			if err != nil {
 				return nil, fmt.Errorf("include-diff: %v", err)
 			}
@@ -167,7 +167,7 @@ func (r *directivesRenderer) render(s *Site, doc *Doc, data []byte) ([]byte, err
 			}{
 				File:     display,
 				FilePath: filepath.Join(doc.Path(), bfile),
-				Diff:     ab,
+				Diff:     diff,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("rendering include-diff: %v", err)

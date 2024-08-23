@@ -266,17 +266,21 @@ const maxSliding = 100
 
 func postProcess(edits []Edit) []Edit {
 	for start, end := 0, 0; start < len(edits); start = end {
-		op := edits[start].Op
-		// find next group
-		for end = start; end < len(edits); end++ {
-			if edits[end].Op != op {
+		for ; start < len(edits); start++ {
+			if edits[start].Op != Match {
 				break
 			}
 		}
 
-		if op == Match {
-			// Don't touch match groups
-			continue
+		if start == len(edits) {
+			break
+		}
+
+		// find next group
+		for end = start; end < len(edits); end++ {
+			if edits[end].Op == Match {
+				break
+			}
 		}
 
 		groupSize := 0     // size of the group
@@ -288,7 +292,7 @@ func postProcess(edits []Edit) []Edit {
 				start--
 				end--
 
-				for start > 0 && edits[start-1].Op == op {
+				for start > 0 && edits[start-1].Op != Match {
 					start--
 				}
 			}
@@ -301,7 +305,7 @@ func postProcess(edits []Edit) []Edit {
 				start++
 				end++
 
-				for end < len(edits) && edits[end].Op == op {
+				for end < len(edits) && edits[end].Op != Match {
 					end++
 				}
 			}

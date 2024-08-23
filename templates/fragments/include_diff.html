@@ -1,26 +1,25 @@
-<table class="code-snippet">
+<table class="code-snippet diff">
 <caption>
     <a href="https://github.com/znkr/flo.znkr.io/tree/main/site{{ .FilePath }}">{{ .File }}</a>
 </caption>
-</thead>
 <tbody>
     {{- range .Diff -}}
         {{- if .IsMatch -}}
-            <tr class="match">
+            <tr class="src match" data-op="match" data-x-lineno="{{ .XLineNo }}" data-y-lineno="{{ .YLineNo }}">
                 <td class="line-no">{{ .XLineNo }}</td>
                 <td class="line-no">{{ .YLineNo }}</td>
                 <td class="op"> </td>
                 <td class="code"><code>{{ .Content }}</code></td>
             </tr>
         {{- else if .IsDelete -}}
-            <tr class="delete">
+            <tr class="src delete" data-op="delete" data-x-lineno="{{ .XLineNo }}">
                 <td class="line-no">{{ .XLineNo }}</td>
                 <td class="line-no"></td>
                 <td class="op">-</td>
                 <td class="code"><code>{{ .Content }}</code></td>
             </tr>
         {{- else if .IsInsert -}}
-            <tr class="insert">
+            <tr class="src insert" data-op="insert" data-y-lineno="{{ .YLineNo }}">
                 <td class="line-no"></td>
                 <td class="line-no">{{ .YLineNo }}</td>
                 <td class="op">+</td>

@@ -2,10 +2,9 @@
 <caption>
     <a href="https://github.com/znkr/flo.znkr.io/tree/main/site{{ .FilePath }}">{{ .File }}</a>
 </caption>
-</thead>
 <tbody>
     {{- range .Lines}}
-    <tr>
+    <tr class="src">
         <td class="line-no">{{ .LineNo }}</td>
         <td class="code"><code>{{ .Content }}</code></td>
     </tr>
