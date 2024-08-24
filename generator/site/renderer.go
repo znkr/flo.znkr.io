@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"flo.znkr.io/generator/directives"
+	"flo.znkr.io/generator/goldmark/admonitions"
 	"flo.znkr.io/generator/highlight"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
@@ -60,7 +61,10 @@ type markdownRenderer struct{}
 
 func (r *markdownRenderer) render(_ *Site, _ *Doc, data []byte) ([]byte, error) {
 	md := goldmark.New(
-		goldmark.WithExtensions(extension.Footnote),
+		goldmark.WithExtensions(
+			extension.Footnote,
+			admonitions.Admonition,
+		),
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
 		),
