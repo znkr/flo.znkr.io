@@ -15,6 +15,7 @@ import (
 type Node struct {
 	ast.BaseBlock
 	Label string
+	Title string
 }
 
 var Kind = ast.NewNodeKind("Admonition")
@@ -23,6 +24,8 @@ func (n *Node) Kind() ast.NodeKind { return Kind }
 
 func (n *Node) Dump(source []byte, level int) {
 	m := map[string]string{}
+	m["Label"] = n.Label
+	m["Title"] = n.Title
 	ast.DumpHelper(n, source, level, m, nil)
 }
 
@@ -51,7 +54,7 @@ func (p *blockParser) Trigger() []byte {
 	return []byte{'N', 'T'}
 }
 
-var re = regexp.MustCompile("^(NOTE|TIP): ")
+var re = regexp.MustCompile(`^(NOTE|TIP)(?:\[(.*?)\])?: `)
 
 func (p *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Context) (ast.Node, parser.State) {
 	line, _ := reader.PeekLine()
@@ -60,15 +63,16 @@ func (p *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Contex
 		return nil, parser.NoChildren
 	}
 
-	label := re.FindSubmatch(line[pos:])
-	if label == nil {
+	matches := re.FindSubmatch(line[pos:])
+	if matches == nil {
 		return nil, parser.NoChildren
 	}
-	pos += len(label[1]) + 2
+	pos += len(matches[0])
 	reader.Advance(pos)
 
 	node := &Node{
-		Label: string(label[1]),
+		Label: string(matches[1]),
+		Title: string(matches[2]),
 	}
 	return node, parser.HasChildren
 }
@@ -113,6 +117,9 @@ func (r *nodeRenderer) render(w util.BufWriter, source []byte, node ast.Node, en
 		display = "Note"
 	default:
 		panic(fmt.Sprintf("unknown admonition label: %q", n.Label))
+	}
+	if n.Title != "" {
+		display = n.Title
 	}
 	if entering {
 		fmt.Fprintf(w, `<div class="admonition %s"><p class="admonition-title">%s</p>`, css, display)
