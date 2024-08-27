@@ -158,7 +158,8 @@ class DiffTable {
     #addUnfoldCell(group, icon, onclick, colSpan) {
         let button = document.createElement("button")
         button.classList.add("fold-button")
-        button.innerHTML = "<svg viewBox=\"0 0 16 16\"><use href=\"#"+icon+"\" /></svg>"
+        button.classList.add(icon)
+        //button.innerHTML = "<svg viewBox=\"0 0 16 16\"><use href=\"#"+icon+"\" /></svg>"
 
         button.onclick = onclick
         let cell = group.ctrl.insertCell()
