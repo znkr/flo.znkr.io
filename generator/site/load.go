@@ -18,11 +18,17 @@ import (
 
 // Load loads a site from the directory dir.
 func Load(dir string) (*Site, error) {
-	s := &Site{
-		docs: make(map[string]Doc),
+	templates, err := loadTemplates(filepath.Join(dir, "templates"))
+	if err != nil {
+		return nil, fmt.Errorf("loading templates: %v", err)
 	}
 
-	s.docs["/feed.atom"] = Doc{
+	docs, err := loadDocs(filepath.Join(dir, "site"), templates)
+	if err != nil {
+		return nil, err
+	}
+
+	docs["/feed.atom"] = Doc{
 		path: "/feed.atom",
 		mime: "application/atom+xml;charset=utf-8",
 		meta: &Metadata{
@@ -32,14 +38,37 @@ func Load(dir string) (*Site, error) {
 		pageRenderer:    &feedRenderer{},
 	}
 
-	templates, err := loadTemplates(dir)
-	if err != nil {
-		return nil, fmt.Errorf("loading templates: %v", err)
-	}
-	s.templates = templates
+	return &Site{
+		docs:      docs,
+		templates: templates,
+	}, nil
+}
 
-	sitedir := filepath.Join(dir, "site")
-	err = filepath.WalkDir(sitedir, func(fpath string, d fs.DirEntry, err error) error {
+func loadTemplates(dir string) (*template.Template, error) {
+	root := template.New("")
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() || !strings.HasSuffix(path, ".html") || err != nil {
+			return err
+		}
+
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		t := root.New(path[len(dir)+1 : len(path)-len(".html")])
+		if _, err = t.Parse(string(b)); err != nil {
+			return err
+		}
+
+		return nil
+	})
+	return root, err
+}
+
+func loadDocs(dir string, templates *template.Template) (map[string]Doc, error) {
+	docs := make(map[string]Doc)
+	err := filepath.WalkDir(dir, func(fpath string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -61,7 +90,7 @@ func Load(dir string) (*Site, error) {
 		doc.meta = meta
 		doc.data = data
 
-		path := strings.TrimPrefix(fpath, sitedir)
+		path := strings.TrimPrefix(fpath, dir)
 		dir, base := filepath.Split(path)
 		ext := filepath.Ext(base)
 
@@ -93,37 +122,13 @@ func Load(dir string) (*Site, error) {
 		}
 
 		doc.path = path
-		s.docs[path] = doc
+		docs[path] = doc
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("loading site: %v", err)
+		return nil, fmt.Errorf("loading docs: %v", err)
 	}
-
-	return s, nil
-}
-
-func loadTemplates(dir string) (*template.Template, error) {
-	templateDir := filepath.Join(dir, "templates")
-	root := template.New("")
-	err := filepath.WalkDir(templateDir, func(path string, d fs.DirEntry, err error) error {
-		if d.IsDir() || !strings.HasSuffix(path, ".html") || err != nil {
-			return err
-		}
-
-		b, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		t := root.New(path[len(templateDir)+1 : len(path)-len(".html")])
-		if _, err = t.Parse(string(b)); err != nil {
-			return err
-		}
-
-		return nil
-	})
-	return root, err
+	return docs, nil
 }
 
 func readFile(file string) (*Metadata, []byte, error) {

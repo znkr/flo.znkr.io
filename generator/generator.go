@@ -47,19 +47,7 @@ var serveCmd = &cobra.Command{
 		}
 		defer watcher.Close()
 		for _, subdir := range []string{"site", "templates"} {
-			err := filepath.WalkDir(filepath.Join(dir, subdir), func(path string, d fs.DirEntry, err error) error {
-				if d.IsDir() {
-					// Skip hidden directories
-					if strings.HasPrefix(filepath.Base(path), ".") {
-						return filepath.SkipDir
-					}
-					if err := watcher.Add(path); err != nil {
-						return err
-					}
-				}
-				return err
-			})
-			if err != nil {
+			if err := watchDir(watcher, filepath.Join(dir, subdir)); err != nil {
 				return fmt.Errorf("starting watch: %v", err)
 			}
 		}
@@ -93,7 +81,7 @@ var serveCmd = &cobra.Command{
 						log.Printf("Removed watch directory: %v", wd)
 					}
 				case err == nil && event.Has(fsnotify.Create) && stat.IsDir():
-					if err := watcher.Add(event.Name); err != nil {
+					if err := watchDir(watcher, event.Name); err != nil {
 						return fmt.Errorf("adding watch: %v", err)
 					}
 					wd, _ := filepath.Rel(dir, event.Name)
@@ -122,6 +110,25 @@ var serveCmd = &cobra.Command{
 			}
 		}
 	},
+}
+
+func watchDir(watcher *fsnotify.Watcher, dir string) error {
+	walkfn := func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() {
+			// Skip hidden directories
+			if strings.HasPrefix(d.Name(), ".") {
+				return filepath.SkipDir
+			}
+			if err := watcher.Add(path); err != nil {
+				return err
+			}
+		}
+		return err
+	}
+	if err := filepath.WalkDir(dir, walkfn); err != nil {
+		return err
+	}
+	return nil
 }
 
 var packCmd = &cobra.Command{
