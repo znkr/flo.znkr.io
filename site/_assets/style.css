@@ -245,6 +245,7 @@ main {
         .fold-ctrl {
             background: var(--color-background-accented-ctrl);
             text-align: center;
+            height: 1.8em;
         }
 
         .fold-ctrl:hover {
@@ -258,7 +259,7 @@ main {
             border: none;
             cursor: pointer;
             width: 100%;
-            height: 1.5em;
+            height: 1.8em;
             margin: auto;
             padding: 0;
             background: var(--color-text);
