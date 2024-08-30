@@ -102,11 +102,10 @@ func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
 			PageRenderer:    renderers.Passthrough,
 		}
 
-		meta, data, err := readFile(fpath)
+		data, err := os.ReadFile(fpath)
 		if err != nil {
 			return fmt.Errorf("reading file: %v", err)
 		}
-		doc.Meta = meta
 		doc.Data = data
 
 		path := strings.TrimPrefix(fpath, dir)
@@ -115,6 +114,11 @@ func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
 
 		switch ext {
 		case ".md":
+			doc.Meta, doc.Data, err = parseMetadata(data)
+			if err != nil {
+				return fmt.Errorf("parsing metadata: %v", err)
+			}
+
 			if p := strings.TrimSuffix(base, ext); p == "index" {
 				if dir == "/" {
 					path = dir
@@ -148,24 +152,6 @@ func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
 		return nil, fmt.Errorf("loading docs: %v", err)
 	}
 	return docs, nil
-}
-
-func readFile(file string) (*site.Metadata, []byte, error) {
-	data, err := os.ReadFile(file)
-	if err != nil {
-		return nil, nil, fmt.Errorf("reading file: %v", err)
-	}
-
-	if strings.HasSuffix(file, ".md") {
-		var meta *site.Metadata
-		meta, data, err = parseMetadata(data)
-		if err != nil {
-			return nil, nil, fmt.Errorf("parsing metadata: %v", err)
-		}
-
-		return meta, data, err
-	}
-	return nil, data, err
 }
 
 func parseMetadata(in []byte) (*site.Metadata, []byte, error) {
