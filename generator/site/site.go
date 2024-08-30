@@ -3,29 +3,28 @@ package site
 import (
 	"cmp"
 	"fmt"
-	"html/template"
 	"slices"
 	"time"
-
-	"flo.znkr.io/generator/directives"
 )
 
 // Site is an in-memory representation of the to be generated site.
 type Site struct {
-	templates *template.Template
-	docs      map[string]Doc
+	docs map[string]Doc
 }
 
 // Doc is a single document of the site, that is anything that can be served as a static file.
 type Doc struct {
-	path            string
-	dir             string // directory of the file, used as a relative directory to load related files
-	mime            string
-	meta            *Metadata
-	directives      []directives.Directive
-	data            []byte
-	contentRenderer renderer
-	pageRenderer    renderer
+	Path            string
+	Source          string
+	MimeType        string
+	Meta            *Metadata
+	Data            []byte
+	ContentRenderer Renderer
+	PageRenderer    Renderer
+}
+
+type Renderer interface {
+	Render(s *Site, doc *Doc, data []byte) ([]byte, error)
 }
 
 type Metadata struct {
@@ -37,6 +36,22 @@ type Metadata struct {
 	Redirect  string
 	Template  string
 	Article   bool
+}
+
+// New creates a new site from the provided docs.
+//
+// If there are multiple docs for the same path, New returns an error.
+func New(docs []Doc) (*Site, error) {
+	s := &Site{
+		docs: make(map[string]Doc),
+	}
+	for _, d := range docs {
+		if _, exists := s.docs[d.Path]; exists {
+			return nil, fmt.Errorf("duplicate doc for path %q", d.Path)
+		}
+		s.docs[d.Path] = d
+	}
+	return s, nil
 }
 
 // Doc returns the document for the given path, or nil if the document cannot be found.
@@ -51,13 +66,13 @@ func (s *Site) Doc(path string) *Doc {
 func (s *Site) Articles() []*Doc {
 	var ret []*Doc
 	for _, d := range s.docs {
-		if d.meta == nil || !d.meta.Article {
+		if d.Meta == nil || !d.Meta.Article {
 			continue
 		}
 		ret = append(ret, &d)
 	}
 	slices.SortFunc(ret, func(a, b *Doc) int {
-		return b.meta.Published.Compare(a.meta.Published)
+		return b.Meta.Published.Compare(a.Meta.Published)
 	})
 	return ret
 }
@@ -68,29 +83,24 @@ func (s *Site) AllDocs() []*Doc {
 		ret = append(ret, &d)
 	}
 	slices.SortFunc(ret, func(a, b *Doc) int {
-		return cmp.Compare(a.Path(), b.Path())
+		return cmp.Compare(a.Path, b.Path)
 	})
 	return ret
 }
 
 func (s *Site) RenderContent(d *Doc) ([]byte, error) {
-	b, err := d.contentRenderer.render(s, d, d.data)
+	b, err := d.ContentRenderer.Render(s, d, d.Data)
 	if err != nil {
-		return nil, fmt.Errorf("rendering content of %s: %v", d.path, err)
+		return nil, fmt.Errorf("rendering content of %s: %v", d.Path, err)
 	}
 	return b, nil
 }
 
 // RenderPage renders doc as a page.
 func (s *Site) RenderPage(d *Doc) ([]byte, error) {
-	b, err := d.pageRenderer.render(s, d, d.data)
+	b, err := d.PageRenderer.Render(s, d, d.Data)
 	if err != nil {
-		return nil, fmt.Errorf("rendering page for %s: %v", d.path, err)
+		return nil, fmt.Errorf("rendering page for %s: %v", d.Path, err)
 	}
 	return b, nil
 }
-
-func (d *Doc) MimeType() string { return d.mime }
-func (d *Doc) Meta() *Metadata  { return d.meta }
-func (d *Doc) Path() string     { return d.path }
-func (d *Doc) Dir() string      { return d.dir }

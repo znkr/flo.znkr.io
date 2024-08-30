@@ -44,20 +44,20 @@ func Pack(filename string, s *site.Site) error {
 			return err
 		}
 
-		mime, _, err := mime.ParseMediaType(d.MimeType())
+		mime, _, err := mime.ParseMediaType(d.MimeType)
 		if err != nil {
 			return fmt.Errorf("invalid mime type: %v", err)
 		}
 
 		switch mime {
 		case "text/html", "text/css", "image/svg+xml", "application/atom+xml", "text/javascript":
-			b, err = minifier.Bytes(d.MimeType(), b)
+			b, err = minifier.Bytes(d.MimeType, b)
 			if err != nil {
-				return fmt.Errorf("minification of failed for %s: %v", d.Path(), err)
+				return fmt.Errorf("minification of failed for %s: %v", d.Path, err)
 			}
 		}
 
-		path := d.Path()
+		path := d.Path
 		if path == "/" {
 			path = "index.html"
 		} else if mime == "text/html" && filepath.Ext(path) == "" {

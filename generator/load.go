@@ -1,4 +1,4 @@
-package site
+package main
 
 import (
 	"cmp"
@@ -13,11 +13,15 @@ import (
 	"strings"
 	"time"
 
+	"flo.znkr.io/generator/atom"
 	"flo.znkr.io/generator/directives"
+	"flo.znkr.io/generator/goldmark"
+	"flo.znkr.io/generator/site"
+	"flo.znkr.io/generator/site/renderers"
 )
 
-// Load loads a site from the directory dir.
-func Load(dir string) (*Site, error) {
+// load loads a site from the directory dir.
+func load(dir string) (*site.Site, error) {
 	templates, err := loadTemplates(filepath.Join(dir, "templates"))
 	if err != nil {
 		return nil, fmt.Errorf("loading templates: %v", err)
@@ -28,20 +32,17 @@ func Load(dir string) (*Site, error) {
 		return nil, err
 	}
 
-	docs["/feed.atom"] = Doc{
-		path: "/feed.atom",
-		mime: "application/atom+xml;charset=utf-8",
-		meta: &Metadata{
+	docs = append(docs, site.Doc{
+		Path:     "/feed.atom",
+		MimeType: "application/atom+xml;charset=utf-8",
+		Meta: &site.Metadata{
 			Title: "flo.znkr.io",
 		},
-		contentRenderer: &passthroughRenderer{},
-		pageRenderer:    &feedRenderer{},
-	}
+		ContentRenderer: nil,
+		PageRenderer:    atom.Renderer,
+	})
 
-	return &Site{
-		docs:      docs,
-		templates: templates,
-	}, nil
+	return site.New(docs)
 }
 
 func loadTemplates(dir string) (*template.Template, error) {
@@ -66,8 +67,26 @@ func loadTemplates(dir string) (*template.Template, error) {
 	return root, err
 }
 
-func loadDocs(dir string, templates *template.Template) (map[string]Doc, error) {
-	docs := make(map[string]Doc)
+func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
+	directivesRenderer := directives.NewRenderer(templates)
+
+	templateRenderers := make(map[string]*renderers.TemplateRenderer)
+	templateRenderer := func(name string) *renderers.TemplateRenderer {
+		if r, ok := templateRenderers[name]; ok {
+			return r
+		}
+
+		t := templates.Lookup(name)
+		if t == nil {
+			return nil
+		}
+
+		r := renderers.NewTemplateRenderer(t)
+		templateRenderers[name] = r
+		return r
+	}
+
+	var docs []site.Doc
 	err := filepath.WalkDir(dir, func(fpath string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -77,18 +96,18 @@ func loadDocs(dir string, templates *template.Template) (map[string]Doc, error) 
 			return nil
 		}
 
-		doc := Doc{
-			dir:             filepath.Dir(fpath),
-			contentRenderer: &passthroughRenderer{},
-			pageRenderer:    &passthroughRenderer{},
+		doc := site.Doc{
+			Source:          fpath,
+			ContentRenderer: renderers.Passthrough,
+			PageRenderer:    renderers.Passthrough,
 		}
 
 		meta, data, err := readFile(fpath)
 		if err != nil {
 			return fmt.Errorf("reading file: %v", err)
 		}
-		doc.meta = meta
-		doc.data = data
+		doc.Meta = meta
+		doc.Data = data
 
 		path := strings.TrimPrefix(fpath, dir)
 		dir, base := filepath.Split(path)
@@ -105,24 +124,24 @@ func loadDocs(dir string, templates *template.Template) (map[string]Doc, error) 
 			} else {
 				path = dir + p
 			}
-			doc.mime = "text/html;charset=UTF-8"
-			doc.contentRenderer = chain(&markdownRenderer{}, &directivesRenderer{})
+			doc.MimeType = "text/html;charset=UTF-8"
+			doc.ContentRenderer = renderers.Chain(goldmark.Renderer, directivesRenderer)
 
 			tname := "article"
-			if doc.meta != nil {
-				tname = cmp.Or(doc.meta.Template, tname)
+			if doc.Meta != nil {
+				tname = cmp.Or(doc.Meta.Template, tname)
 			}
-			t := templates.Lookup(tname)
-			if t == nil {
+			r := templateRenderer(tname)
+			if r == nil {
 				return fmt.Errorf("template not found %s", tname)
 			}
-			doc.pageRenderer = chain(doc.contentRenderer, &templateRenderer{t})
+			doc.PageRenderer = renderers.Chain(doc.ContentRenderer, r)
 		default:
-			doc.mime = mime.TypeByExtension(filepath.Ext(fpath))
+			doc.MimeType = mime.TypeByExtension(filepath.Ext(fpath))
 		}
 
-		doc.path = path
-		docs[path] = doc
+		doc.Path = path
+		docs = append(docs, doc)
 		return nil
 	})
 	if err != nil {
@@ -131,14 +150,14 @@ func loadDocs(dir string, templates *template.Template) (map[string]Doc, error) 
 	return docs, nil
 }
 
-func readFile(file string) (*Metadata, []byte, error) {
+func readFile(file string) (*site.Metadata, []byte, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
 		return nil, nil, fmt.Errorf("reading file: %v", err)
 	}
 
 	if strings.HasSuffix(file, ".md") {
-		var meta *Metadata
+		var meta *site.Metadata
 		meta, data, err = parseMetadata(data)
 		if err != nil {
 			return nil, nil, fmt.Errorf("parsing metadata: %v", err)
@@ -149,8 +168,8 @@ func readFile(file string) (*Metadata, []byte, error) {
 	return nil, data, err
 }
 
-func parseMetadata(in []byte) (*Metadata, []byte, error) {
-	meta := Metadata{}
+func parseMetadata(in []byte) (*site.Metadata, []byte, error) {
+	meta := site.Metadata{}
 
 	// Take title from first header. This assumes that every document starts with the header
 	// and doesn't have anything before it.

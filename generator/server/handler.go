@@ -33,7 +33,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", doc.MimeType())
+	w.Header().Set("Content-Type", doc.MimeType)
 	if req.Method == http.MethodHead {
 		return
 	}

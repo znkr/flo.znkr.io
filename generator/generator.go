@@ -14,7 +14,6 @@ import (
 
 	"flo.znkr.io/generator/pack"
 	"flo.znkr.io/generator/server"
-	"flo.znkr.io/generator/site"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 )
@@ -28,7 +27,7 @@ var serveCmd = &cobra.Command{
 			return fmt.Errorf("determining workdir: %v", err)
 		}
 
-		s, err := site.Load(dir)
+		s, err := load(dir)
 		if err != nil {
 			return fmt.Errorf("loading site: %v", err)
 		}
@@ -93,7 +92,7 @@ var serveCmd = &cobra.Command{
 				// Reload site. This is more than fast enough for now, so now caching or anything
 				// is necessary here.
 				start := time.Now()
-				s, err := site.Load(dir)
+				s, err := load(dir)
 				if err != nil {
 					log.Printf("failed to update site: %v", err)
 					continue
@@ -140,7 +139,7 @@ var packCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("determining workdir: %v", err)
 		}
-		s, err := site.Load(dir)
+		s, err := load(dir)
 		if err != nil {
 			return fmt.Errorf("loading site: %v", err)
 		}
