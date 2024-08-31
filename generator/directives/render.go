@@ -23,7 +23,7 @@ func NewRenderer(templates *template.Template) *Renderer {
 	}
 }
 
-func (r *Renderer) Render(s *site.Site, doc *site.Doc, data []byte) ([]byte, error) {
+func (r *Renderer) Render(doc *site.Doc, data []byte) ([]byte, error) {
 	dirs, err := Parse(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse directives: %v", err)

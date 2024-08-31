@@ -14,17 +14,17 @@ type Site struct {
 
 // Doc is a single document of the site, that is anything that can be served as a static file.
 type Doc struct {
-	Path            string
-	Source          string
-	MimeType        string
-	Meta            *Metadata
-	Data            []byte
-	ContentRenderer Renderer
-	PageRenderer    Renderer
+	Path     string
+	Source   string
+	MimeType string
+	Meta     *Metadata
+	Data     []byte
+	Renderer Renderer
 }
 
 type Renderer interface {
-	Render(s *Site, doc *Doc, data []byte) ([]byte, error)
+	RenderContent(s *Site, doc *Doc, data []byte) ([]byte, error)
+	RenderPage(s *Site, doc *Doc, data []byte) ([]byte, error)
 }
 
 type Metadata struct {
@@ -89,7 +89,7 @@ func (s *Site) AllDocs() []*Doc {
 }
 
 func (s *Site) RenderContent(d *Doc) ([]byte, error) {
-	b, err := d.ContentRenderer.Render(s, d, d.Data)
+	b, err := d.Renderer.RenderContent(s, d, d.Data)
 	if err != nil {
 		return nil, fmt.Errorf("rendering content of %s: %v", d.Path, err)
 	}
@@ -98,7 +98,7 @@ func (s *Site) RenderContent(d *Doc) ([]byte, error) {
 
 // RenderPage renders doc as a page.
 func (s *Site) RenderPage(d *Doc) ([]byte, error) {
-	b, err := d.PageRenderer.Render(s, d, d.Data)
+	b, err := d.Renderer.RenderPage(s, d, d.Data)
 	if err != nil {
 		return nil, fmt.Errorf("rendering page for %s: %v", d.Path, err)
 	}

@@ -1,4 +1,4 @@
-package atom
+package renderers
 
 import (
 	"encoding/xml"
@@ -8,11 +8,15 @@ import (
 	"golang.org/x/tools/blog/atom"
 )
 
-var Renderer site.Renderer = &renderer{}
+var Atom site.Renderer = &atomRenderer{}
 
-type renderer struct{}
+type atomRenderer struct{}
 
-func (r *renderer) Render(s *site.Site, doc *site.Doc, data []byte) ([]byte, error) {
+func (r *atomRenderer) RenderContent(s *site.Site, doc *site.Doc, data []byte) ([]byte, error) {
+	return nil, fmt.Errorf("rendering content for atom feed is not possible")
+}
+
+func (r *atomRenderer) RenderPage(s *site.Site, doc *site.Doc, data []byte) ([]byte, error) {
 	articles := s.Articles()
 	updated := articles[0].Meta.Updated
 

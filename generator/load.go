@@ -13,11 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"flo.znkr.io/generator/atom"
 	"flo.znkr.io/generator/directives"
-	"flo.znkr.io/generator/goldmark"
+	"flo.znkr.io/generator/renderers"
 	"flo.znkr.io/generator/site"
-	"flo.znkr.io/generator/site/renderers"
 )
 
 // load loads a site from the directory dir.
@@ -38,8 +36,7 @@ func load(dir string) (*site.Site, error) {
 		Meta: &site.Metadata{
 			Title: "flo.znkr.io",
 		},
-		ContentRenderer: nil,
-		PageRenderer:    atom.Renderer,
+		Renderer: renderers.Atom,
 	})
 
 	return site.New(docs)
@@ -68,22 +65,18 @@ func loadTemplates(dir string) (*template.Template, error) {
 }
 
 func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
-	directivesRenderer := directives.NewRenderer(templates)
-
-	templateRenderers := make(map[string]*renderers.TemplateRenderer)
-	templateRenderer := func(name string) *renderers.TemplateRenderer {
-		if r, ok := templateRenderers[name]; ok {
-			return r
+	markdownRenderers := make(map[renderers.MarkdownRendererOptions]*renderers.MarkdownRenderer)
+	markdownRenderer := func(opts renderers.MarkdownRendererOptions) (*renderers.MarkdownRenderer, error) {
+		if r, ok := markdownRenderers[opts]; ok {
+			return r, nil
 		}
 
-		t := templates.Lookup(name)
-		if t == nil {
-			return nil
+		r, err := renderers.NewMarkdownRenderer(templates, opts)
+		if err != nil {
+			return nil, err
 		}
-
-		r := renderers.NewTemplateRenderer(t)
-		templateRenderers[name] = r
-		return r
+		markdownRenderers[opts] = r
+		return r, nil
 	}
 
 	var docs []site.Doc
@@ -97,9 +90,8 @@ func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
 		}
 
 		doc := site.Doc{
-			Source:          fpath,
-			ContentRenderer: renderers.Passthrough,
-			PageRenderer:    renderers.Passthrough,
+			Source:   fpath,
+			Renderer: renderers.Passthrough,
 		}
 
 		data, err := os.ReadFile(fpath)
@@ -129,17 +121,18 @@ func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
 				path = dir + p
 			}
 			doc.MimeType = "text/html;charset=UTF-8"
-			doc.ContentRenderer = renderers.Chain(goldmark.Renderer, directivesRenderer)
 
 			tname := "article"
 			if doc.Meta != nil {
 				tname = cmp.Or(doc.Meta.Template, tname)
 			}
-			r := templateRenderer(tname)
-			if r == nil {
-				return fmt.Errorf("template not found %s", tname)
+			renderer, err := markdownRenderer(renderers.MarkdownRendererOptions{
+				PageTemplate: tname,
+			})
+			if err != nil {
+				return err
 			}
-			doc.PageRenderer = renderers.Chain(doc.ContentRenderer, r)
+			doc.Renderer = renderer
 		default:
 			doc.MimeType = mime.TypeByExtension(filepath.Ext(fpath))
 		}
