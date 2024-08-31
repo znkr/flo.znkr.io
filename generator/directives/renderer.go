@@ -80,9 +80,13 @@ func (r *Renderer) Render(s *site.Site, doc *site.Doc, data []byte) ([]byte, err
 			if afile == "" {
 				return nil, fmt.Errorf("include-diff: missing or empty file attribute")
 			}
-			a, err := os.ReadFile(filepath.Join(filepath.Dir(doc.Source), afile))
-			if err != nil {
-				return nil, fmt.Errorf("include-snippet: %v", err)
+			var a []byte
+			if afile != "/dev/null" {
+				var err error
+				a, err = os.ReadFile(filepath.Join(filepath.Dir(doc.Source), afile))
+				if err != nil {
+					return nil, fmt.Errorf("include-snippet: %v", err)
+				}
 			}
 
 			bfile := dir.Attrs["b"]
@@ -95,6 +99,9 @@ func (r *Renderer) Render(s *site.Site, doc *site.Doc, data []byte) ([]byte, err
 			}
 
 			lopt := highlight.LangFromFilename(afile)
+			if afile == "/dev/null" {
+				lopt = highlight.LangFromFilename(bfile)
+			}
 			if lang, ok := dir.Attrs["lang"]; ok {
 				lopt = highlight.Lang(lang)
 			}
