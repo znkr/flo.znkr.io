@@ -29,7 +29,7 @@ func (n *Node) Dump(source []byte, level int) {
 	ast.DumpHelper(n, source, level, m, nil)
 }
 
-var Admonition goldmark.Extender = &admonitions{}
+var Extension goldmark.Extender = &admonitions{}
 
 type admonitions struct{}
 
