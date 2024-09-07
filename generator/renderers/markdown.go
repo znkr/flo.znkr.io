@@ -31,21 +31,13 @@ func NewMarkdownRenderer(templates *template.Template, opts MarkdownRendererOpti
 	}, nil
 }
 
-func (r *MarkdownRenderer) RenderContent(s *site.Site, doc *site.Doc, data []byte) ([]byte, error) {
-	content, err := goldmark.Render(data)
-	if err != nil {
-		return nil, err
-	}
-
-	content, err = r.directives.Render(doc, content)
-	if err != nil {
-		return nil, err
-	}
-	return content, nil
+func (r *MarkdownRenderer) RenderContent(s *site.Site, doc *site.Doc) ([]byte, error) {
+	content, _, err := r.renderContent(doc)
+	return content, err
 }
 
-func (r *MarkdownRenderer) RenderPage(s *site.Site, doc *site.Doc, data []byte) ([]byte, error) {
-	content, err := r.RenderContent(s, doc, data)
+func (r *MarkdownRenderer) RenderPage(s *site.Site, doc *site.Doc) ([]byte, error) {
+	content, toc, err := r.renderContent(doc)
 	if err != nil {
 		return nil, err
 	}
@@ -55,13 +47,28 @@ func (r *MarkdownRenderer) RenderPage(s *site.Site, doc *site.Doc, data []byte) 
 		Meta    *site.Metadata
 		Site    *site.Site
 		Content template.HTML
+		TOC     template.HTML
 	}{
 		Meta:    doc.Meta,
 		Site:    s,
 		Content: template.HTML(content),
+		TOC:     template.HTML(toc),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("rendering template: %v", err)
 	}
 	return buf.Bytes(), nil
+}
+
+func (r *MarkdownRenderer) renderContent(doc *site.Doc) (content []byte, toc []byte, err error) {
+	content, toc, err = goldmark.Render(doc.Data)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	content, err = r.directives.Render(doc, content)
+	if err != nil {
+		return nil, nil, err
+	}
+	return content, toc, nil
 }

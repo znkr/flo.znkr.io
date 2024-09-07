@@ -12,11 +12,11 @@ var Atom site.Renderer = &atomRenderer{}
 
 type atomRenderer struct{}
 
-func (r *atomRenderer) RenderContent(s *site.Site, doc *site.Doc, data []byte) ([]byte, error) {
+func (r *atomRenderer) RenderContent(s *site.Site, doc *site.Doc) ([]byte, error) {
 	return nil, fmt.Errorf("rendering content for atom feed is not possible")
 }
 
-func (r *atomRenderer) RenderPage(s *site.Site, doc *site.Doc, data []byte) ([]byte, error) {
+func (r *atomRenderer) RenderPage(s *site.Site, doc *site.Doc) ([]byte, error) {
 	articles := s.Articles()
 	updated := articles[0].Meta.Updated
 

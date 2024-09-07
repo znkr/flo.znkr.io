@@ -1,8 +1,55 @@
 document.addEventListener("DOMContentLoaded", main)
 
 function main() {
+    new Scroller()
     for (const table of document.querySelectorAll("table.code-snippet.diff")) {
         new DiffTable(table)
+    }
+}
+
+class Scroller {
+    #tocLinks
+    #headers
+    #ticking
+    #activeHeader
+
+    constructor() {
+        let tocLinks = document.querySelectorAll('.toc a');
+        if (tocLinks) {
+            this.#tocLinks = tocLinks
+            this.#headers = Array.from(this.#tocLinks).map(link => {
+                return document.querySelector(`#${link.href.split('#')[1]}`);
+            })
+            this.#update();
+            window.addEventListener('scroll', (e) => {
+                this.#onScroll()
+            })
+        }
+    }
+
+    #onScroll() {
+        if (!this.#ticking) {
+            requestAnimationFrame(this.#update.bind(this));
+            this.#ticking = true;
+        }
+    }
+
+    #update() {
+        let activeIndex = this.#headers.findIndex((header) => {
+            return header.getBoundingClientRect().top > 180;
+        });
+        if (activeIndex == -1) {
+            activeIndex = this.#headers.length - 1;
+        } else if (activeIndex > 0) {
+            activeIndex--;
+        }
+        let active = this.#headers[activeIndex];
+        if (active !== this.#activeHeader) {
+            this.#activeHeader = active;
+            this.#tocLinks.forEach(link => link.classList.remove('active'));
+            this.#tocLinks[activeIndex].classList.add('active');
+        }
+        this.#ticking = false;
     }
 }
 
@@ -23,7 +70,7 @@ class DiffTable {
             if (!group.isEnd) {
                 maxContextTotal += DiffTable.#maxContext
             }
-            if (group.last.rowIndex - group.first.rowIndex < maxContextTotal+1) {
+            if (group.last.rowIndex - group.first.rowIndex < maxContextTotal + 1) {
                 // Don't hide if the number of hidden rows is smaller than context rows plus 1 row
                 // for the control surface.
                 this.#dropGroup(group)
@@ -68,7 +115,7 @@ class DiffTable {
                         // i must be > 0 because we always start with first == null
                         let group = {
                             first: first,
-                            last: table.rows[i-1],
+                            last: table.rows[i - 1],
                             prev: prev,
                             next: null,
                             ctrl: null,
@@ -93,7 +140,7 @@ class DiffTable {
             // i must be > 0 because we always start with first == null
             let group = {
                 first: first,
-                last: table.rows[table.rows.length-1],
+                last: table.rows[table.rows.length - 1],
                 prev: prev,
                 next: null,
                 ctrl: null,
@@ -126,7 +173,7 @@ class DiffTable {
         if (group.next != null) {
             group.next.prev = group.prev
         }
-        if (group.ctrl != null) { 
+        if (group.ctrl != null) {
             this.#table.deleteRow(group.ctrl.rowIndex)
         }
     }
@@ -137,7 +184,7 @@ class DiffTable {
         }
         group.ctrl = this.#table.insertRow(group.first.rowIndex)
         group.ctrl.classList.add("ctrl")
-        
+
         if (!group.isEnd && !group.isStart && group.last.rowIndex - group.first.rowIndex <= DiffTable.#maxUnfold) {
             this.#addUnfoldCell(group, "unfold", (event) => { this.#unfoldDown(group) }, 2)
         } else if (group.isStart && !group.isEnd) {
@@ -148,7 +195,7 @@ class DiffTable {
             this.#addUnfoldCell(group, "unfold-down", (event) => { this.#unfoldDown(group) }, 1)
             this.#addUnfoldCell(group, "unfold-up", (event) => { this.#unfoldUp(group) }, 1)
         }
-    
+
         let op = group.ctrl.insertCell()
         let code = group.ctrl.insertCell()
         code.classList.add("hunk-desc")
@@ -213,7 +260,7 @@ class DiffTable {
         let xLineno = -1
         let xLines = 0
         let yLines = 0
-        
+
         let end = null
         if (group.next != null) {
             end = group.next.first
