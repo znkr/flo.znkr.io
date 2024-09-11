@@ -6,10 +6,13 @@ import (
 
 	"flo.znkr.io/generator/goldmark/admonitions"
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/text"
+	"github.com/yuin/goldmark/util"
 	"go.abhg.dev/goldmark/toc"
 )
 
@@ -22,7 +25,10 @@ func Render(data []byte) ([]byte, []byte, error) {
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
 		),
-		goldmark.WithRendererOptions(html.WithUnsafe()),
+		goldmark.WithRendererOptions(
+			html.WithUnsafe(),
+			renderer.WithNodeRenderers(util.Prioritized(&customRenderer{}, 999)),
+		),
 	)
 
 	doc := md.Parser().Parse(text.NewReader(data))
@@ -45,4 +51,34 @@ func Render(data []byte) ([]byte, []byte, error) {
 	}
 
 	return buf.Bytes(), tocbuf.Bytes(), nil
+}
+
+type customRenderer struct{}
+
+var _ renderer.NodeRenderer = (*customRenderer)(nil)
+
+func (r *customRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
+	reg.Register(ast.KindHeading, r.renderHeading)
+}
+
+func (r *customRenderer) renderHeading(
+	w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*ast.Heading)
+	if entering {
+		w.WriteString("<h")
+		w.WriteByte("0123456"[n.Level])
+		if n.Attributes() != nil {
+			html.RenderAttributes(w, node, html.HeadingAttributeFilter)
+		}
+		w.WriteByte('>')
+	} else {
+		id, _ := n.AttributeString("id")
+		w.WriteString("<a href=\"#")
+		w.Write(id.([]byte))
+		w.WriteString("\" class=\"anchor-link\"></a>")
+		w.WriteString("</h")
+		w.WriteByte("0123456"[n.Level])
+		w.WriteString(">\n")
+	}
+	return ast.WalkContinue, nil
 }
