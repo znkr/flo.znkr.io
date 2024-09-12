@@ -29,33 +29,6 @@ func (err *SyntaxError) Error() string {
 	return fmt.Sprintf("%s [%d:%d]", err.Msg, err.Line, err.Col)
 }
 
-func ParseFirst(in []byte, name string) (_ Directive, err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			if e, ok := e.(*SyntaxError); ok {
-				err = e
-				return
-			}
-			panic(e)
-		}
-	}()
-
-	p := parser{
-		in: in,
-	}
-
-	for {
-		dir, ok := p.parseNextDirective()
-		if !ok {
-			break
-		}
-		if dir.Name == name {
-			return dir, nil
-		}
-	}
-	return Directive{}, ErrNotFound
-}
-
 func Parse(in []byte) (_ []Directive, err error) {
 	defer func() {
 		if e := recover(); e != nil {

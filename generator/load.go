@@ -2,18 +2,15 @@ package main
 
 import (
 	"cmp"
-	"errors"
 	"fmt"
 	"html/template"
 	"io/fs"
 	"mime"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
-	"time"
 
-	"flo.znkr.io/generator/directives"
+	"flo.znkr.io/generator/metadata"
 	"flo.znkr.io/generator/renderers"
 	"flo.znkr.io/generator/site"
 )
@@ -106,7 +103,7 @@ func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
 
 		switch ext {
 		case ".md":
-			doc.Meta, doc.Data, err = parseMetadata(data)
+			doc.Meta, doc.Data, err = metadata.Parse(data)
 			if err != nil {
 				return fmt.Errorf("parsing metadata: %v", err)
 			}
@@ -145,71 +142,4 @@ func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
 		return nil, fmt.Errorf("loading docs: %v", err)
 	}
 	return docs, nil
-}
-
-func parseMetadata(in []byte) (*site.Metadata, []byte, error) {
-	meta := site.Metadata{}
-
-	// Take title from first header. This assumes that every document starts with the header
-	// and doesn't have anything before it.
-	if len(in) > 2 && in[0] == '#' && in[1] == ' ' {
-		eol := slices.Index(in, '\n')
-		if eol < 0 {
-			return nil, in, nil
-		}
-		meta.Title = strings.TrimSpace(string(in[1:eol]))
-		in = in[eol:]
-	}
-
-	metadir, err := directives.ParseFirst(in, "meta")
-	switch {
-	case err == nil:
-		// nothing to do
-	case errors.Is(err, directives.ErrNotFound):
-		return &meta, in, nil
-	default:
-		return nil, nil, err
-	}
-
-	parseTime := func(key string) (time.Time, error) {
-		v, ok := metadir.Attrs[key]
-		if !ok {
-			return time.Time{}, nil
-		}
-		t, err := time.ParseInLocation("2006-01-02", v, tz)
-		if err != nil {
-			return time.Time{}, fmt.Errorf("parsing %s: %v", key, err)
-		}
-		return t, nil
-	}
-	published, err := parseTime("published")
-	if err != nil {
-		return nil, nil, err
-	}
-	updated, err := parseTime("updated")
-	if err != nil {
-		return nil, nil, err
-	}
-	if updated.IsZero() {
-		updated = published
-	}
-
-	meta.Published = published
-	meta.Updated = updated
-	meta.Abstract = metadir.Attrs["summary"]
-	meta.GoImport = metadir.Attrs["go-import"]
-	meta.Redirect = metadir.Attrs["redirect"]
-	meta.Template = metadir.Attrs["template"]
-	meta.Article = metadir.Attrs["article"] != "false"
-	return &meta, in, nil
-}
-
-var tz *time.Location
-
-func init() {
-	var err error
-	tz, err = time.LoadLocation("Europe/Berlin")
-	if err != nil {
-		panic(err)
-	}
 }

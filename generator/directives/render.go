@@ -39,9 +39,6 @@ func (r *Renderer) Render(doc *site.Doc, data []byte) ([]byte, error) {
 		buf.Write(data[pos:dir.Pos])
 
 		switch dir.Name {
-		case "meta":
-			// nothing to do
-
 		case "include-snippet":
 			file := dir.Attrs["file"]
 			if file == "" {
