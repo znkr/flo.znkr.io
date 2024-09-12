@@ -83,6 +83,9 @@ func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
 		}
 
 		if d.IsDir() {
+			if _, err := os.Stat(filepath.Join(fpath, ".ignore")); err == nil {
+				return fs.SkipDir
+			}
 			return nil
 		}
 
