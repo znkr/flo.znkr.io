@@ -9,6 +9,14 @@ import (
 	"flo.znkr.io/generator/site"
 )
 
+// Parse extracts the metadata header from in, if any. The metadata header has the following format
+//
+//	# <title>
+//	:<key>: <value>
+//	:<key>: <value>
+//
+// It returns the parsed [site.Metadata] and the remaining input data (i.e. everything after the
+// metadata header).
 func Parse(in []byte) (*site.Metadata, []byte, error) {
 	meta := site.Metadata{}
 
@@ -23,10 +31,15 @@ func Parse(in []byte) (*site.Metadata, []byte, error) {
 		in = in[eol+1:]
 	}
 
+	// Parse metadata lines. These lines follow a simple format:
+	//   :<key>: <value>
 	metadir := make(map[string]string)
 	for len(in) > 0 && in[0] == ':' {
 		pos := 1
 		end := pos + slices.Index(in[pos:], ':')
+		if end < pos {
+			break
+		}
 
 		key := string(in[pos:end])
 

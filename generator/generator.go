@@ -72,21 +72,12 @@ var serveCmd = &cobra.Command{
 				}
 
 				// Update watch list should new directories be added or removed.
-				switch stat, err := os.Stat(event.Name); {
-				case os.IsNotExist(err) && (event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename)):
-					if slices.Contains(watcher.WatchList(), event.Name) {
-						watcher.Remove(event.Name)
-						wd, _ := filepath.Rel(dir, event.Name)
-						log.Printf("Removed watch directory: %v", wd)
-					}
-				case err == nil && event.Has(fsnotify.Create) && stat.IsDir():
+				if stat, err := os.Stat(event.Name); err == nil && event.Has(fsnotify.Create) && stat.IsDir() {
 					if err := watchDir(watcher, event.Name); err != nil {
 						return fmt.Errorf("adding watch: %v", err)
 					}
 					wd, _ := filepath.Rel(dir, event.Name)
 					log.Printf("Added watch directory: %v", wd)
-				case err != nil:
-					return fmt.Errorf("watching site: %v", err)
 				}
 
 				// Reload site. This is more than fast enough for now, so now caching or anything
