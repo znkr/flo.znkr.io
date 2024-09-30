@@ -317,7 +317,7 @@ main {
         }
 
         td.code {
-            white-space: pre;
+            white-space: pre-wrap;
         
             padding: 0 0.5em 0 0.625em;
             width: 100%;

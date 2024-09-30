@@ -62,6 +62,23 @@ class DiffTable {
     constructor(table) {
         this.#table = table
 
+        var prev = 0
+        for (let i = 0; i < table.rows.length; i++) {
+            let row = table.rows[i]
+            let code = row.querySelector(".code code")
+            if (code == null) {
+                continue
+            }
+            let ident = DiffTable.#scoreIdent(code.innerText)
+            if (ident == Number.MAX_SAFE_INTEGER && prev == 0) {
+                table.rows[i-1].setAttribute("data-block-end", "")
+            }
+            else if (ident > prev && prev == 0) {
+                table.rows[i-1].setAttribute("data-block-start", "")
+            }
+            prev = ident
+        }
+
         for (let group of DiffTable.#groupMatches(table)) {
             let maxContextTotal = 0
             if (!group.isStart) {
@@ -279,9 +296,19 @@ class DiffTable {
                 yLines++
             }
         }
+
+        var leader = ""
+        for (let c = group.last; c != null; c = c.previousSibling) {
+            if (c.dataset.blockStart != null) {
+                leader = c.querySelector(".code code").innerText
+                break
+            } else if (c.dataset.blockEnd != null) {
+                break
+            }
+        }
         if (xLineno > 0 && yLineno > 0) {
             let desc = group.ctrl.getElementsByClassName("hunk-desc")[0]
-            desc.textContent = `@@ -${xLineno},${xLines} +${yLineno},${yLines} @@`
+            desc.textContent = `@@ -${xLineno},${xLines} +${yLineno},${yLines} @@ ${leader}`
         }
     }
 
@@ -289,5 +316,25 @@ class DiffTable {
         if (group.prev != null) {
             this.#updateGroupCtrlDesc(group.prev)
         }
+    }
+
+    static #scoreIdent(s) {
+        let score = 0
+        for (const c of s) {
+            switch (c) {
+                case ' ':
+                    score++
+                    break
+                case '\t':
+                    score += 4
+                    break
+                case '\n':
+                case '\r':
+                    break
+                default:
+                    return score
+            }
+        }
+        return Number.MAX_SAFE_INTEGER
     }
 }
