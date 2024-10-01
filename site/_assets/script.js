@@ -203,14 +203,14 @@ class DiffTable {
         group.ctrl.classList.add("ctrl")
 
         if (!group.isEnd && !group.isStart && group.last.rowIndex - group.first.rowIndex <= DiffTable.#maxUnfold) {
-            this.#addUnfoldCell(group, "unfold", (event) => { this.#unfoldDown(group) }, 2)
+            this.#addUnfoldCell(group, "unfold", "Unfold", (event) => { this.#unfoldDown(group) }, 2)
         } else if (group.isStart && !group.isEnd) {
-            this.#addUnfoldCell(group, "unfold-up", (event) => { this.#unfoldUp(group) }, 2)
+            this.#addUnfoldCell(group, "unfold-up", "Unfold Up", (event) => { this.#unfoldUp(group) }, 2)
         } else if (!group.isStart && group.isEnd) {
-            this.#addUnfoldCell(group, "unfold-down", (event) => { this.#unfoldDown(group) }, 2)
+            this.#addUnfoldCell(group, "unfold-down", "Unfold Down", (event) => { this.#unfoldDown(group) }, 2)
         } else {
-            this.#addUnfoldCell(group, "unfold-down", (event) => { this.#unfoldDown(group) }, 1)
-            this.#addUnfoldCell(group, "unfold-up", (event) => { this.#unfoldUp(group) }, 1)
+            this.#addUnfoldCell(group, "unfold-down", "Unfold Down", (event) => { this.#unfoldDown(group) }, 1)
+            this.#addUnfoldCell(group, "unfold-up", "Unfold Up", (event) => { this.#unfoldUp(group) }, 1)
         }
 
         let op = group.ctrl.insertCell()
@@ -219,8 +219,9 @@ class DiffTable {
         this.#updateGroupCtrlDesc(group)
     }
 
-    #addUnfoldCell(group, icon, onclick, colSpan) {
+    #addUnfoldCell(group, icon, title, onclick, colSpan) {
         let button = document.createElement("button")
+        button.setAttribute("title", title)
         button.classList.add("fold-button")
         button.classList.add(icon)
         //button.innerHTML = "<svg viewBox=\"0 0 16 16\"><use href=\"#"+icon+"\" /></svg>"

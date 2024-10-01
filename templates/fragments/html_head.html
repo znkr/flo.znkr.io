@@ -3,7 +3,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <link rel="stylesheet" href="/_assets/style.css">
-    <script src="/_assets/script.js"></script>
+    <script src="/_assets/script.js" defer></script>
 
 
     <link rel="icon" href="/_assets/icon.svg" type="image/svg+xml" sizes="any">
@@ -16,6 +16,11 @@
     {{- end }}
     {{- if .Redirect }}
     <meta http-equiv="refresh" content="0;URL='{{ .Redirect }}'">
+    {{- end }}
+
+    <meta name="author" content="Florian Zenker">
+    {{- if .Abstract }}
+    <meta name="description" content="{{ .Abstract }}">
     {{- end }}
 
     <title>{{ .Title }} - flo.znkr.io</title>
