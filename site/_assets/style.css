@@ -83,9 +83,9 @@ a:focus {
     justify-content: space-between;
     align-items: baseline;
 
-    background-image: linear-gradient(-225deg, #22E1FF 0%, #1D8FE1 48%, #625EB1 100%);
+    background-image: linear-gradient(-225deg, #22e1ff 0%, #1d8fe1 48%, #746fd2 100%);
     color: var(--color-header-text);
-    box-shadow: 0 5px 15px #cccccc;
+    box-shadow: 0 5px 15px #dcdcdc;
 
     padding: .4rem 1.5rem;
     margin-bottom: 2rem;
