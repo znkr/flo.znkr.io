@@ -8,11 +8,9 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"slices"
 	"strings"
 	"time"
 
-	"flo.znkr.io/generator/pack"
 	"flo.znkr.io/generator/server"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
@@ -26,7 +24,6 @@ var serveCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("determining workdir: %v", err)
 		}
-
 		s, err := load(dir)
 		if err != nil {
 			return fmt.Errorf("loading site: %v", err)
@@ -34,8 +31,10 @@ var serveCmd = &cobra.Command{
 
 		// Start serving.
 		const addr = "localhost:8080"
-		server := server.New(addr, s)
-		go server.Start()
+		server, err := server.Run(addr, s)
+		if err != nil {
+			return err
+		}
 		defer server.Shutdown(context.Background())
 		log.Printf("Now serving at %s, press Ctrl-C to shut down", addr)
 
@@ -49,14 +48,6 @@ var serveCmd = &cobra.Command{
 			if err := watchDir(watcher, filepath.Join(dir, subdir)); err != nil {
 				return fmt.Errorf("starting watch: %v", err)
 			}
-		}
-		{
-			wl := watcher.WatchList()
-			for i := range wl {
-				wl[i], _ = filepath.Rel(dir, wl[i])
-			}
-			slices.Sort(wl)
-			log.Printf("Watching:\n    %v", strings.Join(wl, "\n    "))
 		}
 
 		// Setup signals to react to Ctrl-C.
@@ -91,8 +82,13 @@ var serveCmd = &cobra.Command{
 				server.ReplaceSite(s)
 				d := time.Since(start)
 				log.Printf("Site reloaded (%v)", d)
+
+			case err := <-server.Error():
+				return fmt.Errorf("serving: %v", err)
+
 			case err := <-watcher.Errors:
 				return fmt.Errorf("watching: %v", err)
+
 			case <-sigint:
 				fmt.Print("\r") // remove Ctrl-C output characters
 				log.Printf("Received Ctrl-C, shutting down")
@@ -119,38 +115,4 @@ func watchDir(watcher *fsnotify.Watcher, dir string) error {
 		return err
 	}
 	return nil
-}
-
-var packCmd = &cobra.Command{
-	Use:   "pack",
-	Short: "Packs the site into .tar file",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		dir, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("determining workdir: %v", err)
-		}
-		s, err := load(dir)
-		if err != nil {
-			return fmt.Errorf("loading site: %v", err)
-		}
-		return pack.Pack(args[0], s)
-	},
-}
-
-func main() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
-	rootCmd := &cobra.Command{
-		Use:   "site [command]",
-		Short: "Static side generator for znkr.io",
-	}
-
-	rootCmd.AddCommand(serveCmd)
-	rootCmd.AddCommand(packCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
 }

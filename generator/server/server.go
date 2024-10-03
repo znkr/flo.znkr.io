@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 
 	"flo.znkr.io/generator/site"
@@ -12,20 +13,34 @@ import (
 type Server struct {
 	http    *http.Server
 	handler *handler
+	errc    chan error
 }
 
-// New creates a new server, but doesn't start it.
-func New(addr string, site *site.Site) *Server {
+// Run creates a new server anc runs it in a new goroutine.
+func Run(addr string, site *site.Site) (*Server, error) {
+	l, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, fmt.Errorf("starting HTTP server: %v", err)
+	}
+
 	h := &handler{}
 	h.site.Store(site)
-	server := &http.Server{
-		Addr:    addr,
-		Handler: h,
-	}
-	return &Server{
-		http:    server,
+
+	s := &Server{
+		http: &http.Server{
+			Handler: h,
+		},
 		handler: h,
+		errc:    make(chan error),
 	}
+
+	go func() {
+		if err := s.http.Serve(l); err != nil {
+			s.errc <- err
+		}
+	}()
+
+	return s, nil
 }
 
 // ReplaceSite replaces the site to serve with the one provided.
@@ -33,18 +48,16 @@ func (s *Server) ReplaceSite(site *site.Site) {
 	s.handler.site.Store(site)
 }
 
-// Start starts the server, it blocks until [Shutdown] is called.
-func (s *Server) Start() error {
-	if err := s.http.ListenAndServe(); err != nil {
-		return fmt.Errorf("starting HTTP server: %v", err)
-	}
-	return nil
-}
-
 // Shutdown gracefully stops the sever.
 func (s *Server) Shutdown(ctx context.Context) error {
 	if err := s.http.Shutdown(ctx); err != nil {
 		return fmt.Errorf("shutting down HTTP sever: %v", err)
 	}
+	close(s.errc)
 	return nil
+}
+
+// Error returns a channel to listen to errors while serving.
+func (s *Server) Error() <-chan error {
+	return s.errc
 }
