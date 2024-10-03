@@ -1,16 +1,18 @@
 :root {
-    --color-background-header: #aaaaaa;
-    --color-text-header: #000000;
-    --color-background: #ffffff;
-    --color-background-accented: #f8f8f8;
-    --color-background-accented-extra: #625EB1;
-    --color-background-accented-ctrl: #dfdcf8;
-    --color-background-accented-ctrl-bright: #ccc8ff;
-    --color-background-accented-ctrl-text: #ebebfa;
+    --color-header-bg: #aaaaaa;
+    --color-header-text: #000000;
+    
+    --color-bg: #ffffff;
+    --color-bg-accent: #f8f8f8;
     --color-text: #000000;
     --color-text-soft: #404040;
     --color-text-soft-extra: #808080;
     --color-text-link: #247BA0;
+    --color-highlight: #625EB1;
+
+    --color-ctrl-bg: #ebebfa;
+    --color-ctrl-bg-accent: #dfdcf8;
+    --color-ctrl-bg-bright: #ccc8ff;
 
     --border-radius: 0.3125rem;
     --box-shadow: 0px 0px 15px -10px rgba(0,0,0,0.70);
@@ -57,7 +59,7 @@ body {
     margin: 0;
     max-height: 100%;
 
-    background: var(--color-background);
+    background: var(--color-bg);
     color: var(--color-text);
 
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
@@ -81,14 +83,14 @@ a:focus {
     align-items: baseline;
 
     background-image: linear-gradient(-225deg, #22E1FF 0%, #1D8FE1 48%, #625EB1 100%);
-    color: var(--color-text-header);
+    color: var(--color-header-text);
     box-shadow: 0 5px 15px #cccccc;
 
     padding: .4rem 1.5rem;
     margin-bottom: 2rem;
 
     h1 {
-        color: var(--color-text-header);
+        color: var(--color-header-text);
         font-weight: normal;
         font-size: 1rem;
         margin: 0;
@@ -175,11 +177,16 @@ main {
         font-size: 1rem;
     }
 
+    p code {
+        color: var(--color-highlight);
+        font-size: 0.9em;
+    }
+
     pre {
-        background: var(--color-background-accented);
+        background: var(--color-bg-accent);
         width: 100%;
         padding: 0.626rem 1rem;
-        outline: 1px solid var(--color-background-accented-extra);
+        outline: 1px solid var(--color-highlight);
         border-radius: var(--border-radius);
         font-family: monospace;
         box-shadow: 0px 0px 15px -10px rgba(0,0,0,0.70);
@@ -230,20 +237,20 @@ main {
                 color: var(--color-text);
                 display: inline-block;
                 padding: .4em .5em; 
-                border-left: 1px solid var(--color-background-accented-extra);
+                border-left: 1px solid var(--color-highlight);
                 transition-property: color, border;
                 transition-timing-function: cubic-bezier(.4,0,.2,1);
                 transition: .2s;
             }
     
             a.active {
-                color: var(--color-background-accented-extra);
-                border-left: 2px solid var(--color-background-accented-extra);
+                color: var(--color-highlight);
+                border-left: 2px solid var(--color-highlight);
             }
     
             a:hover,
             a:focus {
-                color: var(--color-background-accented-extra);
+                color: var(--color-highlight);
                 text-decoration: none;
             }
          }
@@ -280,8 +287,8 @@ main {
     border-collapse: collapse;
     border-spacing: 0;
     border: 0;
-    outline: 1px solid var(--color-background-accented-extra);
-    background: var(--color-background-accented);
+    outline: 1px solid var(--color-highlight);
+    background: var(--color-bg-accent);
     border-radius: var(--border-radius);
     margin-top: 0;
     box-shadow: var(--box-shadow);
@@ -289,14 +296,14 @@ main {
     caption {
         caption-side: top;
         text-align: left;
-        background: var(--color-background-accented-extra);
+        background: var(--color-highlight);
         border-radius: var(--border-radius) var(--border-radius) 0 0;
         padding: 0.4em 1.0em;
         margin-bottom: 0;
 
         a {
             font-weight: normal;
-            color: var(--color-background);
+            color: var(--color-bg);
         }
     }
 
@@ -357,18 +364,18 @@ main {
     }
 
     tr.ctrl {
-        background: var(--color-background-accented-ctrl-text);
+        background: var(--color-ctrl-bg);
         color: var(--color-text-soft-extra);
         vertical-align: middle;
     
         .fold-ctrl {
-            background: var(--color-background-accented-ctrl);
+            background: var(--color-ctrl-bg-accent);
             text-align: center;
             height: 1.8em;
         }
 
         .fold-ctrl:hover {
-            background: var(--color-background-accented-ctrl-bright);
+            background: var(--color-ctrl-bg-bright);
         }
     
         .fold-button {
@@ -487,7 +494,7 @@ main {
 .footnotes {
     hr {
        border: 0;
-        border-top: 1px solid var(--color-background-accented);
+        border-top: 1px solid var(--color-bg-accent);
     }
 
     p, 
