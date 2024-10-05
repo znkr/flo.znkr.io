@@ -34,8 +34,7 @@ type Metadata struct {
 	Abstract  string
 	GoImport  string
 	Redirect  string
-	Template  string
-	Article   bool
+	Type      string
 }
 
 // New creates a new site from the provided docs.
@@ -66,7 +65,7 @@ func (s *Site) Doc(path string) *Doc {
 func (s *Site) Articles() []*Doc {
 	var ret []*Doc
 	for _, d := range s.docs {
-		if d.Meta == nil || !d.Meta.Article {
+		if d.Meta == nil || d.Meta.Type != "article" {
 			continue
 		}
 		ret = append(ret, &d)

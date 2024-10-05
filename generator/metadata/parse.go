@@ -1,6 +1,7 @@
 package metadata
 
 import (
+	"cmp"
 	"fmt"
 	"slices"
 	"strings"
@@ -104,8 +105,7 @@ func Parse(in []byte) (*site.Metadata, []byte, error) {
 	meta.Abstract = metadir["summary"]
 	meta.GoImport = metadir["go-import"]
 	meta.Redirect = metadir["redirect"]
-	meta.Template = metadir["template"]
-	meta.Article = metadir["article"] != "false"
+	meta.Type = cmp.Or(metadir["type"], "article")
 	return &meta, in, nil
 }
 

@@ -1,6 +1,5 @@
 # About
-:template: page
-:article: false
+:type: page
 
 <header style="text-align: left" class="header">
    <h1 style="margin-right: 0.5rem;">Florian Zenker</h1>

@@ -1,10 +1,10 @@
 package main
 
 import (
-	"cmp"
 	"fmt"
 	"html/template"
 	"io/fs"
+	"log"
 	"mime"
 	"os"
 	"path/filepath"
@@ -27,14 +27,25 @@ func load(dir string) (*site.Site, error) {
 		return nil, err
 	}
 
-	docs = append(docs, site.Doc{
-		Path:     "/feed.atom",
-		MimeType: "application/atom+xml;charset=utf-8",
-		Meta: &site.Metadata{
-			Title: "flo.znkr.io",
+	docs = append(docs,
+		site.Doc{
+			Path:     "/",
+			MimeType: "text/html;charset=utf-8",
+			Meta: &site.Metadata{
+				Title:    "Florian Zenker's website",
+				GoImport: "flo.znkr.io git https://github.com/znkr/flo.znkr.io",
+			},
+			Renderer: mustNewIndexRenderer(templates),
 		},
-		Renderer: renderers.Atom,
-	})
+		site.Doc{
+			Path:     "/feed.atom",
+			MimeType: "application/atom+xml;charset=utf-8",
+			Meta: &site.Metadata{
+				Title: "Florian Zenker's website",
+			},
+			Renderer: renderers.Atom,
+		},
+	)
 
 	return site.New(docs)
 }
@@ -62,18 +73,15 @@ func loadTemplates(dir string) (*template.Template, error) {
 }
 
 func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
-	markdownRenderers := make(map[renderers.MarkdownRendererOptions]*renderers.MarkdownRenderer)
-	markdownRenderer := func(opts renderers.MarkdownRendererOptions) (*renderers.MarkdownRenderer, error) {
-		if r, ok := markdownRenderers[opts]; ok {
-			return r, nil
-		}
-
-		r, err := renderers.NewMarkdownRenderer(templates, opts)
+	markdownRenderers := make(map[string]*renderers.MarkdownRenderer)
+	for _, typ := range []string{"article", "page"} {
+		r, err := renderers.NewMarkdownRenderer(templates, renderers.MarkdownRendererOptions{
+			PageTemplate: typ,
+		})
 		if err != nil {
 			return nil, err
 		}
-		markdownRenderers[opts] = r
-		return r, nil
+		markdownRenderers[typ] = r
 	}
 
 	var docs []site.Doc
@@ -120,19 +128,11 @@ func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
 			} else {
 				path = dir + p
 			}
-			doc.MimeType = "text/html;charset=UTF-8"
-
-			tname := "article"
-			if doc.Meta != nil {
-				tname = cmp.Or(doc.Meta.Template, tname)
+			doc.MimeType = "text/html;charset=utf-8"
+			doc.Renderer = markdownRenderers[doc.Meta.Type]
+			if doc.Renderer == nil {
+				return fmt.Errorf("unknown doc type: %s", doc.Meta.Type)
 			}
-			renderer, err := markdownRenderer(renderers.MarkdownRendererOptions{
-				PageTemplate: tname,
-			})
-			if err != nil {
-				return err
-			}
-			doc.Renderer = renderer
 		default:
 			doc.MimeType = mime.TypeByExtension(filepath.Ext(fpath))
 		}
@@ -145,4 +145,14 @@ func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
 		return nil, fmt.Errorf("loading docs: %v", err)
 	}
 	return docs, nil
+}
+
+func mustNewIndexRenderer(templates *template.Template) *renderers.MarkdownRenderer {
+	r, err := renderers.NewMarkdownRenderer(templates, renderers.MarkdownRendererOptions{
+		PageTemplate: "index",
+	})
+	if err != nil {
+		log.Fatalf("creating index renderer: %v", err)
+	}
+	return r
 }
