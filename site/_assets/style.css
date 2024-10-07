@@ -53,6 +53,7 @@ table {
 html {
     max-height: 100%;
     min-height: 100vh;
+    margin: 0;
     scroll-behavior: smooth;
 }
 
@@ -78,7 +79,7 @@ a:focus {
   text-decoration: underline;
 }
 
-.site-header {    
+.site-header {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
@@ -109,15 +110,9 @@ a:focus {
 }
 
 main {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    grid-template-rows: auto;
-    grid-template-areas:
-        ". header ."
-        ". inline-toc . "
-        ". content sidebar-toc";
-    column-gap: 3em;
-
+    overflow-x: scroll;
+    max-width: 55em;
+    margin: 0 auto;
     padding: 0 1.5rem 2.875rem 1.5rem;
 
     h1 {
@@ -189,8 +184,6 @@ main {
     }
 
     .header {
-        grid-area: header;
-
         text-align: center;
         margin: 1rem 0 1rem 0;
 
@@ -204,8 +197,7 @@ main {
     }
 
     .content {
-        grid-area: content;
-        max-width: 55rem;
+        
 
         img {
             max-width: 100%;
@@ -221,6 +213,7 @@ main {
             [href^="javascript:" i],
             [href^="/"]:not([href^="//"]),
             [href*="//flo.znkr.io"],
+            [href*="//github.com/znkr/"],
           ))::after {
             display: inline-block;
             content: '';
@@ -242,19 +235,38 @@ main {
         }
     }
 
-    .toc {
-        grid-area: inline-toc;
-        
+    .toc {        
         ul {
             list-style: none;
             padding-left: 0;
         }
     }
+}
 
-    @media screen and (min-width: 90rem) {
+@media screen and (min-width: 90rem) {
+    main {
+        max-width: unset;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        grid-template-rows: auto;
+        grid-template-areas:
+            ". header ."
+            ". inline-toc . "
+            ". content sidebar-toc";
+        column-gap: 3em;
+
+        .header {
+            grid-area: header;
+        }
+            
+        .content {
+            grid-area: content;
+            max-width: 55rem;
+        }
+
         .toc {
             grid-area: sidebar-toc;
-    
+
             align-self: start;
             position: sticky;
             top: 0;
@@ -268,18 +280,18 @@ main {
                 transition-timing-function: cubic-bezier(.4,0,.2,1);
                 transition: .2s;
             }
-    
+
             a.active {
                 color: var(--color-link);
                 border-left: 2px solid var(--color-link);
             }
-    
+
             a:hover,
             a:focus {
                 color: var(--color-link);
                 text-decoration: none;
             }
-         }
+        }
     }
 }
 
