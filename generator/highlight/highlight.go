@@ -6,9 +6,10 @@ import (
 	"html/template"
 	"strings"
 
-	"flo.znkr.io/generator/diff"
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
+	"znkr.io/diff"
+	"znkr.io/diff/textdiff"
 )
 
 var style = map[chroma.TokenType]string{
@@ -80,46 +81,26 @@ func (ed *Edit) IsInsert() bool { return ed.Op == diff.Insert }
 func Diff(a, b string, opts ...Option) ([]Edit, error) {
 	hl := fromOptions(opts)
 
-	hlalines, err := hl.lines(a)
-	if err != nil {
-		return nil, fmt.Errorf("parsing a: %v", err)
-	}
-	hlblines, err := hl.lines(b)
-	if err != nil {
-		return nil, fmt.Errorf("parsing b: %v", err)
-	}
-
-	var alines []string
-	for _, l := range hlalines {
-		var sb strings.Builder
-		for _, t := range l {
-			sb.WriteString(t.Value)
-		}
-		alines = append(alines, sb.String())
-	}
-	var blines []string
-	for _, l := range hlblines {
-		var sb strings.Builder
-		for _, t := range l {
-			sb.WriteString(t.Value)
-		}
-		blines = append(blines, sb.String())
-	}
-	edits := diff.Diff(alines, blines)
+	edits := textdiff.Edits(a, b, textdiff.IndentHeuristic())
 
 	ret := make([]Edit, 0, len(edits))
 	s, t := 0, 0
 	for _, edit := range edits {
+		tokens, err := hl.tokens(edit.Line)
+		if err != nil {
+			return nil, err
+		}
+		ln := template.HTML(hl.highlight(tokens))
 		switch edit.Op {
 		case diff.Match:
-			ret = append(ret, Edit{edit.Op, s + 1, t + 1, template.HTML(hl.highlight(hlalines[s]))})
+			ret = append(ret, Edit{edit.Op, s + 1, t + 1, ln})
 			s++
 			t++
 		case diff.Delete:
-			ret = append(ret, Edit{edit.Op, s + 1, -1, template.HTML(hl.highlight(hlalines[s]))})
+			ret = append(ret, Edit{edit.Op, s + 1, -1, ln})
 			s++
 		case diff.Insert:
-			ret = append(ret, Edit{edit.Op, -1, t + 1, template.HTML(hl.highlight(hlblines[t]))})
+			ret = append(ret, Edit{edit.Op, -1, t + 1, ln})
 			t++
 		}
 	}
@@ -156,6 +137,14 @@ func (hl *highlighter) highlight(line []chroma.Token) string {
 		}
 	}
 	return sb.String()
+}
+
+func (hl *highlighter) tokens(in string) ([]chroma.Token, error) {
+	it, err := hl.lexer.Tokenise(nil, in)
+	if err != nil {
+		return nil, fmt.Errorf("creating iterator: %v", err)
+	}
+	return it.Tokens(), nil
 }
 
 func (hl *highlighter) lines(in string) ([][]chroma.Token, error) {

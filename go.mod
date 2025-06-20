@@ -11,6 +11,7 @@ require (
 	github.com/yuin/goldmark v1.7.12
 	go.abhg.dev/goldmark/toc v0.12.0
 	golang.org/x/tools v0.34.0
+	znkr.io/diff v0.0.0-20250712133612-a58f7eea66ae
 )
 
 require (
