@@ -46,7 +46,7 @@ func Pack(filename string, s *site.Site) error {
 
 		mime, _, err := mime.ParseMediaType(d.MimeType)
 		if err != nil {
-			return fmt.Errorf("invalid mime type: %v", err)
+			return fmt.Errorf("invalid mime type for file %v: %v", d.Path, err)
 		}
 
 		switch mime {

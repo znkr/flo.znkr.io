@@ -97,6 +97,10 @@ func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
 			return nil
 		}
 
+		if strings.HasPrefix(fpath, ".") {
+			return nil // skip hidden files
+		}
+
 		doc := site.Doc{
 			Source:   fpath,
 			Renderer: renderers.Passthrough,
