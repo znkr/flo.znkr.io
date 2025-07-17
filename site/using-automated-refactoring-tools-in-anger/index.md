@@ -1,5 +1,5 @@
 # Using Automated Refactoring Tools in Anger
-:published: 2025-06-22
+:published: 2025-07-17
 :summary: In which I resort to refactoring tools for code generation to manually implement \
           template specialization for Go and reduce run times by -40%.
 
