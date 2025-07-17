@@ -197,8 +197,6 @@ main {
     }
 
     .content {
-        
-
         img {
             max-width: 100%;
         }
@@ -245,6 +243,7 @@ main {
 
 @media screen and (min-width: 90rem) {
     main {
+        overflow-x: visible;
         max-width: unset;
         display: grid;
         grid-template-columns: 1fr auto 1fr;
