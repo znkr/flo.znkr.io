@@ -11,7 +11,6 @@ import (
 
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/css"
-	"github.com/tdewolff/minify/v2/html"
 	"github.com/tdewolff/minify/v2/js"
 	"github.com/tdewolff/minify/v2/svg"
 	"github.com/tdewolff/minify/v2/xml"
@@ -22,7 +21,6 @@ import (
 func Pack(filename string, s *site.Site) error {
 	minifier := minify.New()
 	minifier.AddFunc("text/css", css.Minify)
-	minifier.AddFunc("text/html", html.Minify)
 	minifier.AddFunc("image/svg+xml", svg.Minify)
 	minifier.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
 	minifier.AddFuncRegexp(regexp.MustCompile("[/+]xml$"), xml.Minify)
@@ -50,7 +48,7 @@ func Pack(filename string, s *site.Site) error {
 		}
 
 		switch mime {
-		case "text/html", "text/css", "image/svg+xml", "application/atom+xml", "text/javascript":
+		case "text/css", "image/svg+xml", "application/atom+xml", "text/javascript":
 			b, err = minifier.Bytes(d.MimeType, b)
 			if err != nil {
 				return fmt.Errorf("minification of failed for %s: %v", d.Path, err)
