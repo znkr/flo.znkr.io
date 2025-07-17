@@ -114,7 +114,7 @@ func (r *Renderer) Render(doc *site.Doc, data []byte) ([]byte, error) {
 				Diff     []highlight.Edit
 			}{
 				File:     display,
-				FilePath: filepath.Join(filepath.Dir(doc.Source), bfile),
+				FilePath: filepath.Join(doc.Path, bfile),
 				Diff:     diff,
 			})
 			if err != nil {
