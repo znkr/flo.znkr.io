@@ -1,0 +1,7 @@
++["foo", "bar", "baz"].map do |i|
++  i
++end
++
+ ["foo", "bar", "baz"].map do |i|
+   i.upcase
+ end
