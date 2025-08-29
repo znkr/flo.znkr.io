@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"flo.znkr.io/generator/goldmark/admonitions"
+	treeblood "github.com/wyatt915/goldmark-treeblood"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
@@ -20,7 +21,9 @@ func Render(data []byte) ([]byte, []byte, error) {
 	md := goldmark.New(
 		goldmark.WithExtensions(
 			extension.Footnote,
+			extension.Table,
 			admonitions.Extension,
+			treeblood.MathML(),
 		),
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
@@ -33,7 +36,7 @@ func Render(data []byte) ([]byte, []byte, error) {
 
 	doc := md.Parser().Parse(text.NewReader(data))
 
-	tree, err := toc.Inspect(doc, data, toc.MinDepth(2), toc.MaxDepth(2), toc.Compact(true))
+	tree, err := toc.Inspect(doc, data, toc.MinDepth(2), toc.MaxDepth(4), toc.Compact(true))
 	if err != nil {
 		return nil, nil, fmt.Errorf("inspecting markdown doc for TOC: %v", err)
 	}

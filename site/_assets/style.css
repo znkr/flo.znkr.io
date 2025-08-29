@@ -212,6 +212,19 @@ main {
             [href^="javascript:" i],
             [href^="/"]:not([href^="//"]),
             [href*="//flo.znkr.io"],
+            [href*="//znkr.io"],
+            [href*="//github.com/znkr/"],
+          )) {
+            display: inline-block;
+            padding-right: .9em;
+          }
+
+        a[href]:not(:where(
+            [href^="#"],
+            [href^="javascript:" i],
+            [href^="/"]:not([href^="//"]),
+            [href*="//flo.znkr.io"],
+            [href*="//znkr.io"],
             [href*="//github.com/znkr/"],
           ))::after {
             display: inline-block;
@@ -219,6 +232,7 @@ main {
 
             width: 0.8em;
             height: 0.8em;
+            margin-right: -.9em;
             margin-left: .1em;
             vertical-align: middle;
     
@@ -238,6 +252,13 @@ main {
         ul {
             list-style: none;
             padding-left: 0;
+            margin: 0;
+        }
+        li li a {
+            padding-left: 1em;
+        }
+        li li li a {
+            padding-left: 2em;
         }
     }
 }
@@ -340,6 +361,7 @@ main {
         border-radius: var(--border-radius) var(--border-radius) 0 0;
         padding: 0.4em 1.0em;
         margin-bottom: 0;
+        font-size: 1em;
 
         a {
             font-weight: normal;
@@ -461,6 +483,47 @@ main {
     }
 }
 
+/* Regular table styles (similar to code snippets) */
+table:not(.code-snippet) {
+    display: table;
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+    outline: 1px solid var(--color-highlight);
+    border-radius: var(--border-radius);
+    background: var(--color-bg);
+
+    th {
+        background: var(--color-bg);
+        color: var(--color-text);
+        padding: 0.4em 1.0em;
+        text-align: left;
+        font-weight: bold;
+        font-size: 1em;
+        border-right: 1px solid var(--color-highlight);
+        border-bottom: 1px solid var(--color-highlight);
+    }
+
+    td {
+        background: var(--color-bg);
+        padding: 0.4em 1.0em;
+        font-size: 1em;
+        border-right: 1px solid var(--color-highlight);
+        border-bottom: 1px solid var(--color-highlight);
+    }
+
+    /* Remove right border from last cell in each row */
+    th:last-child,
+    td:last-child {
+        border-right: none;
+    }
+
+    /* Remove bottom border from last row */
+    tr:last-child td {
+        border-bottom: none;
+    }
+}
+
 .admonition {
     border: 1px solid;
     border-radius: var(--border-radius);
@@ -540,6 +603,7 @@ main {
     p, 
     ul,
     ol {
+        margin: .1em;
         font-size: 0.85rem;
     }
 }

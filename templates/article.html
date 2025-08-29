@@ -16,6 +16,8 @@
                 {{ if ne $published $updated }}
                     <span class="date">Updated on {{ $updated }}</span>
                 {{ end }}
+            {{ else }}
+                <span class="date">Preview</span>
             {{ end }}
         </header>
         

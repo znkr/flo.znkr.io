@@ -21,7 +21,6 @@ var style = map[chroma.TokenType]string{
 	chroma.NameException:     "hl-b",
 	chroma.NameNamespace:     "hl-b",
 	chroma.NameTag:           "hl-b",
-	chroma.NameFunction:      "hl-bl",
 	chroma.NameBuiltin:       "hl-bl",
 	chroma.LiteralString:     "hl-i",
 	chroma.OperatorWord:      "hl-b",
@@ -107,6 +106,36 @@ func Diff(a, b string, opts ...Option) ([]Edit, error) {
 	return ret, nil
 }
 
+func ParseDiff(in string, opts ...Option) ([]Edit, error) {
+	hl := fromOptions(opts)
+	var ret []Edit
+	s, t := 0, 0
+	for l := range strings.Lines(in) {
+		var p byte
+		if len(l) > 0 && l[0] == '-' || l[0] == '+' || l[0] == ' ' {
+			p, l = l[0], l[1:]
+		}
+		tokens, err := hl.tokens(l)
+		if err != nil {
+			return nil, err
+		}
+		ln := template.HTML(hl.highlight(tokens))
+		switch p {
+		default:
+			ret = append(ret, Edit{diff.Match, s + 1, t + 1, ln})
+			s++
+			t++
+		case '-':
+			ret = append(ret, Edit{diff.Delete, s + 1, -1, ln})
+			s++
+		case '+':
+			ret = append(ret, Edit{diff.Insert, -1, t + 1, ln})
+			t++
+		}
+	}
+	return ret, nil
+}
+
 type highlighter struct {
 	lexer chroma.Lexer
 }
@@ -114,6 +143,9 @@ type highlighter struct {
 func fromOptions(opts []Option) *highlighter {
 	hl := &highlighter{}
 	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
 		opt(hl)
 	}
 

@@ -208,3 +208,8 @@ func (p *parser) parseValue() string {
 		return string(v)
 	}
 }
+
+func (d *Directive) HasAttr(name string) bool {
+	_, ok := d.Attrs[name]
+	return ok
+}

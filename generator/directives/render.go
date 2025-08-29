@@ -7,6 +7,8 @@ import (
 	"html/template"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"flo.znkr.io/generator/highlight"
 	"flo.znkr.io/generator/site"
@@ -58,6 +60,26 @@ func (r *Renderer) Render(doc *site.Doc, data []byte) ([]byte, error) {
 				return nil, fmt.Errorf("include-snippet: %v", err)
 			}
 
+			if sel, ok := dir.Attrs["lines"]; ok {
+				from, to, _ := strings.Cut(sel, "..")
+				start, end := 0, len(lines)
+				if from != "" {
+					i, err := strconv.Atoi(from)
+					if err != nil {
+						return nil, fmt.Errorf("include-snippet: invalid lines attribute: %q", sel)
+					}
+					start = max(start, i-1)
+				}
+				if to != "" {
+					i, err := strconv.Atoi(to)
+					if err != nil {
+						return nil, fmt.Errorf("include-snippet: invalid lines attribute: %q", sel)
+					}
+					end = min(i, end)
+				}
+				lines = lines[start:end]
+			}
+
 			display := cmp.Or(dir.Attrs["display"], file)
 			err = r.snippet.Execute(&buf, struct {
 				File     string
@@ -73,48 +95,61 @@ func (r *Renderer) Render(doc *site.Doc, data []byte) ([]byte, error) {
 			}
 
 		case "include-diff":
-			afile := dir.Attrs["a"]
-			if afile == "" {
-				return nil, fmt.Errorf("include-diff: missing or empty file attribute")
-			}
-			var a []byte
-			if afile != "/dev/null" {
-				var err error
-				a, err = os.ReadFile(filepath.Join(filepath.Dir(doc.Source), afile))
+			var display, path string
+			var diff []highlight.Edit
+			switch {
+			case dir.Attrs["diff"] != "" && !dir.HasAttr("a") && !dir.HasAttr("b"):
+				var lopt highlight.Option
+				if lang, ok := dir.Attrs["lang"]; ok {
+					lopt = highlight.Lang(lang)
+				}
+				raw, err := os.ReadFile(filepath.Join(filepath.Dir(doc.Source), dir.Attrs["diff"]))
 				if err != nil {
 					return nil, fmt.Errorf("include-snippet: %v", err)
 				}
+				diff, err = highlight.ParseDiff(string(raw), lopt)
+				if err != nil {
+					return nil, fmt.Errorf("include-diff: %v", err)
+				}
+				display = cmp.Or(dir.Attrs["display"], dir.Attrs["diff"])
+				path = filepath.Join(doc.Path, dir.Attrs["diff"])
+
+			case dir.Attrs["a"] != "" && dir.Attrs["b"] != "" && !dir.HasAttr("diff"):
+				var a, b []byte
+				var lopt highlight.Option
+				if lang, ok := dir.Attrs["lang"]; ok {
+					lopt = highlight.Lang(lang)
+				}
+				for name, dst := range map[string]*[]byte{dir.Attrs["a"]: &a, dir.Attrs["b"]: &b} {
+					if name == "/dev/null" {
+						continue
+					}
+					var err error
+					*dst, err = os.ReadFile(filepath.Join(filepath.Dir(doc.Source), name))
+					if err != nil {
+						return nil, fmt.Errorf("include-snippet: %v", err)
+					}
+					if lopt == nil {
+						lopt = highlight.LangFromFilename(name)
+					}
+					diff, err = highlight.Diff(string(a), string(b), lopt)
+					if err != nil {
+						return nil, fmt.Errorf("include-diff: %v", err)
+					}
+				}
+				display = cmp.Or(dir.Attrs["display"], dir.Attrs["b"])
+				path = filepath.Join(doc.Path, dir.Attrs["b"])
+			default:
+				return nil, fmt.Errorf("include-diff: either diff or a and b must be specified")
 			}
 
-			bfile := dir.Attrs["b"]
-			if afile == "" {
-				return nil, fmt.Errorf("include-diff: missing or empty file attribute")
-			}
-			b, err := os.ReadFile(filepath.Join(filepath.Dir(doc.Source), bfile))
-			if err != nil {
-				return nil, fmt.Errorf("include-diff: %v", err)
-			}
-
-			lopt := highlight.LangFromFilename(afile)
-			if afile == "/dev/null" {
-				lopt = highlight.LangFromFilename(bfile)
-			}
-			if lang, ok := dir.Attrs["lang"]; ok {
-				lopt = highlight.Lang(lang)
-			}
-			diff, err := highlight.Diff(string(a), string(b), lopt)
-			if err != nil {
-				return nil, fmt.Errorf("include-diff: %v", err)
-			}
-
-			display := cmp.Or(dir.Attrs["display"], bfile)
 			err = r.diff.Execute(&buf, struct {
 				File     string
 				FilePath string
 				Diff     []highlight.Edit
 			}{
 				File:     display,
-				FilePath: filepath.Join(doc.Path, bfile),
+				FilePath: path,
 				Diff:     diff,
 			})
 			if err != nil {

@@ -6,18 +6,20 @@ require (
 	github.com/alecthomas/chroma/v2 v2.20.0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/google/go-cmp v0.7.0
-	github.com/spf13/cobra v1.9.1
-	github.com/tdewolff/minify/v2 v2.24.2
+	github.com/spf13/cobra v1.10.1
+	github.com/tdewolff/minify/v2 v2.24.3
+	github.com/wyatt915/goldmark-treeblood v0.0.0-20250825231212-5dcbdb2f4b57
 	github.com/yuin/goldmark v1.7.13
 	go.abhg.dev/goldmark/toc v0.12.0
-	golang.org/x/tools v0.36.0
-	znkr.io/diff v0.0.0-20250827061432-0c326e0bbac9
+	golang.org/x/tools v0.37.0
+	znkr.io/diff v0.0.0-20250830203116-b13b7c6d4781
 )
 
 require (
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/spf13/pflag v1.0.7 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tdewolff/parse/v2 v2.8.3 // indirect
-	golang.org/x/sys v0.35.0 // indirect
+	github.com/wyatt915/treeblood v0.1.16 // indirect
+	golang.org/x/sys v0.36.0 // indirect
 )

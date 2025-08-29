@@ -65,7 +65,7 @@ func (s *Site) Doc(path string) *Doc {
 func (s *Site) Articles() []*Doc {
 	var ret []*Doc
 	for _, d := range s.docs {
-		if d.Meta == nil || d.Meta.Type != "article" {
+		if d.Meta == nil || d.Meta.Type != "article" || d.Meta.Published.IsZero() {
 			continue
 		}
 		ret = append(ret, &d)
