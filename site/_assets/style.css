@@ -246,6 +246,14 @@ main {
             mask-position: center center;
             mask-size: cover;
         }
+
+        sup {
+            line-height: 0;
+            position: relative;
+            vertical-align: baseline;
+            top: -0.5em;
+            font-size: 0.75em;
+        }
     }
 
     .toc {        
@@ -353,6 +361,8 @@ main {
     border-radius: var(--border-radius);
     margin-top: 0;
     box-shadow: var(--box-shadow);
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
 
     caption {
         caption-side: top;
@@ -361,7 +371,7 @@ main {
         border-radius: var(--border-radius) var(--border-radius) 0 0;
         padding: 0.4em 1.0em;
         margin-bottom: 0;
-        font-size: 1em;
+        font-size: 1em !important;
 
         a {
             font-weight: normal;
