@@ -1,0 +1,19 @@
+ package array
+ 
+ var m = []struct{
+     name  string
+     year  int
+ }{
+     {
+         name: "Freak Out!",
+         year: 1966,
+     },
++    {
++        name: "Absolutely Free",
++        year: 1967,
++    },
+     {
+         name: "We're Only in It for the Money",
+         year: 1967,
+     },
+ }
