@@ -197,7 +197,7 @@ the cost).
 | Optimal | ✅ | ✅ | 😁 | ➕ | ➕➕ | ➕➕ |
 
 NOTE[Text Only]: This table only applies to text (same as the table above), non-text inputs can have
-a different performance (if they are not `comparable` or readability).
+a different performance (if they are not `comparable`) or readability.
 
 ### API
 
