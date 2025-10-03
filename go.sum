@@ -52,3 +52,5 @@ pgregory.net/rapid v1.2.0 h1:keKAYRcjm+e1F0oAuU5F5+YPAWcyxNNRK2wud503Gnk=
 pgregory.net/rapid v1.2.0/go.mod h1:PY5XlDGj0+V1FCq0o192FdRhpKHGTRIWBgqjDBTrq04=
 znkr.io/diff v0.0.0-20250830203116-b13b7c6d4781 h1:UQ4Z+JqhZX20wRApF0ipO1/Swu7qZgJRBbzR5EMUdD8=
 znkr.io/diff v0.0.0-20250830203116-b13b7c6d4781/go.mod h1:/vGfz3fuihn67yW8VDFcab+le37/Nz3BJRrvnun3EqA=
+znkr.io/diff v0.0.0-20251003084247-f3070e3cce6e h1:GHCsiiMDiBQ0U0vZOmIlWl8f4hj9zE/urpiONiWw5Gk=
+znkr.io/diff v0.0.0-20251003084247-f3070e3cce6e/go.mod h1:yZ/1OchUs2FJrnuRwGpTIK3/6b6V+dHcM7vIibSzITQ=
