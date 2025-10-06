@@ -8,7 +8,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/spf13/cobra v1.10.1
 	github.com/tdewolff/minify/v2 v2.24.3
-	github.com/wyatt915/goldmark-treeblood v0.0.0-20250825231212-5dcbdb2f4b57
+	github.com/wyatt915/goldmark-treeblood v0.0.1
 	github.com/yuin/goldmark v1.7.13
 	go.abhg.dev/goldmark/toc v0.12.0
 	golang.org/x/tools v0.37.0
