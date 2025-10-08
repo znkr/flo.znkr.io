@@ -5,23 +5,23 @@
 <tbody>
     {{- range .Diff -}}
         {{- if .IsMatch -}}
-            <tr class="src match" data-op="match" data-x-lineno="{{ .XLineNo }}" data-y-lineno="{{ .YLineNo }}">
-                <td class="line-no">{{ .XLineNo }}</td>
-                <td class="line-no">{{ .YLineNo }}</td>
+            <tr class="src match" data-op="match" data-x-lineno="{{ .LineNoX }}" data-y-lineno="{{ .LineNoY }}">
+                <td class="line-no">{{ .LineNoX }}</td>
+                <td class="line-no">{{ .LineNoY }}</td>
                 <td class="op"> </td>
                 <td class="code"><code>{{ .Content }}</code></td>
             </tr>
         {{- else if .IsDelete -}}
-            <tr class="src delete" data-op="delete" data-x-lineno="{{ .XLineNo }}">
-                <td class="line-no">{{ .XLineNo }}</td>
+            <tr class="src delete" data-op="delete" data-x-lineno="{{ .LineNoX }}">
+                <td class="line-no">{{ .LineNoX }}</td>
                 <td class="line-no"></td>
                 <td class="op">-</td>
                 <td class="code"><code>{{ .Content }}</code></td>
             </tr>
         {{- else if .IsInsert -}}
-            <tr class="src insert" data-op="insert" data-y-lineno="{{ .YLineNo }}">
+            <tr class="src insert" data-op="insert" data-y-lineno="{{ .LineNoY }}">
                 <td class="line-no"></td>
-                <td class="line-no">{{ .YLineNo }}</td>
+                <td class="line-no">{{ .LineNoY }}</td>
                 <td class="op">+</td>
                 <td class="code"><code>{{ .Content }}</code></td>
             </tr>

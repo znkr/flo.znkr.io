@@ -68,8 +68,8 @@ func Highlight(in string, opts ...Option) ([]Line, error) {
 
 type Edit struct {
 	Op      diff.Op
-	XLineNo int
-	YLineNo int
+	LineNoX int
+	LineNoY int
 	Content template.HTML
 }
 
@@ -83,7 +83,6 @@ func Diff(a, b string, opts ...Option) ([]Edit, error) {
 	edits := textdiff.Edits(a, b, textdiff.IndentHeuristic())
 
 	ret := make([]Edit, 0, len(edits))
-	s, t := 0, 0
 	for _, edit := range edits {
 		tokens, err := hl.tokens(edit.Line)
 		if err != nil {
@@ -92,15 +91,11 @@ func Diff(a, b string, opts ...Option) ([]Edit, error) {
 		ln := template.HTML(hl.highlight(tokens))
 		switch edit.Op {
 		case diff.Match:
-			ret = append(ret, Edit{edit.Op, s + 1, t + 1, ln})
-			s++
-			t++
+			ret = append(ret, Edit{edit.Op, edit.LineNoX + 1, edit.LineNoY + 1, ln})
 		case diff.Delete:
-			ret = append(ret, Edit{edit.Op, s + 1, -1, ln})
-			s++
+			ret = append(ret, Edit{edit.Op, edit.LineNoX + 1, -1, ln})
 		case diff.Insert:
-			ret = append(ret, Edit{edit.Op, -1, t + 1, ln})
-			t++
+			ret = append(ret, Edit{edit.Op, -1, edit.LineNoY + 1, ln})
 		}
 	}
 	return ret, nil
