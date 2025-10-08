@@ -1,5 +1,6 @@
 # Diff Algorithms
 :published: 2025-09-30
+:updated: 2025-10-08
 :summary: How I overcame copying and modifying my own diff library from project to project by \
           diving too deep into diff algorithms and coming out at the other end with new diff \
           library in my hand.
@@ -187,14 +188,14 @@ time.
 
 Unfortunately, excellent performance and minimal results are somewhat in opposition to one another
 and I ended up providing three different modes of operation: Default (balanced between performance
-and minimality), Fast (sacrifice minimal results for faster speed), Optimal (minimal result whatever
+and minimality), Fast (sacrifice minimal results for faster speed), Minimal (minimal result whatever
 the cost).
 
 | Mode | Input | Output | API | Performance[^see-benchmarks] | Diff<br>Readability | Diff<br>Minimality[^see-benchmarks] |
 | ---- | ----- | ------ | --- | ---------------------------- | ------------------- | ----------------------------------- |
 | Default | ✅ | ✅ | 😁 | ➕➕ | ➕➕ | ➕➕ |
 | Fast | ✅ | ✅ | 😁 | ➕➕➕ | ➕➕ | ➕ |
-| Optimal | ✅ | ✅ | 😁 | ➕ | ➕➕ | ➕➕ |
+| Minimal | ✅ | ✅ | 😁 | ➕ | ➕➕ | ➕➕ |
 
 NOTE[Text Only]: This table only applies to text (same as the table above), non-text inputs can have
 a different performance (if they are not `comparable`) or readability.
@@ -374,7 +375,7 @@ $\mathcal{O}(N^1.5 \, \log \, N)$.
 
 However, heuristics like this trade diff minimality for performance, this is not always desirable.
 Sometimes, a minimal diff is exactly what's required.
-[`diff.Optimal`](https://pkg.go.dev/znkr.io/diff#Optimal) disables these heuristics to always find a
+[`diff.Minimal`](https://pkg.go.dev/znkr.io/diff#Minimal) disables these heuristics to always find a
 minimal diff irrespective of the costs.
 
 #### Post-processing
