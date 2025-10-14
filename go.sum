@@ -50,5 +50,5 @@ gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 pgregory.net/rapid v1.2.0 h1:keKAYRcjm+e1F0oAuU5F5+YPAWcyxNNRK2wud503Gnk=
 pgregory.net/rapid v1.2.0/go.mod h1:PY5XlDGj0+V1FCq0o192FdRhpKHGTRIWBgqjDBTrq04=
-znkr.io/diff v1.0.0-beta.1 h1:man7QUrnQqFA5qHp75XPK04wMaBRV87OR/YYph51YAo=
-znkr.io/diff v1.0.0-beta.1/go.mod h1:yZ/1OchUs2FJrnuRwGpTIK3/6b6V+dHcM7vIibSzITQ=
+znkr.io/diff v1.0.0-beta.3 h1:la76jGGN9n2Z74UcHsSXH8W86tmCuYcVAOrmhPZmf0w=
+znkr.io/diff v1.0.0-beta.3/go.mod h1:yZ/1OchUs2FJrnuRwGpTIK3/6b6V+dHcM7vIibSzITQ=
