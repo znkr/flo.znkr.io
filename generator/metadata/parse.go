@@ -26,7 +26,7 @@ func Parse(in []byte) (*site.Metadata, []byte, error) {
 	if len(in) > 2 && in[0] == '#' && in[1] == ' ' {
 		eol := slices.Index(in, '\n')
 		if eol < 0 {
-			return nil, in, nil
+			return &meta, in, nil
 		}
 		meta.Title = strings.TrimSpace(string(in[1:eol]))
 		in = in[eol+1:]
