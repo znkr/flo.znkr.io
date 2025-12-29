@@ -1,0 +1,13 @@
+#let admonition(kind, title, body) = html.elem(
+    "div",
+    attrs: (class: "admonition " + kind),
+    {
+        // `[#title]` rather than `title`: it takes a plain string as readily
+        // as content, so `title: "Beware"` reads the way a caller expects.
+        html.elem("p", attrs: (class: "admonition-title"), [#title])
+        body
+    },
+)
+
+#let note(body, title: "Note") = admonition("note", title, body)
+#let tip(body, title: "Tip") = admonition("tip", title, body)
