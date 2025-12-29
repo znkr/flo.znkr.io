@@ -1,0 +1,9 @@
+#let definition(content) = {
+    html.elem("div", attrs: (class: "math-box"), [
+        *Definition:* #content
+    ])
+}
+
+#let example(content) = html.elem("div", attrs: (class: "math-box"), [
+  *Example:* #content
+])

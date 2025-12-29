@@ -27,20 +27,26 @@ func render(t *testing.T, src string) string {
 		template.Must(templates.New(name).Parse(""))
 	}
 
-	libSrc, err := os.ReadFile("../../../lib/lib.mst")
-	if err != nil {
-		t.Fatalf("reading lib.mst: %v", err)
-	}
-	lib, err := gmarkst.LoadLibrary(t.Context(), "lib.mst", libSrc, nil)
-	if err != nil {
-		t.Fatalf("compiling lib.mst: %v", err)
-	}
-	if len(lib.Diags) > 0 {
-		t.Errorf("lib.mst has diagnostics:\n%s", formatDiags(lib.Diags))
+	var libs []*gmarkst.Lib
+	for _, name := range []string{"lib", "admonition", "math"} {
+		file := name + ".mst"
+		path := "../../../lib/" + file
+		libSrc, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("reading %s: %v", path, err)
+		}
+		lib, err := gmarkst.LoadLibrary(t.Context(), file, libSrc, nil)
+		if err != nil {
+			t.Fatalf("compiling %s: %v", file, err)
+		}
+		if len(lib.Diags) > 0 {
+			t.Errorf("%s has diagnostics:\n%s", file, formatDiags(lib.Diags))
+		}
+		libs = append(libs, lib)
 	}
 
 	src = "#article(title: \"T\")\n\n" + src
-	doc, err := gmarkst.Load(t.Context(), "test.mst", []byte(src), nil, []*gmarkst.Lib{lib})
+	doc, err := gmarkst.Load(t.Context(), "test.mst", []byte(src), nil, libs)
 	if err != nil {
 		t.Fatalf("compiling document: %v", err)
 	}

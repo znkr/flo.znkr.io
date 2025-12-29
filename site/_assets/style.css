@@ -526,8 +526,27 @@ math[display="block"] {
     /* A long equation scrolls on its own rather than widening the column. */
     overflow-x: auto;
     overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
     margin: 1rem 0;
     padding: 0.2rem 0;
+}
+
+div.math-box {
+    border: 1px solid;
+    border-color: #448aff;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+
+    margin: 1em 0;
+    padding: 0 1em;
+    page-break-inside: avoid;
+
+    /* Inline math is too wide to wrap or scroll on its own, so the box scrolls
+       instead of letting the equation cross the border. */
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
 }
 
 .admonition {
