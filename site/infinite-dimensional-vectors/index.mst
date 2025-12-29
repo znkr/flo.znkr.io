@@ -1,0 +1,389 @@
+#article(
+    title: "Infinite-Dimensional Vectors",
+    published: "2026-09-09",
+    summary: [
+        I don't know why (it's probably me) but the topic of infinite dimensions
+        comes up regularly in conversations I am in. I don't think I have ever
+        done a good job in explaining what that means. This time, for sure! 
+    ],
+)
+
+#let span = math.op("span")
+#let FF = math.bb("F")
+
+Vector spaces are incredibly useful and, consequently, ubiquitous in modern
+mathematics. That's not a coincidence; the modern definition of vector spaces is
+about 100 years old and the result of about 300 years of evolution #footnote[
+    #link("https://doi.org/10.1006/hmat.1995.1024")[A general outline of the
+    genesis of vector space theory]
+]. Vector spaces are in fact so useful that physics, engineering, computer
+science and many other disciplines make use of them on a daily basis to model a
+large range of problems; from modeling the world in theoretical physics to
+representing meaning and concepts in machine learning.
+
+If you work in software, engineering, physics, or machine learning, you've
+almost certainly been trained to think of vectors as lists of numbers or arrows.
+In modern mathematics, that's not what a vector is, and that intuition collapses
+the moment you leave finite dimensions.
+
+I hope this article will change how you think about vectors and dimensions by
+breaking down assumptions about vector spaces. Unfortunately, finite-dimensional
+vector spaces are not a good basis to build an intuition for
+infinite-dimensional vector spaces. So let's forget about $RR^n$ and start from
+scratch. I am going to try to beeline into infinite dimensions and ignore a
+number of important topics about vector spaces.
+
+= Vector Spaces
+
+Before we can talk about dimensions at all, we must first stop seeing vectors as
+lists of numbers or geometric arrows. To do that, we need to start with the
+mathematical definition.
+
+#definition[
+    Let $V$ be a non-empty set and $FF$ be a
+    #link("https://en.wikipedia.org/wiki/Field_(mathematics)")[field] (e.g.
+    $QQ$, $RR$, or $CC$).
+
+    _$V$ is a vector space over the field $FF$_ if there are two functions
+
+    - $plus.o: V times V arrow.r V$ _(vector addition)_
+    - $dot.o: FF times V arrow.r V$ _(scalar multiplication)_
+
+    fulfilling the following axioms for all $u,v,w in V$ and
+    $alpha, beta in FF$:
+
+    + $u plus.o (v plus.o w) = (u plus.o v) plus.o w$ _(associativity)_
+    + $v plus.o u = u plus.o v$ _(commutativity)_
+    + There exists a $0_V in V$ so that for all $v in V$:
+      $v plus.o 0_V = 0_V plus.o v = v$ _(neutral element)_
+    + For every $v in V$, there exists an inverse $-v in V$ with
+      $v plus.o (-v) = (-v) plus.o v = 0_V$ _(inverse element)_
+
+    and
+
+    + $alpha dot.o (u plus.o v) = (alpha dot.o u) plus.o (alpha dot.o v)$
+      _(distributivity of scalar multiplication over vector addition)_
+    + $(alpha + beta) dot.o v = (alpha dot.o v) plus.o (beta dot.o v)$
+      _(distributivity of scalar multiplication over field addition)_
+    + $(alpha dot beta) dot.o v = alpha dot.o (beta dot.o v)$ _(compatibility of
+      scalar multiplication with field multiplication)_
+    + $1_FF dot.o v = v$ _(scalar identity)_.
+]
+
+It's common to use regular addition ($a+b$) and multiplication ($a b$) notation
+to mean vector addition or scalar multiplication based on context. That's
+perfectly fine when these operations are not the focus. However, when
+introducing vector spaces it pays off to be explicit. So for this section, we're
+going to use different symbols to introduce the concept and we'll switch to the
+regular syntax in the following sections.
+
+#note(title: "What vector spaces are not")[
+    It's important to note that there are a number of things that are reasonable
+    to expect from vector spaces that are not part of the definition of vector
+    spaces.
+
+    - We don't have the concept of a distance between two vectors (i.e. we don't
+      have a metric).
+    - We don't have the concept of the magnitude for a vector (i.e. we don't
+      have a norm).
+    - We don't have the concept of a direction of a vector (i.e. we don't have
+      an inner product).
+    - We don't have any general concept of convergence within a vector space.
+
+    This means that the very common intuition for vectors of having magnitude
+    and direction doesn't actually apply to general vectors. There's a class of
+    vector spaces called Hilbert spaces for which this intuition works, but they
+    are out of scope for this article.
+]
+
+Let's try to understand what that means by looking at a practical example. My
+favorite kinds of examples have surprises that challenge preexisting intuitions,
+so I recommend paying special attention to them.
+
+#example[
+    Let $V$ be the set of positive real numbers $V = { x in RR mid(|) x > 0 }$.
+    If we define vector addition and scalar multiplication with $RR$ as
+
+    - $plus.o: V times V arrow.r V$ defined as $(u, v) arrow.r.bar u dot v$
+      with the neutral element $0_V = 1_RR$ and the inverse element $-v = 1/v$
+    - $dot.o: RR times V arrow.r V$ defined as $(alpha, v) arrow.r.bar v^alpha$
+
+    Then $V$ is a vector space over $RR$:
+
+    + $u plus.o (v plus.o w) = u dot (v dot w) = (u dot v) dot w
+      = (u plus.o v) plus.o w$
+    + $v plus.o u = v dot u = u dot v = u plus.o v$
+    + $v plus.o 0_V = v dot 1_RR = 1_RR dot v = 0_V plus.o v = v$
+    + $v plus.o (-v) = v dot 1/v = 1/v dot v = (-v) plus.o v = 1_RR = 0_V$
+
+    and
+
+    + $alpha dot.o (u plus.o v) = (u dot v)^alpha = u^alpha dot v^alpha
+      = (alpha dot.o u) plus.o (alpha dot.o v)$
+    + $(alpha + beta) dot.o v = v^(alpha + beta) = v^alpha dot v^beta
+      = (alpha dot.o v) plus.o (beta dot.o v)$
+    + $(alpha dot beta) dot.o v = v^(alpha dot beta) = (v^beta)^alpha
+      = alpha dot.o (beta dot.o v)$
+    + $1_RR dot.o v = v^(1_RR) = v$.
+]
+
+Notice that vector addition and scalar multiplication are not constructed from
+field addition and multiplication respectively. This is important; vector spaces
+don't have to follow the same construction as the standard vector spaces $RR^n$.
+
+One thing that's interesting about this vector space is that every vector $v$
+can be represented as $v = lambda dot.o e = e^lambda$ with $lambda = ln thin v$.
+We'll see later that this means that this vector space has the dimension $1$.
+
+= Basis and Dimension
+
+#note(title: "No more weird symbols")[
+    We're now going to switch to a less noisy syntax. Instead of
+    $(alpha dot.o v) plus.o (beta dot.o u)$ we'll just write $alpha v + beta u$.
+    However, don't let that fool you, vector addition and scalar multiplication
+    may behave similarly to their standard counterparts, but they are very
+    different.
+]
+
+Bases are the most important concept to understand vector space dimensions. They
+are a central concept in vector space theory in general, so it's well worth
+having a basic understanding of them.
+
+In short, a basis is a minimal set of vectors that spans the whole vector space.
+If we have any set of vectors $S subset.eq V$ of a vector space $V$ over
+$FF$, the span of that set is the set of all finite linear combinations of
+elements of $S$:
+
+$
+    span(S) = {
+        alpha_1 v_1 + alpha_2 v_2 + dots.c + alpha_n v_n
+        mid(|) alpha_1, dots.h, alpha_n in FF, v_1, dots.h, v_n in S, n >= 0
+    }
+$
+
+where $n = 0$ gives the empty sum $0_V$, so $span(nothing) = {0_V}$.
+
+For $S$ to be a basis of $V$, $S$ needs to be minimal and $span(S) = V$.
+If $S$ is not minimal, we can remove an element, say $v_r in S$, such that $S
+without { v_r }$ ($S$ without $v_r$) still spans $V$. This means there's a
+linear combination without $v_r$ that can represent $v_r$, after all, $v_r$ is
+an element of $V = span(S without { v_r })$:
+
+$
+    v_r = alpha_1 v_1 + alpha_2 v_2 + dots.c + alpha_n v_n thick
+    "with" thick v_1, dots.h, v_n in S without {v_r}
+$
+
+This works the other way around as well: If $S$ contains a vector $v_r$ that can
+be represented with a linear combination not involving $v_r$, we can remove this
+vector and still span the same vector space. This gives us a better way to
+express minimality: We call $S$ _linearly independent_ if removing any element
+from $S$ strictly shrinks its span: $span(S without {v_r}) subset.neq span(S)$
+or, equivalently, no vector in $S$ can be expressed as a linear combination of
+other vectors in $S$.
+
+#definition[
+    A _basis_ $B$ of a vector space $V$ over a field $FF$ is a
+    linearly independent subset of $V$ that spans $V$. The elements of $B$ are
+    called _basis vectors_.
+]
+
+A consequence of linear independence is that every vector in $V$ has a _unique_
+representation as a linear combination of basis elements.
+
+You might be wondering why we're only interested in finite linear combinations
+and exclude infinite linear combinations. The reason is that infinite linear
+combinations require a concept of convergence which we don't have for general
+vector spaces and even if we did have it, not every infinite linear combination
+would converge. When we add convergence to a vector space (like in Hilbert or
+Banach spaces), we can talk about _Schauder bases_ with infinite series. But
+in general vector spaces, we are strictly talking about _Hamel bases_ (i.e.
+finite linear combinations).
+
+The reason why bases are so important is that *every vector space has a basis*
+and that *all bases of the same vector space have the same
+#link("https://en.wikipedia.org/wiki/Cardinality")[cardinality]*#footnote[
+    This is the
+    #link("https://ncatlab.org/nlab/show/basis+theorem")[basis theorem].
+].
+
+This lets us define the dimension of a vector space:
+
+#definition[
+    Let $B$ be a basis for the vector space $V$, then the _dimension_
+    of $V$ is $dim(V) = abs(B)$.
+]
+
+This definition matches our intuition for finite-dimensional vector spaces very
+well, and it even works for a number of infinite-dimensional vector spaces too.
+
+#example[
+    $RR[x]$ is the vector space of polynomials
+
+    $
+        p(x) = alpha_0 + alpha_1 x + alpha_2 x^2 + alpha_3 x^3 + dots.c + alpha_d x^d
+        thick "for some" thick d >= 0 thick "and" thick alpha_i in RR.
+    $
+
+    The set of monomials ${1, x, x^2, x^3, dots}$ is a basis of this vector
+    space. It has countably many elements, so the dimension of $RR[x]$ is
+    countably infinite.
+]
+
+However, when it comes to infinite-dimensional vector spaces we quickly run into
+cases where our intuition stops working.
+
+#example[
+    $C^infinity ([0,1])$ is the set of all real-valued functions that are
+    continuous and infinitely differentiable on the interval $[0,1] subset RR$.
+
+    $C^infinity ([0,1])$ forms an infinite-dimensional vector space
+    over $RR$ using the usual function addition and scalar multiplication
+    operations:
+
+    - $(f + g)(x) = f(x) + g(x)$
+    - $(alpha f)(x) = alpha f(x)$
+
+    The functions in $C^infinity ([0,1])$ are about as well-behaved as functions
+    get and yet there is no countable basis for this vector space: The set ${x
+    arrow.r.bar e^(lambda x) mid(|) lambda in RR}$ is linearly independent and
+    uncountable, so the dimension of $C^infinity ([0,1])$ is at least $abs(RR)$.
+
+    While countable sets of functions like polynomials can approximate smooth
+    functions arbitrarily well, pure linear combinations only allow finite sums.
+    Any finite combination of polynomials is just another polynomial of finite
+    degree; it can never produce $e^x$ or $sin(x)$.
+]
+
+But we can construct even simpler vector spaces with uncountably many
+dimensions.
+
+#example[
+    $RR$ is an infinite-dimensional vector space over $QQ$ with vector addition
+    and scalar multiplication defined using standard addition and
+    multiplication. The set of vectors is the real numbers and the field over
+    which this is a vector space is the rational numbers. Linear combinations
+    are of the form
+
+    $
+        u = alpha_1 v_1 + alpha_2 v_2 + dots.c + alpha_n v_n thick
+        "with" thick alpha_1, dots.h, alpha_n in QQ, v_1, dots.h, v_n in RR
+        "."
+    $
+
+    That is, the coefficients are rational numbers and the vectors are real
+    numbers.
+
+    Let's assume that the dimension of this vector space is finite. Then this
+    vector space has a basis $B = { b_1, b_2, dots.h, b_n } subset RR$ and every
+    element in $RR$ has a representation as a linear combination of this basis:
+
+    $
+        RR = {
+            alpha_1 b_1 + alpha_2 b_2 + dots.c + alpha_n b_n
+            mid(|) alpha_1, dots.h, alpha_n in QQ
+        }
+    $
+
+    However, this would imply $abs(RR) = abs(QQ^n)$, but that is a
+    contradiction: Since $QQ$ is countable, the product $QQ^n$ is also
+    countable. However, $RR$ is uncountable, so $abs(RR) != abs(QQ^n)$.
+
+    Therefore, the dimension of this vector space cannot be finite. In fact,
+    because any finite linear combination over a countable basis would still
+    only generate a countable set of numbers, the dimension must be uncountably
+    infinite.
+]
+
+This leads us directly to one central question that is very confusing: *What
+does a basis of an infinite-dimensional vector space actually look like?*
+Unfortunately, the answer to that is that when infinity rears its beautifully
+enormous head, constructive mathematics tends to leave the room.
+
+The proof that all vector spaces have a basis requires the
+#link("https://en.wikipedia.org/wiki/Axiom_of_choice")[Axiom of Choice]. It
+states that for any set of non-empty sets, there exists a choice function that
+maps each of the element sets to an element of that set. Whenever the Axiom of
+Choice is needed, it means we don't know what that choice function is, which
+leaves us with no example of the object whose existence was proven.
+
+In fact, if the Axiom of Choice is not assumed, but instead we assume that every
+vector space has a basis as an axiom, then it's possible to prove the Axiom of
+Choice. That is, both are equivalent #footnote[
+    #link("http://www.math.lsa.umich.edu/~ablass/bases-AC.pdf")[Existence of
+    bases implies the axiom of choice]
+].
+
+= Coordinates
+
+To see why our intuition fails so severely for these infinite-dimensional vector
+spaces, it helps to revisit why finite dimensions _feel_ so intuitive in the
+first place: *coordinates*.
+
+One closely related topic to vector space bases is vector space coordinates. If
+we have a finite basis $B = (b_1, b_2, ..., b_n)$ of a vector space $V$ over
+$FF$, we can define a map $phi.alt: FF^n arrow.r V$ with
+
+$
+    phi.alt (alpha_1, alpha_2, dots.h, alpha_n) =
+        alpha_1 b_1 + alpha_2 b_2 + dots.c + alpha_n b_n
+    "."
+$
+
+This allows us to represent any finite-dimensional vector space in the usual way
+using coordinate tuples. In fact, this allows us to handle any
+finite-dimensional vector space over $RR$ like the standard vector spaces
+$RR^n$.
+
+#example[
+    Let $B = ( x arrow.r.bar sin (x), thin x arrow.r.bar cos (x) )$ be the basis
+    of a vector space of functions $V subset C^infinity (RR)$. By construction,
+    this vector space has the dimension $dim (V) = 2$.
+
+    With this basis, we can define a coordinate system $phi.alt: RR^2 arrow.r V$
+    with
+
+    $ phi.alt (alpha_1, alpha_2) = alpha_1 sin + alpha_2 cos $
+
+    We can handle this vector space the same way as the well-known $RR^2$ vector
+    space. This is actually very useful in practice, for example it can be used
+    to visualize Quadrature Amplitude Modulation (QAM) using
+    #link("https://info.support.huawei.com/info-finder/encyclopedia/en/QAM.html")[Constellation
+    Diagrams].
+
+    Finite-dimensional function spaces like this also come up in solutions to
+    homogeneous linear differential equations. In this case, the vector space
+    $V$ is the space of all solutions to $f'' + f = 0$.
+]
+
+Thinking of vector spaces as standard $RR^n$ coordinate tuples is natural
+because coordinates make finite-dimensional spaces easy to navigate. But this
+convenient representation is not what defines vector spaces. When a vector
+space has an infinite basis, the coordinate representation breaks down and our
+intuition for vector spaces stops working. We need to build a different kind
+of intuition.
+
+= Intuition
+
+I titled this article _Infinite-Dimensional Vectors_, but there is no such
+thing: Dimensionality is not a property of a vector, but of the space it's
+defined in. Consequently, a single vector from an infinite-dimensional vector
+space is something a human can comprehend. Furthermore, every vector in a
+vector space consists of a finite linear combination of basis vectors, even
+in infinite dimensions.
+
+This means that every calculation on vectors is contained in a
+finite-dimensional subspace. Consider an infinite-dimensional vector space $V$
+and two vectors $v, w in V$. Because $v$ and $w$ are made of a finite number of
+basis vectors, adding them is an operation confined to a finite-dimensional
+subspace. More generally, any finite set of vectors can only span a
+finite-dimensional subspace and every theorem from standard linear algebra
+applies there.
+
+In other words, even infinite-dimensional vector spaces are structures we can
+reason about. We can even use our existing finite-dimensional intuition locally.
+
+However, there's a catch: Bases for infinite-dimensional vector spaces can be
+impossible to grasp. To make infinite-dimensional vector spaces truly useful,
+that problem needs to be addressed. This is what topology was invented for, but
+that's a topic for a different article.
