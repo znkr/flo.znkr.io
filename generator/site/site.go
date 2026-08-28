@@ -14,12 +14,13 @@ type Site struct {
 
 // Doc is a single document of the site, that is anything that can be served as a static file.
 type Doc struct {
-	Path     string
-	Source   string
-	MimeType string
-	Meta     *Metadata
-	Data     []byte
-	Renderer Renderer
+	Path       string
+	Source     string
+	MimeType   string
+	Meta       *Metadata
+	Data       []byte
+	RenderData any
+	Renderer   Renderer
 }
 
 type Renderer interface {

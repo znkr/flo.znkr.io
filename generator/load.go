@@ -12,9 +12,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"flo.znkr.io/generator/metadata"
 	"flo.znkr.io/generator/renderers"
 	"flo.znkr.io/generator/site"
+	"flo.znkr.io/generator/markst"
+	"flo.znkr.io/generator/markst/html"
 )
 
 // load loads a site from the directory dir.
@@ -24,7 +25,12 @@ func load(dir string) (*site.Site, error) {
 		return nil, fmt.Errorf("loading templates: %v", err)
 	}
 
-	docs, err := loadDocs(filepath.Join(dir, "site"), templates)
+	libs, err := loadLibraries(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	docs, err := loadDocs(dir, templates, libs)
 	if err != nil {
 		return nil, err
 	}
@@ -74,17 +80,63 @@ func loadTemplates(dir string) (*template.Template, error) {
 	return root, err
 }
 
-func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
-	markdownRenderers := make(map[string]*renderers.MarkdownRenderer)
+// loadLibraries compiles every .mst file in root/lib, whose bindings every
+// markst document on the site can then use without importing anything. They
+// are compiled once and shared: the functions they define run against
+// whichever document is being compiled, so there is nothing per-document to
+// redo.
+//
+// Files are compiled in name order, and each one can use what the files before
+// it defined. Where two define the same name the later file wins, and a
+// document's own binding wins over both.
+func loadLibraries(root string) ([]*markst.Library, error) {
+	dir := filepath.Join(root, "lib")
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("reading library directory: %v", err)
+	}
+
+	var libs []*markst.Library
+	for _, e := range entries {
+		if e.IsDir() || filepath.Ext(e.Name()) != ".mst" {
+			continue
+		}
+		// The path is relative to the working directory, so diagnostics about
+		// a library — which surface while some *document* is being compiled —
+		// can be opened straight from an editor.
+		path := filepath.Join("lib", e.Name())
+		data, err := os.ReadFile(filepath.Join(root, path))
+		if err != nil {
+			return nil, fmt.Errorf("reading library: %v", err)
+		}
+		lib, err := markst.LoadLibrary(path, data, libs)
+		if err != nil {
+			return nil, err
+		}
+		libs = append(libs, lib)
+	}
+	return libs, nil
+}
+
+// loadDocs loads all documents below root/site. Errors are reported with a
+// path relative to root, which is the working directory, so that they can be
+// opened directly in an editor.
+func loadDocs(root string, templates *template.Template, libs []*markst.Library) ([]site.Doc, error) {
+	markstRenderers := make(map[string]*html.Renderer)
 	for _, typ := range []string{"article", "page"} {
-		r, err := renderers.NewMarkdownRenderer(templates, renderers.MarkdownRendererOptions{
+		wr, err := html.NewRenderer(templates, html.Options{
 			PageTemplate: typ,
 		})
 		if err != nil {
 			return nil, err
 		}
-		markdownRenderers[typ] = r
+		markstRenderers[typ] = wr
 	}
+
+	dir := filepath.Join(root, "site")
 
 	ignores := newIgnoreRules(dir)
 
@@ -114,6 +166,12 @@ func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
 			Renderer: renderers.Passthrough,
 		}
 
+		// Path relative to the working directory, used for error messages.
+		rpath, rerr := filepath.Rel(root, fpath)
+		if rerr != nil {
+			rpath = fpath
+		}
+
 		data, err := os.ReadFile(fpath)
 		if err != nil {
 			return fmt.Errorf("reading file: %v", err)
@@ -123,14 +181,7 @@ func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
 		path := strings.TrimPrefix(fpath, dir)
 		dir, base := filepath.Split(path)
 		ext := filepath.Ext(base)
-
-		switch ext {
-		case ".md":
-			doc.Meta, doc.Data, err = metadata.Parse(data)
-			if err != nil {
-				return fmt.Errorf("parsing metadata: %v", err)
-			}
-
+		if ext == ".mst" {
 			if p := strings.TrimSuffix(base, ext); p == "index" {
 				if dir == "/" {
 					path = dir
@@ -140,10 +191,21 @@ func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
 			} else {
 				path = dir + p
 			}
+		}
+
+		switch ext {
+		case ".mst":
+			meta, rd, err := markst.Load(rpath, filepath.Dir(fpath), path, data, libs)
+			if err != nil {
+				// The error already names the file and the position within it.
+				return err
+			}
+			doc.Meta = meta
+			doc.RenderData = rd
 			doc.MimeType = "text/html;charset=utf-8"
-			doc.Renderer = markdownRenderers[doc.Meta.Type]
+			doc.Renderer = markstRenderers[doc.Meta.Type]
 			if doc.Renderer == nil {
-				return fmt.Errorf("unknown doc type: %s", doc.Meta.Type)
+				return fmt.Errorf("%s: unknown doc type: %s", rpath, doc.Meta.Type)
 			}
 		default:
 			doc.MimeType = mime.TypeByExtension(filepath.Ext(fpath))
@@ -154,15 +216,13 @@ func loadDocs(dir string, templates *template.Template) ([]site.Doc, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("loading docs: %v", err)
+		return nil, err
 	}
 	return docs, nil
 }
 
-func mustNewIndexRenderer(templates *template.Template) *renderers.MarkdownRenderer {
-	r, err := renderers.NewMarkdownRenderer(templates, renderers.MarkdownRendererOptions{
-		PageTemplate: "index",
-	})
+func mustNewIndexRenderer(templates *template.Template) site.Renderer {
+	r, err := renderers.NewIndexRenderer(templates)
 	if err != nil {
 		log.Fatalf("creating index renderer: %v", err)
 	}

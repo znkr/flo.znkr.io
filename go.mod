@@ -1,18 +1,15 @@
 module flo.znkr.io
 
-go 1.24.3
+go 1.27
 
 require (
 	github.com/alecthomas/chroma/v2 v2.21.1
 	github.com/fsnotify/fsnotify v1.9.0
-	github.com/google/go-cmp v0.7.0
 	github.com/spf13/cobra v1.10.2
 	github.com/tdewolff/minify/v2 v2.24.8
-	github.com/wyatt915/goldmark-treeblood v0.0.1
-	github.com/yuin/goldmark v1.7.13
-	go.abhg.dev/goldmark/toc v0.12.0
-	golang.org/x/tools v0.40.0
-	znkr.io/diff v1.0.0-beta.4
+	golang.org/x/tools v0.44.0
+	znkr.io/diff v1.0.1
+	znkr.io/markst v0.0.0-20260907173038-f037d144b631
 )
 
 require (
@@ -20,8 +17,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tdewolff/parse/v2 v2.8.5 // indirect
-	github.com/wyatt915/treeblood v0.1.16 // indirect
-	golang.org/x/sys v0.39.0 // indirect
+	github.com/woodsbury/decimal128 v1.4.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
 )
-
-replace github.com/wyatt915/goldmark-treeblood v0.0.1 => github.com/Nikolas-Lehto/goldmark-treeblood v0.0.0-20251117083756-3778ffa709f6

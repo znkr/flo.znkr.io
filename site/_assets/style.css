@@ -520,6 +520,16 @@ table:not(.code-snippet) {
     }
 }
 
+/* Math is rendered as MathML and laid out by the browser; these rules only
+   place the equation on the page. */
+math[display="block"] {
+    /* A long equation scrolls on its own rather than widening the column. */
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin: 1rem 0;
+    padding: 0.2rem 0;
+}
+
 .admonition {
     border: 1px solid;
     border-radius: var(--border-radius);

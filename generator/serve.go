@@ -44,7 +44,7 @@ var serveCmd = &cobra.Command{
 			return fmt.Errorf("starting watcher: %v", err)
 		}
 		defer watcher.Close()
-		for _, subdir := range []string{"site", "templates"} {
+		for _, subdir := range []string{"site", "templates", "lib"} {
 			if err := watchDir(watcher, filepath.Join(dir, subdir)); err != nil {
 				return fmt.Errorf("starting watch: %v", err)
 			}

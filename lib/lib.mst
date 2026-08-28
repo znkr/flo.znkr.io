@@ -1,0 +1,46 @@
+// Bindings available to every document on this site.
+
+#let article(title: none, published: none, updated: none, summary: none) = {
+    if type(published) == str {
+        published = datetime.parse_date(published)
+    }
+    if type(updated) == str {
+        updated = datetime.parse_date(updated)
+    }
+    set document(title: title)
+    [
+        #metadata((
+            title: title,
+            type: "article",
+            published: published,
+            updated: updated,
+            summary: summary,
+        )) <doc-meta>
+    ]
+}
+
+#let page(title: none, header: none, content) = {
+    set document(title: title)
+    [
+        #metadata((
+            title: title,
+            type: "page",
+        )) <doc-meta>
+    ]
+    html.elem("header", attrs: (style: "text-align: left", class: "header"), header)
+    html.elem("div", attrs: (class: "content"), content)
+}
+
+#let admonition(kind, title, body) = html.elem(
+    "div",
+    attrs: (class: "admonition " + kind),
+    {
+        // `[#title]` rather than `title`: it takes a plain string as readily
+        // as content, so `title: "Beware"` reads the way a caller expects.
+        html.elem("p", attrs: (class: "admonition-title"), [#title])
+        body
+    },
+)
+
+#let note(body, title: "Note") = admonition("note", title, body)
+#let tip(body, title: "Tip") = admonition("tip", title, body)
