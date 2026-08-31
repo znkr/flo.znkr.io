@@ -1,0 +1,5 @@
+/* Kept unminified on disk so that pack's minification is visible in the golden. */
+body {
+    color: #000000;
+    margin: 0;
+}

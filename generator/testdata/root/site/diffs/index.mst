@@ -1,0 +1,13 @@
+#article(
+    title: "Diffs",
+    published: "2025-05-06",
+    summary: [An article that includes diffs, so that include-diff stays covered.],
+)
+
+= From A Diff File
+
+#include-diff("example.diff", lang: "go")
+
+= From Two Files
+
+#include-diff(a: "before.go", b: "after.go")

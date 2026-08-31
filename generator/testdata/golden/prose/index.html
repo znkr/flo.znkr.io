@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Prose</title>
+<meta name="description" content="An article covering the markup an article is written in.">
+</head>
+
+<body>
+<h1>Prose</h1>
+<span class="date">2025-07-08/2025-07-09</span>
+<nav><ul><li><a href="#inline-markup">Inline Markup</a><ul><li><a href="#a-nested-heading">A Nested Heading</a></li>
+</ul></li>
+<li><a href="#blocks">Blocks</a></li>
+</ul></nav>
+
+<div class="content">
+<p>The first paragraph is the lede.</p>
+<h2 id="inline-markup">Inline Markup<a href="#inline-markup" class="anchor-link"></a></h2>
+<p>A paragraph with <em>emphasis</em>, <strong>strong text</strong>, “smart quotes”, a <a href="https://example.com">link</a>, and a footnote.<sup id="fnref:1"><a href="#fn:1">1</a></sup></p>
+<div class="note"><p><strong>Note:</strong> Library bindings are available without an import.</p>
+</div>
+<h3 id="a-nested-heading">A Nested Heading<a href="#a-nested-heading" class="anchor-link"></a></h3>
+<p>Deeper than the one before it, so the table of contents nests.</p>
+<h2 id="blocks">Blocks<a href="#blocks" class="anchor-link"></a></h2>
+<table>
+<thead>
+<tr><th>Column A</th><th>Column B</th></tr>
+</thead>
+<tbody>
+<tr><td>a</td><td>b</td></tr>
+</tbody>
+</table>
+<p>A raw block, highlighted by its language:</p>
+<pre><code><span class="hl-b">func</span> unrelated() {}</code></pre>
+<p>And one without a language:</p>
+<pre><code>a raw block</code></pre>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">The footnote body. <a href="#fnref:1" role="doc-backlink">&#8617;</a></li>
+</ol>
+</div>
+
+</div>
+</body>
+</html>

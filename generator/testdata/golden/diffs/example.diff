@@ -1,0 +1,7 @@
+ package main
+ 
+-func greet() string {
+-	return "hi"
++func greet(name string) string {
++	return "hi, " + name
+ }

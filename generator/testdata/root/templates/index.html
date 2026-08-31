@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "fragments/head" .Meta }}
+<body>
+<h1>{{ .Meta.Title }}</h1>
+<ul>
+{{- range .Site.Articles }}
+<li><a href="{{ .Path }}">{{ .Meta.Title }}</a> {{ .Meta.Published.Format "2006-01-02" }}: {{ .Meta.Abstract }}</li>
+{{- end }}
+</ul>
+</body>
+</html>

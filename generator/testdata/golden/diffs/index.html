@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Diffs</title>
+<meta name="description" content="An article that includes diffs, so that include-diff stays covered.">
+</head>
+
+<body>
+<h1>Diffs</h1>
+<span class="date">2025-05-06/2025-05-06</span>
+<nav><ul><li><a href="#from-a-diff-file">From A Diff File</a></li>
+<li><a href="#from-two-files">From Two Files</a></li>
+</ul></nav>
+
+<div class="content">
+<h2 id="from-a-diff-file">From A Diff File<a href="#from-a-diff-file" class="anchor-link"></a></h2>
+<table class="code-snippet diff"><caption>example.diff (/diffs/example.diff)</caption><tbody>
+<tr class="src" data-op="match"><td class="line-no">1</td><td class="line-no">1</td><td class="code"><code><span class="hl-b">package</span> main
+</code></td></tr>
+<tr class="src" data-op="match"><td class="line-no">2</td><td class="line-no">2</td><td class="code"><code>
+</code></td></tr>
+<tr class="src" data-op="delete"><td class="line-no">3</td><td class="line-no">-1</td><td class="code"><code><span class="hl-b">func</span> greet() string {
+</code></td></tr>
+<tr class="src" data-op="delete"><td class="line-no">4</td><td class="line-no">-1</td><td class="code"><code>	<span class="hl-b">return</span> <span class="hl-i">&#34;hi&#34;</span>
+</code></td></tr>
+<tr class="src" data-op="insert"><td class="line-no">-1</td><td class="line-no">3</td><td class="code"><code><span class="hl-b">func</span> greet(name string) string {
+</code></td></tr>
+<tr class="src" data-op="insert"><td class="line-no">-1</td><td class="line-no">4</td><td class="code"><code>	<span class="hl-b">return</span> <span class="hl-i">&#34;hi, &#34;</span> + name
+</code></td></tr>
+<tr class="src" data-op="match"><td class="line-no">5</td><td class="line-no">5</td><td class="code"><code>}
+</code></td></tr>
+</tbody></table>
+<h2 id="from-two-files">From Two Files<a href="#from-two-files" class="anchor-link"></a></h2>
+<table class="code-snippet diff"><caption>after.go (/diffs/after.go)</caption><tbody>
+<tr class="src" data-op="match"><td class="line-no">1</td><td class="line-no">1</td><td class="code"><code><span class="hl-b">package</span> main
+</code></td></tr>
+<tr class="src" data-op="match"><td class="line-no">2</td><td class="line-no">2</td><td class="code"><code>
+</code></td></tr>
+<tr class="src" data-op="match"><td class="line-no">3</td><td class="line-no">3</td><td class="code"><code><span class="hl-b">func</span> sum(vs []int) int {
+</code></td></tr>
+<tr class="src" data-op="delete"><td class="line-no">4</td><td class="line-no">-1</td><td class="code"><code>	total := 0
+</code></td></tr>
+<tr class="src" data-op="delete"><td class="line-no">5</td><td class="line-no">-1</td><td class="code"><code>	<span class="hl-b">for</span> i := 0; i &lt; <span class="hl-bl">len</span>(vs); i++ {
+</code></td></tr>
+<tr class="src" data-op="delete"><td class="line-no">6</td><td class="line-no">-1</td><td class="code"><code>		total += vs[i]
+</code></td></tr>
+<tr class="src" data-op="insert"><td class="line-no">-1</td><td class="line-no">4</td><td class="code"><code>	<span class="hl-b">var</span> total int
+</code></td></tr>
+<tr class="src" data-op="insert"><td class="line-no">-1</td><td class="line-no">5</td><td class="code"><code>	<span class="hl-b">for</span> _, v := <span class="hl-b">range</span> vs {
+</code></td></tr>
+<tr class="src" data-op="insert"><td class="line-no">-1</td><td class="line-no">6</td><td class="code"><code>		total += v
+</code></td></tr>
+<tr class="src" data-op="match"><td class="line-no">7</td><td class="line-no">7</td><td class="code"><code>	}
+</code></td></tr>
+<tr class="src" data-op="match"><td class="line-no">8</td><td class="line-no">8</td><td class="code"><code>	<span class="hl-b">return</span> total
+</code></td></tr>
+<tr class="src" data-op="match"><td class="line-no">9</td><td class="line-no">9</td><td class="code"><code>}
+</code></td></tr>
+</tbody></table>
+
+</div>
+</body>
+</html>

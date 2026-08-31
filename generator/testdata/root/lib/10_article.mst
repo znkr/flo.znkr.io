@@ -1,0 +1,31 @@
+// Uses doc_type from 00_base.mst.
+
+#let article(title: none, published: none, updated: none, summary: none) = {
+    if type(published) == str {
+        published = datetime.parse_date(published)
+    }
+    if type(updated) == str {
+        updated = datetime.parse_date(updated)
+    }
+    set document(title: title)
+    [
+        #metadata((
+            title: title,
+            type: doc_type,
+            published: published,
+            updated: updated,
+            summary: summary,
+        )) <doc-meta>
+    ]
+}
+
+#let page(title: none, content) = {
+    set document(title: title)
+    [
+        #metadata((
+            title: title,
+            type: "page",
+        )) <doc-meta>
+    ]
+    content
+}

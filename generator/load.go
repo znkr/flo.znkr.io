@@ -208,7 +208,15 @@ func loadDocs(root string, templates *template.Template, libs []*markst.Library)
 				return fmt.Errorf("%s: unknown doc type: %s", rpath, doc.Meta.Type)
 			}
 		default:
-			doc.MimeType = mime.TypeByExtension(filepath.Ext(fpath))
+			doc.MimeType = mime.TypeByExtension(ext)
+			if doc.MimeType == "" {
+				// What mime.TypeByExtension knows depends on the MIME database
+				// of the machine the site is built on, and that database has
+				// nothing to say about the sources articles link to (.go,
+				// .diff, .mod, ...). Serving those as plain text is both what
+				// they are and the same everywhere.
+				doc.MimeType = "text/plain; charset=utf-8"
+			}
 		}
 
 		doc.Path = path

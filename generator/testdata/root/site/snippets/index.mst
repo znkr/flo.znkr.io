@@ -1,0 +1,18 @@
+#article(
+    title: "Snippets",
+    published: "2025-01-02",
+    updated: "2025-03-04",
+    summary: [An article that includes snippets, so that include-snippet stays covered.],
+)
+
+= Whole File
+
+The whole file, syntax highlighted based on its extension:
+
+#include-snippet("hello.go")
+
+= Part Of A File
+
+Only the body, with an explicit display name:
+
+#include-snippet("hello.go", lines: "5..7", display: "the body")

@@ -1,0 +1,12 @@
+<head>
+<title>{{ .Title }}</title>
+{{- if .Abstract }}
+<meta name="description" content="{{ .Abstract }}">
+{{- end }}
+{{- if .GoImport }}
+<meta name="go-import" content="{{ .GoImport }}">
+{{- end }}
+{{- if .Redirect }}
+<meta http-equiv="refresh" content="0;URL='{{ .Redirect }}'">
+{{- end }}
+</head>

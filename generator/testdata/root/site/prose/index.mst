@@ -1,0 +1,39 @@
+#article(
+    title: "Prose",
+    published: "2025-07-08",
+    updated: "2025-07-09",
+    summary: [An article covering the markup an article is written in.],
+)
+
+The first paragraph is the lede.
+
+= Inline Markup
+
+A paragraph with #emph[emphasis], #strong[strong text], "smart quotes", a
+#link("https://example.com")[link], and a footnote.#footnote[The footnote body.]
+
+#note[Library bindings are available without an import.]
+
+== A Nested Heading
+
+Deeper than the one before it, so the table of contents nests.
+
+= Blocks
+
+#table(
+    columns: 2,
+    table.header([Column A], [Column B]),
+    [a], [b],
+)
+
+A raw block, highlighted by its language:
+
+```go
+func unrelated() {}
+```
+
+And one without a language:
+
+```
+a raw block
+```

@@ -1,0 +1,5 @@
+<table class="code-snippet diff"><caption>{{ .File }} ({{ .FilePath }})</caption><tbody>
+{{- range .Diff }}
+<tr class="src" data-op="{{ if .IsMatch }}match{{ else if .IsDelete }}delete{{ else }}insert{{ end }}"><td class="line-no">{{ .LineNoX }}</td><td class="line-no">{{ .LineNoY }}</td><td class="code"><code>{{ .Content }}</code></td></tr>
+{{- end }}
+</tbody></table>

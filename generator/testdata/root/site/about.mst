@@ -1,0 +1,4 @@
+#show: page.with(title: "About")
+
+A page rather than an article: it has no date and never shows up in the index
+or the feed.

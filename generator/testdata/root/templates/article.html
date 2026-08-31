@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "fragments/head" .Meta }}
+<body>
+<h1>{{ .Meta.Title }}</h1>
+{{ if .Meta.Published.IsZero }}<span class="date">Preview</span>
+{{ else }}<span class="date">{{ .Meta.Published.Format "2006-01-02" }}/{{ .Meta.Updated.Format "2006-01-02" }}</span>
+{{ end }}
+{{- if .TOC }}<nav>{{ .TOC }}</nav>
+{{ end }}
+<div class="content">
+{{ .Content }}
+</div>
+</body>
+</html>

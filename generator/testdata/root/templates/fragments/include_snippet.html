@@ -1,0 +1,5 @@
+<table class="code-snippet"><caption>{{ .File }} ({{ .FilePath }})</caption><tbody>
+{{- range .Lines }}
+<tr class="src"><td class="line-no">{{ .LineNo }}</td><td class="code"><code>{{ .Content }}</code></td></tr>
+{{- end }}
+</tbody></table>
