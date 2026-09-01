@@ -1,0 +1,3 @@
+# Include sources for index.md, not pages of their own.
+*.go
+*.diff
