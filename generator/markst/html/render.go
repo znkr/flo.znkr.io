@@ -25,7 +25,8 @@ import (
 
 // RenderData is what a [Renderer] renders, held in [site.Doc.RenderData].
 type RenderData struct {
-	Doc *value.Document
+	Doc   *value.Document
+	Index *value.Index
 }
 
 type Renderer struct {
@@ -105,6 +106,7 @@ func (r *Renderer) renderContent(doc *site.Doc) (content []byte, toc []byte, err
 		docRoot: doc.DocRoot,
 		snippet: r.snippet,
 		diff:    r.diff,
+		index:   doc.RenderData.(*RenderData).Index,
 	}
 
 	var buf bytes.Buffer
@@ -126,6 +128,7 @@ type renderer struct {
 	path          string
 	docRoot       string
 	snippet, diff *template.Template
+	index         *value.Index
 }
 
 // options is how the site's rendering differs from the default one.
@@ -134,6 +137,7 @@ func (r *renderer) options() []mhtml.Option {
 		// <h1> is the article title, written by the page template.
 		mhtml.WithHeadingLevel(2),
 		mhtml.WithImageURL(func(p string) (string, error) { return path.Join(r.path, p), nil }),
+		mhtml.WithIndex(r.index),
 		mhtml.WithElement(r.render),
 	}
 }
@@ -260,9 +264,10 @@ func (r *renderer) renderTOC(d *value.Document) ([]byte, error) {
 	// rather than starting a list of its own.
 	opts := append(r.options(),
 		mhtml.WithFootnotes(mhtml.Footnotes(d)),
+		mhtml.WithIndex(r.index),
 		mhtml.WithoutFootnoteList(),
 	)
-	if err := r.writeTOC(&buf, markst.Outline(d), opts); err != nil {
+	if err := r.writeTOC(&buf, markst.Outline(r.index), opts); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil

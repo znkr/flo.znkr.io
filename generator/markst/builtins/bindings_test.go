@@ -83,8 +83,8 @@ func compileDoc(t *testing.T, fs fs.FS, src string) []any {
 		t.Errorf("Compile() warnings = %v, want none", warns)
 	}
 	var out []any
-	for c := range value.All(doc) {
-		if custom, ok := c.(*value.Custom); ok {
+	for c := range value.Preorder(doc, value.KindSet(value.KindCustom)) {
+		if custom, ok := c.Node().(*value.Custom); ok {
 			out = append(out, custom.Value)
 		}
 	}
@@ -281,13 +281,13 @@ func TestIncludeIsABlock(t *testing.T) {
 		t.Fatalf("Compile() = %v", err)
 	}
 
-	for c := range value.All(doc) {
-		par, ok := c.(*value.Par)
+	for c := range value.Preorder(doc, value.KindSet(value.KindPar)) {
+		par, ok := c.Node().(*value.Par)
 		if !ok {
 			continue
 		}
-		for sub := range value.All(par.Body) {
-			if _, ok := sub.(*value.Custom); ok {
+		for sub := range value.Preorder(par.Body, value.KindSet(value.KindCustom)) {
+			if _, ok := sub.Node().(*value.Custom); ok {
 				t.Fatalf("include ended up inside a paragraph:\n%s", value.FormatContent(doc))
 			}
 		}

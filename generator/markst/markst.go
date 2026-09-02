@@ -41,9 +41,11 @@ func LoadLibrary(path string, data []byte, deps []*Library) (*markst.Library, er
 // Load compiles the markst document in data against libs, whose bindings the
 // document can use as if they were built in.
 func Load(path string, data []byte, docFS fs.FS, libs []*Library) (*site.Metadata, *html.RenderData, error) {
+	var index value.Index
 	d, diags, err := markst.Compile(data,
 		markst.WithName(path),
 		markst.WithLibrary(libs...),
+		markst.WithIndex(&index),
 		markst.WithBindings(builtins.Bindings(docFS)),
 	)
 	if len(diags) > 0 {
@@ -63,7 +65,8 @@ func Load(path string, data []byte, docFS fs.FS, libs []*Library) (*site.Metadat
 		return nil, nil, fmt.Errorf("%s: %v", path, err)
 	}
 	return meta, &html.RenderData{
-		Doc: d,
+		Doc:   d,
+		Index: &index,
 	}, nil
 }
 
