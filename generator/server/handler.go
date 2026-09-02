@@ -3,13 +3,15 @@ package server
 import (
 	"log"
 	"net/http"
+	"strings"
 	"sync/atomic"
 
 	"flo.znkr.io/generator/site"
 )
 
 type handler struct {
-	site atomic.Pointer[site.Site]
+	site   atomic.Pointer[site.Site]
+	reload *reloader
 }
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -20,6 +22,15 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	case http.MethodHead:
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
+		return
+	}
+
+	switch req.URL.EscapedPath() {
+	case eventsPath:
+		h.reload.serveEvents(w, req)
+		return
+	case scriptPath:
+		h.reload.serveScript(w, req)
 		return
 	}
 
@@ -45,6 +56,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(err.Error()))
 		log.Printf("failed to serve %v: %v", req.URL.EscapedPath(), err)
 		return
+	}
+
+	if strings.HasPrefix(doc.MimeType, "text/html") {
+		b = inject(b)
 	}
 
 	w.WriteHeader(http.StatusOK)

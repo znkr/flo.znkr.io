@@ -56,6 +56,12 @@ var serveCmd = &cobra.Command{
 		sigint := make(chan os.Signal, 1)
 		signal.Notify(sigint, os.Interrupt)
 
+		// A single save usually produces several events. Rebuilding once per
+		// event would be wasteful and, worse, would refresh the browser
+		// several times, so events are coalesced.
+		const debounceDelay = 100 * time.Millisecond
+		var debounce <-chan time.Time
+
 		for {
 			select {
 			case event := <-watcher.Events:
@@ -72,6 +78,11 @@ var serveCmd = &cobra.Command{
 					wd, _ := filepath.Rel(dir, event.Name)
 					log.Printf("Added watch directory: %v", wd)
 				}
+
+				debounce = time.After(debounceDelay)
+
+			case <-debounce:
+				debounce = nil
 
 				// Reload site. This is more than fast enough for now, so now caching or anything
 				// is necessary here.
