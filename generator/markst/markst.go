@@ -3,12 +3,13 @@ package markst
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"strings"
 
-	"flo.znkr.io/generator/site"
 	"flo.znkr.io/generator/markst/builtins"
 	"flo.znkr.io/generator/markst/html"
+	"flo.znkr.io/generator/site"
 	"znkr.io/markst"
 	"znkr.io/markst/name"
 	"znkr.io/markst/value"
@@ -38,27 +39,16 @@ func LoadLibrary(path string, data []byte, deps []*Library) (*markst.Library, er
 }
 
 // Load compiles the markst document in data against libs, whose bindings the
-// document can use as if they were built in. Diagnostics are reported with the
-// file and position they occurred at, in the form editors understand — which
-// for a failure inside a library function is the library's file, plus the call
-// site in the document that reached it. Warnings go to stderr, errors are
-// returned.
-//
-// srcDir is the directory the document was read from and sitePath its path on
-// the site. Both go to the include functions, which resolve the files they
-// pull in against the one and link their captions relative to the other; see
-// [builtins.Bindings] for why those cannot come from a library.
-func Load(path, srcDir, sitePath string, data []byte, libs []*Library) (*site.Metadata, *html.RenderData, error) {
+// document can use as if they were built in.
+func Load(path string, data []byte, docFS fs.FS, libs []*Library) (*site.Metadata, *html.RenderData, error) {
 	d, diags, err := markst.Compile(data,
 		markst.WithName(path),
 		markst.WithLibrary(libs...),
-		markst.WithBindings(builtins.Bindings(srcDir, sitePath)),
+		markst.WithBindings(builtins.Bindings(docFS)),
 	)
 	if len(diags) > 0 {
 		// Warnings describe a document that compiled, so they are reported
-		// but don't stop the load. Straight to stderr, in compiler form,
-		// rather than through log: a diagnostic can span multiple lines and
-		// a log prefix on the first of them only makes it harder to read.
+		// but don't stop the load.
 		markst.FormatDiagnostics(os.Stderr, diags)
 	}
 	if err != nil {

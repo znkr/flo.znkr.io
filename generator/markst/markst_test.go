@@ -16,7 +16,7 @@ const docMeta = `#metadata((
 // line, and column of every error it contains.
 func TestLoadErrors(t *testing.T) {
 	src := docMeta + "= Heading\n\nText with #undefined_function() in it.\n\nMore #another_missing(1).\n"
-	_, _, err := Load("site/doc/index.mst", "site/doc", "/doc", []byte(src), nil)
+	_, _, err := Load("site/doc/index.mst", []byte(src), nil, nil)
 	if err == nil {
 		t.Fatal("Load() = nil, want error")
 	}
@@ -38,7 +38,7 @@ func TestLoadErrors(t *testing.T) {
 // TestLoadMetadataErrorNamesFile checks that the errors that have no position
 // to report still say which file they came from.
 func TestLoadMetadataErrorNamesFile(t *testing.T) {
-	_, _, err := Load("site/doc/index.mst", "site/doc", "/doc", []byte("= Heading\n\nNo doc-meta here.\n"), nil)
+	_, _, err := Load("site/doc/index.mst", []byte("= Heading\n\nNo doc-meta here.\n"), nil, nil)
 	if err == nil {
 		t.Fatal("Load() = nil, want error")
 	}
@@ -49,7 +49,7 @@ func TestLoadMetadataErrorNamesFile(t *testing.T) {
 
 // TestLoad checks the happy path: metadata comes back and nothing is reported.
 func TestLoad(t *testing.T) {
-	meta, rd, err := Load("site/doc/index.mst", "site/doc", "/doc", []byte(docMeta+"= Heading\n\nSome text.\n"), nil)
+	meta, rd, err := Load("site/doc/index.mst", []byte(docMeta+"= Heading\n\nSome text.\n"), nil, nil)
 	if err != nil {
 		t.Fatalf("Load() = %v", err)
 	}
@@ -77,7 +77,7 @@ func TestLoadWithLibrary(t *testing.T) {
 
 	t.Run("used without import", func(t *testing.T) {
 		src := `#metadata((title: "Test", type: "article", published: published("2024-07-06"))) <doc-meta>` + "\n\n= Heading\n"
-		meta, _, err := Load("site/doc/index.mst", "site/doc", "/doc", []byte(src), libs)
+		meta, _, err := Load("site/doc/index.mst", []byte(src), nil, libs)
 		if err != nil {
 			t.Fatalf("Load() = %v", err)
 		}
@@ -88,7 +88,7 @@ func TestLoadWithLibrary(t *testing.T) {
 
 	t.Run("failure names the library and the call site", func(t *testing.T) {
 		src := docMeta + `#published("2024-13-01")` + "\n"
-		_, _, err := Load("site/doc/index.mst", "site/doc", "/doc", []byte(src), libs)
+		_, _, err := Load("site/doc/index.mst", []byte(src), nil, libs)
 		if err == nil {
 			t.Fatal("Load() = nil, want error")
 		}

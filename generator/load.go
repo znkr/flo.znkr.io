@@ -12,10 +12,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"flo.znkr.io/generator/renderers"
-	"flo.znkr.io/generator/site"
 	"flo.znkr.io/generator/markst"
 	"flo.znkr.io/generator/markst/html"
+	"flo.znkr.io/generator/renderers"
+	"flo.znkr.io/generator/site"
 )
 
 // load loads a site from the directory dir.
@@ -176,26 +176,32 @@ func loadDocs(root string, templates *template.Template, libs []*markst.Library)
 		if err != nil {
 			return fmt.Errorf("reading file: %v", err)
 		}
-		doc.Data = data
 
 		path := strings.TrimPrefix(fpath, dir)
-		dir, base := filepath.Split(path)
+		docRoot, base := filepath.Split(path)
 		ext := filepath.Ext(base)
-		if ext == ".mst" {
-			if p := strings.TrimSuffix(base, ext); p == "index" {
-				if dir == "/" {
-					path = dir
-				} else {
-					path = dir[:len(dir)-1]
-				}
-			} else {
-				path = dir + p
-			}
-		}
 
 		switch ext {
 		case ".mst":
-			meta, rd, err := markst.Load(rpath, filepath.Dir(fpath), path, data, libs)
+			if p := strings.TrimSuffix(base, ext); p == "index" {
+				if docRoot == "/" {
+					path = docRoot
+				} else {
+					path = strings.TrimSuffix(docRoot, "/")
+				}
+			} else {
+				path = docRoot + p
+			}
+			var docFS fs.FS = emptyFS{}
+			if docRoot != "/" {
+				doc.DocRoot = docRoot
+				r, err := os.OpenRoot(filepath.Join(root, "site", docRoot))
+				if err != nil {
+					return fmt.Errorf("opening site root for include functions: %v", err)
+				}
+				docFS = r.FS()
+			}
+			meta, rd, err := markst.Load(rpath, data, docFS, libs)
 			if err != nil {
 				// The error already names the file and the position within it.
 				return err
@@ -208,6 +214,7 @@ func loadDocs(root string, templates *template.Template, libs []*markst.Library)
 				return fmt.Errorf("%s: unknown doc type: %s", rpath, doc.Meta.Type)
 			}
 		default:
+			doc.RenderData = data
 			doc.MimeType = mime.TypeByExtension(ext)
 			if doc.MimeType == "" {
 				// What mime.TypeByExtension knows depends on the MIME database
@@ -227,6 +234,12 @@ func loadDocs(root string, templates *template.Template, libs []*markst.Library)
 		return nil, err
 	}
 	return docs, nil
+}
+
+type emptyFS struct{}
+
+func (emptyFS) Open(name string) (fs.File, error) {
+	return nil, fs.ErrNotExist
 }
 
 func mustNewIndexRenderer(templates *template.Template) site.Renderer {

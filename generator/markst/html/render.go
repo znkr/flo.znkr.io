@@ -100,7 +100,12 @@ func RenderSummary(c value.Content) (string, error) {
 
 func (r *Renderer) renderContent(doc *site.Doc) (content []byte, toc []byte, err error) {
 	d := doc.RenderData.(*RenderData).Doc
-	rr := &renderer{path: doc.Path, snippet: r.snippet, diff: r.diff}
+	rr := &renderer{
+		path:    doc.Path,
+		docRoot: doc.DocRoot,
+		snippet: r.snippet,
+		diff:    r.diff,
+	}
 
 	var buf bytes.Buffer
 	if err := mhtml.Render(&buf, d, rr.options()...); err != nil {
@@ -119,6 +124,7 @@ func (r *Renderer) renderContent(doc *site.Doc) (content []byte, toc []byte, err
 // drawn with.
 type renderer struct {
 	path          string
+	docRoot       string
 	snippet, diff *template.Template
 }
 
@@ -167,9 +173,23 @@ func (r *renderer) render(e *mhtml.Encoder, c value.Content) (bool, error) {
 		// left is to hand it to the fragment that renders it.
 		switch p := c.Value.(type) {
 		case *builtins.SnippetData:
-			return true, r.execute(e, r.snippet, p)
+			return true, r.execute(e, r.snippet, struct {
+				File, FilePath string
+				Lines          []highlight.Line
+			}{
+				File:     p.File,
+				FilePath: path.Join(r.docRoot, p.FilePath),
+				Lines:    p.Lines,
+			})
 		case *builtins.DiffData:
-			return true, r.execute(e, r.diff, p)
+			return true, r.execute(e, r.diff, struct {
+				File, FilePath string
+				Diff           []highlight.Edit
+			}{
+				File:     p.File,
+				FilePath: path.Join(r.docRoot, p.FilePath),
+				Diff:     p.Diff,
+			})
 		default:
 			return true, fmt.Errorf("unsupported custom payload: %T", p)
 		}
@@ -188,8 +208,6 @@ func label(c value.Content) string {
 // execute renders one fragment into the document.
 func (r *renderer) execute(e *mhtml.Encoder, t *template.Template, data any) error {
 	if t == nil {
-		// RenderSummary walks a fragment of a document with no templates to
-		// hand; an include in a summary is a mistake worth saying out loud.
 		return fmt.Errorf("%T cannot be rendered here: no templates", data)
 	}
 	if err := t.Execute(e, data); err != nil {

@@ -3,8 +3,7 @@
 package builtins
 
 import (
-	"os"
-	"path/filepath"
+	"io/fs"
 	"strconv"
 	"strings"
 
@@ -62,8 +61,8 @@ type DiffData struct {
 // table to the presenter inside a [value.Custom]. That is what makes a missing
 // file or a malformed line range a compile error pointing at the argument that
 // caused it, rather than a failure much later with nothing to point at.
-func Bindings(srcDir, sitePath string) map[name.Name]value.Value {
-	inc := &includes{srcDir: srcDir, sitePath: sitePath}
+func Bindings(vfs fs.FS) map[name.Name]value.Value {
+	inc := &includes{fs: vfs}
 	str := types.SetOf(types.Str)
 	optStr := types.SetOf(types.Str, types.None)
 
@@ -105,8 +104,7 @@ func Bindings(srcDir, sitePath string) map[name.Name]value.Value {
 // resolved against, and sitePath is that document's path on the site, which the
 // caption links relative to.
 type includes struct {
-	srcDir   string
-	sitePath string
+	fs fs.FS
 }
 
 // snippet implements include-snippet: it reads a source file and highlights it,
@@ -120,7 +118,8 @@ func (i *includes) snippet(_ *value.FunctionCallContext, args []value.Value, nam
 	if file == "" {
 		return nil, value.ArgErrorPosf(0, "include-snippet: empty file attribute")
 	}
-	b, err := os.ReadFile(filepath.Join(i.srcDir, file))
+
+	b, err := fs.ReadFile(i.fs, file)
 	if err != nil {
 		return nil, value.ArgErrorPosf(0, "include-snippet: %v", err)
 	}
@@ -143,7 +142,7 @@ func (i *includes) snippet(_ *value.FunctionCallContext, args []value.Value, nam
 
 	data := &SnippetData{
 		File:     file,
-		FilePath: filepath.Join(i.sitePath, file),
+		FilePath: file,
 		Lines:    hl,
 	}
 	if display, ok := named.Lookup(nDisplay); ok {
@@ -197,7 +196,7 @@ func (i *includes) diff(_ *value.FunctionCallContext, args []value.Value, named 
 	switch {
 	case hasFile && !hasA && !hasB:
 		path := string(file)
-		raw, err := os.ReadFile(filepath.Join(i.srcDir, path))
+		raw, err := fs.ReadFile(i.fs, path)
 		if err != nil {
 			return nil, value.ArgErrorPosf(0, "include-diff: %v", err)
 		}
@@ -207,7 +206,7 @@ func (i *includes) diff(_ *value.FunctionCallContext, args []value.Value, named 
 		}
 		data = &DiffData{
 			File:     path,
-			FilePath: filepath.Join(i.sitePath, path),
+			FilePath: path,
 			Diff:     edits,
 		}
 
@@ -236,7 +235,7 @@ func (i *includes) diff(_ *value.FunctionCallContext, args []value.Value, named 
 		}
 		data = &DiffData{
 			File:     bPath,
-			FilePath: filepath.Join(i.sitePath, bPath),
+			FilePath: bPath,
 			Diff:     edits,
 		}
 
@@ -261,7 +260,7 @@ func (i *includes) readSide(arg name.Name, file string) ([]byte, error) {
 	if file == devNull {
 		return nil, nil
 	}
-	b, err := os.ReadFile(filepath.Join(i.srcDir, file))
+	b, err := fs.ReadFile(i.fs, file)
 	if err != nil {
 		return nil, value.ArgErrorNamedf(arg, "include-diff: %v", err)
 	}

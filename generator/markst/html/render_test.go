@@ -70,7 +70,7 @@ func renderBody(t *testing.T, src string) string {
 	}
 
 	src = "#article(title: \"T\")\n\n" + src
-	_, rd, err := gmarkst.Load("test.mst", ".", "/test", []byte(src), []*gmarkst.Library{lib})
+	_, rd, err := gmarkst.Load("test.mst", []byte(src), nil, []*gmarkst.Library{lib})
 	if err != nil {
 		t.Fatalf("compiling document: %v", err)
 	}

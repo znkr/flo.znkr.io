@@ -24,10 +24,12 @@ var serveCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("determining workdir: %v", err)
 		}
+		start := time.Now()
 		s, err := load(dir)
 		if err != nil {
 			return fmt.Errorf("loading site: %v", err)
 		}
+		log.Printf("Site loaded (%v)", time.Since(start))
 
 		// Start serving.
 		const addr = "localhost:8080"

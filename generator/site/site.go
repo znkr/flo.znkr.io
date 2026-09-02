@@ -14,13 +14,27 @@ type Site struct {
 
 // Doc is a single document of the site, that is anything that can be served as a static file.
 type Doc struct {
-	Path       string
-	Source     string
-	MimeType   string
-	Meta       *Metadata
-	Data       []byte
+	// Path is the path on the site, starting with a slash. Every document
+	// has a unique path.
+	Path string
+	// Source is the path to the source file on disk, if any. It is empty for
+	// documents that are not generated from a file.
+	Source string
+	// DocRoot is the relative path to the root of the document. It is used to
+	// resolve relative files referenced in the document. It is empty for
+	// documents that cannot reference other files, such as the index page.
+	DocRoot string
+	// MimeType is the MIME type of the document, which is used to set the
+	// Content-Type header when serving it.
+	MimeType string
+	// Meta is the metadata of the document, which is used to generate the
+	// site index and the header of each rendered page.
+	Meta *Metadata
+	// Renderer is the renderer that is used to render the document.
+	Renderer Renderer
+	// RenderData is the data that is used to render the document. It is
+	// specific to the renderer used for the document.
 	RenderData any
-	Renderer   Renderer
 }
 
 type Renderer interface {

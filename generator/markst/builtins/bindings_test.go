@@ -2,8 +2,8 @@ package builtins
 
 import (
 	"errors"
+	"io/fs"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -30,22 +30,24 @@ const exampleDiff = ` package main
 +}
 `
 
-// srcDir writes the fixture files the includes read and returns the directory
-// they live in.
-func srcDir(t *testing.T) string {
+func docRoot(t *testing.T) fs.FS {
 	t.Helper()
 	dir := t.TempDir()
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		t.Fatalf("os.OpenRoot(%q) = %v", dir, err)
+	}
 	for name, data := range map[string]string{
 		"hello.go":     helloGo,
 		"example.diff": exampleDiff,
 		"before.go":    "package main\n\nfunc main() {}\n",
 		"after.go":     "package main\n\nfunc main() {\n\tprintln(\"hi\")\n}\n",
 	} {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(data), 0o644); err != nil {
+		if err := root.WriteFile(name, []byte(data), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
-	return dir
+	return root.FS()
 }
 
 // text strips the highlighter's markup back off and drops the trailing
@@ -71,9 +73,9 @@ func text(html string) string {
 // compileDoc compiles a markst document against the include bindings for a
 // document living in dir at /doc, and returns the payloads of every Custom
 // element it produced, in document order.
-func compileDoc(t *testing.T, dir, src string) []any {
+func compileDoc(t *testing.T, fs fs.FS, src string) []any {
 	t.Helper()
-	doc, warns, err := markst.Compile([]byte(src), markst.WithName("index.mst"), markst.WithBindings(Bindings(dir, "/doc")))
+	doc, warns, err := markst.Compile([]byte(src), markst.WithName("index.mst"), markst.WithBindings(Bindings(fs)))
 	if err != nil {
 		t.Fatalf("Compile() = %v", err)
 	}
@@ -91,9 +93,9 @@ func compileDoc(t *testing.T, dir, src string) []any {
 
 // include compiles a document consisting of the single call src and returns the
 // one payload it produced.
-func include[T any](t *testing.T, dir, src string) T {
+func include[T any](t *testing.T, fs fs.FS, src string) T {
 	t.Helper()
-	got := compileDoc(t, dir, src+"\n")
+	got := compileDoc(t, fs, src+"\n")
 	if len(got) != 1 {
 		t.Fatalf("%s produced %d custom elements, want 1", src, len(got))
 	}
@@ -105,9 +107,9 @@ func include[T any](t *testing.T, dir, src string) T {
 }
 
 // compileErr compiles a document expected to fail and returns its diagnostics.
-func compileErr(t *testing.T, dir, src string) markst.DiagnosticList {
+func compileErr(t *testing.T, fs fs.FS, src string) markst.DiagnosticList {
 	t.Helper()
-	_, _, err := markst.Compile([]byte(src), markst.WithName("index.mst"), markst.WithBindings(Bindings(dir, "/doc")))
+	_, _, err := markst.Compile([]byte(src), markst.WithName("index.mst"), markst.WithBindings(Bindings(fs)))
 	var diags markst.DiagnosticList
 	if !errors.As(err, &diags) {
 		t.Fatalf("Compile() error is %T (%v), want markst.DiagnosticList", err, err)
@@ -116,7 +118,7 @@ func compileErr(t *testing.T, dir, src string) markst.DiagnosticList {
 }
 
 func TestSnippet(t *testing.T) {
-	dir := srcDir(t)
+	fs := docRoot(t)
 
 	tests := []struct {
 		name                string
@@ -128,42 +130,42 @@ func TestSnippet(t *testing.T) {
 		{
 			name:     "whole_file",
 			src:      `#include-snippet("hello.go")`,
-			wantFile: "hello.go", wantPath: "/doc/hello.go",
+			wantFile: "hello.go", wantPath: "hello.go",
 			wantFirst: "package main", wantLast: "}",
 			wantLineNos: []int{1, 2, 3, 4, 5, 6, 7},
 		},
 		{
 			name:     "line_range_is_1_based_inclusive",
 			src:      `#include-snippet("hello.go", lines: "3..5")`,
-			wantFile: "hello.go", wantPath: "/doc/hello.go",
+			wantFile: "hello.go", wantPath: "hello.go",
 			wantFirst: `import "fmt"`, wantLast: "func main() {",
 			wantLineNos: []int{3, 4, 5},
 		},
 		{
 			name:     "open_start",
 			src:      `#include-snippet("hello.go", lines: "..2")`,
-			wantFile: "hello.go", wantPath: "/doc/hello.go",
+			wantFile: "hello.go", wantPath: "hello.go",
 			wantFirst: "package main", wantLast: "",
 			wantLineNos: []int{1, 2},
 		},
 		{
 			name:     "open_end_is_clamped",
 			src:      `#include-snippet("hello.go", lines: "6..999")`,
-			wantFile: "hello.go", wantPath: "/doc/hello.go",
+			wantFile: "hello.go", wantPath: "hello.go",
 			wantFirst: "\tfmt.Println(\"hello\")", wantLast: "}",
 			wantLineNos: []int{6, 7},
 		},
 		{
 			name:     "display_overrides_the_caption",
 			src:      `#include-snippet("hello.go", display: "the greeter")`,
-			wantFile: "the greeter", wantPath: "/doc/hello.go",
+			wantFile: "the greeter", wantPath: "hello.go",
 			wantFirst: "package main", wantLast: "}",
 			wantLineNos: []int{1, 2, 3, 4, 5, 6, 7},
 		},
 		{
 			name:     "lang_overrides_the_lexer",
 			src:      `#include-snippet("hello.go", lang: "text")`,
-			wantFile: "hello.go", wantPath: "/doc/hello.go",
+			wantFile: "hello.go", wantPath: "hello.go",
 			wantFirst: "package main", wantLast: "}",
 			wantLineNos: []int{1, 2, 3, 4, 5, 6, 7},
 		},
@@ -171,7 +173,7 @@ func TestSnippet(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := include[*SnippetData](t, dir, tt.src)
+			got := include[*SnippetData](t, fs, tt.src)
 			if got.File != tt.wantFile {
 				t.Errorf("File = %q, want %q", got.File, tt.wantFile)
 			}
@@ -232,28 +234,28 @@ func checkEdits(t *testing.T, got []highlight.Edit) {
 }
 
 func TestDiff(t *testing.T) {
-	dir := srcDir(t)
+	fs := docRoot(t)
 
 	t.Run("from_diff_file", func(t *testing.T) {
-		got := include[*DiffData](t, dir, `#include-diff("example.diff", lang: "go")`)
-		if got.File != "example.diff" || got.FilePath != "/doc/example.diff" {
-			t.Errorf("caption = %q -> %q, want example.diff -> /doc/example.diff", got.File, got.FilePath)
+		got := include[*DiffData](t, fs, `#include-diff("example.diff", lang: "go")`)
+		if got.File != "example.diff" || got.FilePath != "example.diff" {
+			t.Errorf("caption = %q -> %q, want example.diff -> example.diff", got.File, got.FilePath)
 		}
 		checkEdits(t, got.Diff)
 	})
 
 	t.Run("from_two_files", func(t *testing.T) {
-		got := include[*DiffData](t, dir, `#include-diff(a: "before.go", b: "after.go")`)
+		got := include[*DiffData](t, fs, `#include-diff(a: "before.go", b: "after.go")`)
 		// The caption names the after side: a diff is about what the file
 		// became.
-		if got.File != "after.go" || got.FilePath != "/doc/after.go" {
-			t.Errorf("caption = %q -> %q, want after.go -> /doc/after.go", got.File, got.FilePath)
+		if got.File != "after.go" || got.FilePath != "after.go" {
+			t.Errorf("caption = %q -> %q, want after.go -> after.go", got.File, got.FilePath)
 		}
 		checkEdits(t, got.Diff)
 	})
 
 	t.Run("dev_null_is_an_empty_side", func(t *testing.T) {
-		got := include[*DiffData](t, dir, `#include-diff(a: "/dev/null", b: "before.go")`)
+		got := include[*DiffData](t, fs, `#include-diff(a: "/dev/null", b: "before.go")`)
 		for i, ed := range got.Diff {
 			if !ed.IsInsert() {
 				t.Fatalf("edit %d is %v, want every line inserted when the before side is empty", i, ed.Op)
@@ -262,9 +264,9 @@ func TestDiff(t *testing.T) {
 	})
 
 	t.Run("display_overrides_the_caption", func(t *testing.T) {
-		got := include[*DiffData](t, dir, `#include-diff("example.diff", lang: "go", display: "the change")`)
-		if got.File != "the change" || got.FilePath != "/doc/example.diff" {
-			t.Errorf("caption = %q -> %q, want 'the change' -> /doc/example.diff", got.File, got.FilePath)
+		got := include[*DiffData](t, fs, `#include-diff("example.diff", lang: "go", display: "the change")`)
+		if got.File != "the change" || got.FilePath != "example.diff" {
+			t.Errorf("caption = %q -> %q, want 'the change' -> example.diff", got.File, got.FilePath)
 		}
 	})
 }
@@ -272,9 +274,9 @@ func TestDiff(t *testing.T) {
 // TestIncludeIsABlock checks the property the includes depend on: an
 // include stands on its own, never swallowed into the paragraph around it.
 func TestIncludeIsABlock(t *testing.T) {
-	dir := srcDir(t)
+	fs := docRoot(t)
 	doc, _, err := markst.Compile([]byte("Before.\n\n#include-snippet(\"hello.go\")\n\nAfter.\n"),
-		markst.WithBindings(Bindings(dir, "/doc")))
+		markst.WithBindings(Bindings(fs)))
 	if err != nil {
 		t.Fatalf("Compile() = %v", err)
 	}
@@ -296,7 +298,7 @@ func TestIncludeIsABlock(t *testing.T) {
 // the document compiles: every failure is a diagnostic in the document, at the
 // argument that caused it.
 func TestErrorsPointAtTheArgument(t *testing.T) {
-	dir := srcDir(t)
+	fs := docRoot(t)
 	tests := []struct {
 		name    string
 		src     string
@@ -370,7 +372,7 @@ func TestErrorsPointAtTheArgument(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			diags := compileErr(t, dir, tt.src+"\n")
+			diags := compileErr(t, fs, tt.src+"\n")
 			if len(diags) != 1 {
 				t.Fatalf("diagnostics = %v, want exactly one", diags)
 			}
@@ -391,8 +393,8 @@ func TestErrorsPointAtTheArgument(t *testing.T) {
 // TestFileIsRequired checks that a snippet without a file fails: the parameter
 // carries no default, so markst rejects the call before the implementation runs.
 func TestFileIsRequired(t *testing.T) {
-	dir := srcDir(t)
-	diags := compileErr(t, dir, "#include-snippet()\n")
+	fs := docRoot(t)
+	diags := compileErr(t, fs, "#include-snippet()\n")
 	if len(diags) != 1 || !strings.Contains(diags[0].Msg, "missing argument: file") {
 		t.Errorf("diagnostics = %v, want one about a missing file argument", diags)
 	}
