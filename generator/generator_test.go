@@ -30,7 +30,7 @@ var update = flag.Bool("update", false, "rewrite the golden files in testdata/go
 func TestGenerator(t *testing.T) {
 	const golden = "testdata/golden"
 
-	s, err := load("testdata/root")
+	s, err := load(t.Context(), "testdata/root")
 	if err != nil {
 		t.Fatalf("load() = %v", err)
 	}
@@ -83,7 +83,7 @@ func TestGenerator(t *testing.T) {
 func TestPackSite(t *testing.T) {
 	// The test binary runs in the package directory, so the site root is one
 	// level up.
-	s, err := load("..")
+	s, err := load(t.Context(), "..")
 	if err != nil {
 		t.Fatalf("load() = %v", err)
 	}

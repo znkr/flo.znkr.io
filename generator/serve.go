@@ -25,7 +25,7 @@ var serveCmd = &cobra.Command{
 			return fmt.Errorf("determining workdir: %v", err)
 		}
 		start := time.Now()
-		s, err := load(dir)
+		s, err := load(cmd.Context(), dir)
 		if err != nil {
 			return fmt.Errorf("loading site: %v", err)
 		}
@@ -87,7 +87,7 @@ var serveCmd = &cobra.Command{
 				// Reload site. This is more than fast enough for now, so now caching or anything
 				// is necessary here.
 				start := time.Now()
-				s, err := load(dir)
+				s, err := load(cmd.Context(), dir)
 				if err != nil {
 					log.Printf("failed to update site: %v", err)
 					continue

@@ -23,7 +23,7 @@ func render(t *testing.T, src string) string {
 	if err != nil {
 		t.Fatalf("reading lib.mst: %v", err)
 	}
-	lib, diags, err := markst.CompileLibrary("lib.mst", libSrc)
+	lib, diags, err := markst.CompileLibrary(t.Context(), "lib.mst", libSrc)
 	if err != nil {
 		t.Fatalf("compiling lib.mst: %v", err)
 	}
@@ -31,7 +31,7 @@ func render(t *testing.T, src string) string {
 		t.Errorf("lib.mst has diagnostics:\n%s", formatDiags(diags))
 	}
 
-	doc, diags, err := markst.Compile([]byte(src), markst.WithName("test.mst"), markst.WithLibrary(lib))
+	doc, diags, err := markst.Compile(t.Context(), []byte(src), markst.WithName("test.mst"), markst.WithLibrary(lib))
 	if err != nil {
 		t.Fatalf("compiling document: %v", err)
 	}
@@ -64,13 +64,13 @@ func renderBody(t *testing.T, src string) string {
 	if err != nil {
 		t.Fatalf("reading lib.mst: %v", err)
 	}
-	lib, err := gmarkst.LoadLibrary("lib.mst", libSrc, nil)
+	lib, err := gmarkst.LoadLibrary(t.Context(), "lib.mst", libSrc, nil)
 	if err != nil {
 		t.Fatalf("compiling lib.mst: %v", err)
 	}
 
 	src = "#article(title: \"T\")\n\n" + src
-	_, rd, err := gmarkst.Load("test.mst", []byte(src), nil, []*gmarkst.Library{lib})
+	_, rd, err := gmarkst.Load(t.Context(), "test.mst", []byte(src), nil, []*gmarkst.Library{lib})
 	if err != nil {
 		t.Fatalf("compiling document: %v", err)
 	}

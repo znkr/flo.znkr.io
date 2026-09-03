@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"znkr.io/markst"
+	"znkr.io/markst/value"
 )
 
 func TestRenderTOC(t *testing.T) {
@@ -42,11 +43,12 @@ func TestRenderTOC(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			doc, _, err := markst.Compile([]byte(tt.in))
+			var index value.Index
+			doc, _, err := markst.Compile(t.Context(), []byte(tt.in), markst.WithIndex(&index))
 			if err != nil {
 				t.Fatalf("compiling: %v", err)
 			}
-			got, err := (&renderer{path: "/test"}).renderTOC(doc)
+			got, err := (&renderer{path: "/test", index: &index}).renderTOC(doc)
 			if err != nil {
 				t.Fatalf("renderTOC: %v", err)
 			}
@@ -61,11 +63,12 @@ func TestRenderTOC(t *testing.T) {
 // keeps the number it has in the body: the table of contents is rendered as a
 // fragment of the document, not as one of its own.
 func TestRenderTOCFootnoteNumbering(t *testing.T) {
-	doc, _, err := markst.Compile([]byte("Body.#footnote[First]\n\n= Head#footnote[Second]\n"))
+	var index value.Index
+	doc, _, err := markst.Compile(t.Context(), []byte("Body.#footnote[First]\n\n= Head#footnote[Second]\n"), markst.WithIndex(&index))
 	if err != nil {
 		t.Fatalf("compiling: %v", err)
 	}
-	got, err := (&renderer{path: "/test"}).renderTOC(doc)
+	got, err := (&renderer{path: "/test", index: &index}).renderTOC(doc)
 	if err != nil {
 		t.Fatalf("renderTOC: %v", err)
 	}

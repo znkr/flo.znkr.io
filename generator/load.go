@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"html/template"
@@ -19,18 +20,18 @@ import (
 )
 
 // load loads a site from the directory dir.
-func load(dir string) (*site.Site, error) {
+func load(ctx context.Context, dir string) (*site.Site, error) {
 	templates, err := loadTemplates(filepath.Join(dir, "templates"))
 	if err != nil {
 		return nil, fmt.Errorf("loading templates: %v", err)
 	}
 
-	libs, err := loadLibraries(dir)
+	libs, err := loadLibraries(ctx, dir)
 	if err != nil {
 		return nil, err
 	}
 
-	docs, err := loadDocs(dir, templates, libs)
+	docs, err := loadDocs(ctx, dir, templates, libs)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +90,7 @@ func loadTemplates(dir string) (*template.Template, error) {
 // Files are compiled in name order, and each one can use what the files before
 // it defined. Where two define the same name the later file wins, and a
 // document's own binding wins over both.
-func loadLibraries(root string) ([]*markst.Library, error) {
+func loadLibraries(ctx context.Context, root string) ([]*markst.Library, error) {
 	dir := filepath.Join(root, "lib")
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -112,7 +113,7 @@ func loadLibraries(root string) ([]*markst.Library, error) {
 		if err != nil {
 			return nil, fmt.Errorf("reading library: %v", err)
 		}
-		lib, err := markst.LoadLibrary(path, data, libs)
+		lib, err := markst.LoadLibrary(ctx, path, data, libs)
 		if err != nil {
 			return nil, err
 		}
@@ -124,7 +125,7 @@ func loadLibraries(root string) ([]*markst.Library, error) {
 // loadDocs loads all documents below root/site. Errors are reported with a
 // path relative to root, which is the working directory, so that they can be
 // opened directly in an editor.
-func loadDocs(root string, templates *template.Template, libs []*markst.Library) ([]site.Doc, error) {
+func loadDocs(ctx context.Context, root string, templates *template.Template, libs []*markst.Library) ([]site.Doc, error) {
 	markstRenderers := make(map[string]*html.Renderer)
 	for _, typ := range []string{"article", "page"} {
 		wr, err := html.NewRenderer(templates, html.Options{
@@ -201,7 +202,7 @@ func loadDocs(root string, templates *template.Template, libs []*markst.Library)
 				}
 				docFS = r.FS()
 			}
-			meta, rd, err := markst.Load(rpath, data, docFS, libs)
+			meta, rd, err := markst.Load(ctx, rpath, data, docFS, libs)
 			if err != nil {
 				// The error already names the file and the position within it.
 				return err

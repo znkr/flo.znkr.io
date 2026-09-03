@@ -75,7 +75,7 @@ func text(html string) string {
 // element it produced, in document order.
 func compileDoc(t *testing.T, fs fs.FS, src string) []any {
 	t.Helper()
-	doc, warns, err := markst.Compile([]byte(src), markst.WithName("index.mst"), markst.WithBindings(Bindings(fs)))
+	doc, warns, err := markst.Compile(t.Context(), []byte(src), markst.WithName("index.mst"), markst.WithBindings(Bindings(fs)))
 	if err != nil {
 		t.Fatalf("Compile() = %v", err)
 	}
@@ -83,7 +83,7 @@ func compileDoc(t *testing.T, fs fs.FS, src string) []any {
 		t.Errorf("Compile() warnings = %v, want none", warns)
 	}
 	var out []any
-	for c := range value.Preorder(doc, value.KindSet(value.KindCustom)) {
+	for c := range value.Preorder(doc, value.SetOf(value.KindCustom)) {
 		if custom, ok := c.Node().(*value.Custom); ok {
 			out = append(out, custom.Value)
 		}
@@ -109,7 +109,7 @@ func include[T any](t *testing.T, fs fs.FS, src string) T {
 // compileErr compiles a document expected to fail and returns its diagnostics.
 func compileErr(t *testing.T, fs fs.FS, src string) markst.DiagnosticList {
 	t.Helper()
-	_, _, err := markst.Compile([]byte(src), markst.WithName("index.mst"), markst.WithBindings(Bindings(fs)))
+	_, _, err := markst.Compile(t.Context(), []byte(src), markst.WithName("index.mst"), markst.WithBindings(Bindings(fs)))
 	var diags markst.DiagnosticList
 	if !errors.As(err, &diags) {
 		t.Fatalf("Compile() error is %T (%v), want markst.DiagnosticList", err, err)
@@ -275,18 +275,18 @@ func TestDiff(t *testing.T) {
 // include stands on its own, never swallowed into the paragraph around it.
 func TestIncludeIsABlock(t *testing.T) {
 	fs := docRoot(t)
-	doc, _, err := markst.Compile([]byte("Before.\n\n#include-snippet(\"hello.go\")\n\nAfter.\n"),
+	doc, _, err := markst.Compile(t.Context(), []byte("Before.\n\n#include-snippet(\"hello.go\")\n\nAfter.\n"),
 		markst.WithBindings(Bindings(fs)))
 	if err != nil {
 		t.Fatalf("Compile() = %v", err)
 	}
 
-	for c := range value.Preorder(doc, value.KindSet(value.KindPar)) {
+	for c := range value.Preorder(doc, value.SetOf(value.KindPar)) {
 		par, ok := c.Node().(*value.Par)
 		if !ok {
 			continue
 		}
-		for sub := range value.Preorder(par.Body, value.KindSet(value.KindCustom)) {
+		for sub := range value.Preorder(par.Body, value.SetOf(value.KindCustom)) {
 			if _, ok := sub.Node().(*value.Custom); ok {
 				t.Fatalf("include ended up inside a paragraph:\n%s", value.FormatContent(doc))
 			}

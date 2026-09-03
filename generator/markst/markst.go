@@ -1,6 +1,7 @@
 package markst
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -23,8 +24,8 @@ type Library = markst.Library
 // LoadLibrary compiles the markst library in data, which may use anything the
 // libraries in deps define. Its own bindings are then available to every
 // document compiled with the returned library, without an import: see [Load].
-func LoadLibrary(path string, data []byte, deps []*Library) (*markst.Library, error) {
-	lib, diags, err := markst.CompileLibrary(path, data, markst.WithLibrary(deps...))
+func LoadLibrary(ctx context.Context, path string, data []byte, deps []*Library) (*markst.Library, error) {
+	lib, diags, err := markst.CompileLibrary(ctx, path, data, markst.WithLibrary(deps...))
 	if len(diags) > 0 {
 		markst.FormatDiagnostics(os.Stderr, diags)
 	}
@@ -40,9 +41,9 @@ func LoadLibrary(path string, data []byte, deps []*Library) (*markst.Library, er
 
 // Load compiles the markst document in data against libs, whose bindings the
 // document can use as if they were built in.
-func Load(path string, data []byte, docFS fs.FS, libs []*Library) (*site.Metadata, *html.RenderData, error) {
+func Load(ctx context.Context, path string, data []byte, docFS fs.FS, libs []*Library) (*site.Metadata, *html.RenderData, error) {
 	var index value.Index
-	d, diags, err := markst.Compile(data,
+	d, diags, err := markst.Compile(ctx, data,
 		markst.WithName(path),
 		markst.WithLibrary(libs...),
 		markst.WithIndex(&index),
