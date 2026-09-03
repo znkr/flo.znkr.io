@@ -6,11 +6,13 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"flo.znkr.io/generator/build"
 	"flo.znkr.io/generator/site"
 )
 
 type handler struct {
 	site   atomic.Pointer[site.Site]
+	cache  *build.Cache
 	reload *reloader
 }
 
@@ -49,7 +51,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	b, err := s.RenderPage(doc)
+	b, err := doc.Page.Get(req.Context(), h.cache)
 	if err != nil {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusInternalServerError)

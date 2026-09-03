@@ -1,0 +1,1 @@
+#let note(body) = html.elem("div", attrs: (class: "note"), [*Note:* #body])

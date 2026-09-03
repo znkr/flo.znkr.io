@@ -1,5 +1,0 @@
-// Compiled before 10_article.mst, which uses what this file defines.
-
-#let doc_type = "article"
-
-#let note(body) = html.elem("div", attrs: (class: "note"), [*Note:* #body])

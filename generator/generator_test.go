@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"flo.znkr.io/generator/pack"
+	"flo.znkr.io/generator/renderers"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -30,13 +31,13 @@ var update = flag.Bool("update", false, "rewrite the golden files in testdata/go
 func TestGenerator(t *testing.T) {
 	const golden = "testdata/golden"
 
-	s, err := load(t.Context(), "testdata/root")
+	c, s, err := loadDir(t.Context(), "testdata/root")
 	if err != nil {
-		t.Fatalf("load() = %v", err)
+		t.Fatalf("loadDir() = %v", err)
 	}
 
 	tarfile := filepath.Join(t.TempDir(), "site.tar")
-	if err := pack.Pack(tarfile, s); err != nil {
+	if err := pack.Pack(t.Context(), tarfile, c, s); err != nil {
 		t.Fatalf("Pack() = %v", err)
 	}
 	got := readTar(t, tarfile)
@@ -83,18 +84,18 @@ func TestGenerator(t *testing.T) {
 func TestPackSite(t *testing.T) {
 	// The test binary runs in the package directory, so the site root is one
 	// level up.
-	s, err := load(t.Context(), "..")
+	c, s, err := loadDir(t.Context(), "..")
 	if err != nil {
-		t.Fatalf("load() = %v", err)
+		t.Fatalf("loadDir() = %v", err)
 	}
 
 	tarfile := filepath.Join(t.TempDir(), "znkr.tar")
-	if err := pack.Pack(tarfile, s); err != nil {
+	if err := pack.Pack(t.Context(), tarfile, c, s); err != nil {
 		t.Fatalf("Pack() = %v", err)
 	}
 	got := readTar(t, tarfile)
 
-	docs := s.AllDocs()
+	docs := s.Docs()
 	if len(docs) == 0 {
 		t.Fatal("site has no documents")
 	}
@@ -105,11 +106,20 @@ func TestPackSite(t *testing.T) {
 	// Everything the site needs to be usable: the index, the feed, the
 	// assets referenced by every page, and a page per article.
 	want := []string{"index.html", "feed.atom", "_assets/style.css", "_assets/script.js", "about/index.html"}
-	for _, d := range s.Articles() {
-		want = append(want, path.Join(d.Path, "index.html")[1:])
+	var entries []renderers.Entry
+	for _, d := range docs {
+		meta, err := d.Meta.Get(t.Context(), c)
+		if err != nil {
+			t.Fatalf("%s: Meta.Get() = %v", d.Path, err)
+		}
+		entries = append(entries, renderers.Entry{Path: d.Path, Meta: meta})
 	}
-	if len(s.Articles()) == 0 {
+	articles := renderers.Articles(entries)
+	if len(articles) == 0 {
 		t.Error("site has no articles")
+	}
+	for _, a := range articles {
+		want = append(want, path.Join(a.Path, "index.html")[1:])
 	}
 	for _, name := range want {
 		if _, ok := got[name]; !ok {

@@ -4,54 +4,53 @@ import (
 	"encoding/xml"
 	"fmt"
 
-	"flo.znkr.io/generator/site"
 	"golang.org/x/tools/blog/atom"
 )
 
-var Atom site.Renderer = &atomRenderer{}
+// feedID is the feed's tag URI and the prefix of every entry's id.
+const feedID = "tag:znkr.io,2024:articles"
 
-type atomRenderer struct{}
+// RenderAtom renders the feed from entries, of which it carries the published
+// articles. contents holds each entry's rendered body, in the same order, which
+// is what the feed embeds.
+func RenderAtom(title string, entries []Entry, contents [][]byte) ([]byte, error) {
+	body := make(map[string][]byte, len(entries))
+	for i, e := range entries {
+		body[e.Path] = contents[i]
+	}
 
-func (r *atomRenderer) RenderContent(s *site.Site, doc *site.Doc) ([]byte, error) {
-	return nil, fmt.Errorf("rendering content for atom feed is not possible")
-}
-
-func (r *atomRenderer) RenderPage(s *site.Site, doc *site.Doc) ([]byte, error) {
-	articles := s.Articles()
-	updated := articles[0].Meta.Updated
+	articles := Articles(entries)
+	if len(articles) == 0 {
+		return nil, fmt.Errorf("no articles to build a feed from")
+	}
 
 	feed := atom.Feed{
-		Title:   doc.Meta.Title,
-		ID:      "tag:znkr.io,2024:articles",
-		Updated: atom.Time(updated),
+		Title:   title,
+		ID:      feedID,
+		Updated: atom.Time(articles[0].Meta.Updated),
 		Link: []atom.Link{{
 			Rel:  "self",
 			Href: "https://flo.znkr.io/feed.atom",
 		}},
 	}
 
-	for _, doc := range articles {
-		html, err := s.RenderContent(doc)
-		if err != nil {
-			return nil, err
-		}
-
+	for _, a := range articles {
 		e := &atom.Entry{
-			Title: doc.Meta.Title,
-			ID:    feed.ID + doc.Path,
+			Title: a.Meta.Title,
+			ID:    feed.ID + a.Path,
 			Link: []atom.Link{{
 				Rel:  "alternate",
-				Href: "https://flo.znkr.io" + doc.Path,
+				Href: "https://flo.znkr.io" + a.Path,
 			}},
-			Published: atom.Time(doc.Meta.Published),
-			Updated:   atom.Time(doc.Meta.Updated),
+			Published: atom.Time(a.Meta.Published),
+			Updated:   atom.Time(a.Meta.Updated),
 			Summary: &atom.Text{
 				Type: "html",
-				Body: doc.Meta.Abstract,
+				Body: a.Meta.Summary,
 			},
 			Content: &atom.Text{
 				Type: "html",
-				Body: string(html),
+				Body: string(body[a.Path]),
 			},
 			Author: &atom.Person{
 				Name: "Florian Zenker",

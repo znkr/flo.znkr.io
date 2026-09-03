@@ -2,6 +2,7 @@ package pack
 
 import (
 	"archive/tar"
+	"context"
 	"fmt"
 	"mime"
 	"os"
@@ -15,10 +16,11 @@ import (
 	"github.com/tdewolff/minify/v2/svg"
 	"github.com/tdewolff/minify/v2/xml"
 
+	"flo.znkr.io/generator/build"
 	"flo.znkr.io/generator/site"
 )
 
-func Pack(filename string, s *site.Site) error {
+func Pack(ctx context.Context, filename string, c *build.Cache, s *site.Site) error {
 	minifier := minify.New()
 	minifier.AddFunc("text/css", css.Minify)
 	minifier.AddFunc("image/svg+xml", svg.Minify)
@@ -36,10 +38,10 @@ func Pack(filename string, s *site.Site) error {
 
 	dirs := make(map[string]bool)
 
-	for _, d := range s.AllDocs() {
-		b, err := s.RenderPage(d)
+	for _, d := range s.Docs() {
+		b, err := d.Page.Get(ctx, c)
 		if err != nil {
-			return err
+			return fmt.Errorf("rendering %s: %v", d.Path, err)
 		}
 
 		mime, _, err := mime.ParseMediaType(d.MimeType)

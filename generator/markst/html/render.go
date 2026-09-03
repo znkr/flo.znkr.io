@@ -1,10 +1,14 @@
 // Package html renders a compiled markst document as the HTML the site serves.
 //
 // The rendering itself is znkr.io/markst/html's job. What is here is the part
-// that belongs to this site: the syntax highlighting raw text gets, the
-// fragment templates the include elements are drawn with, the anchor link on
-// every heading, the site-relative resolution of image paths, and the table of
-// contents the article template puts beside the body.
+// that belongs to this site: the fragment templates the include elements are
+// drawn with, the anchor link on every heading, the site-relative resolution of
+// image paths, and the table of contents the article template puts beside the
+// body.
+//
+// Highlighting is not done here. A document's fragments are computed before it
+// is rendered and passed in, which is what lets an unchanged snippet survive an
+// edit to the prose around it.
 package html
 
 import (
@@ -13,9 +17,12 @@ import (
 	"html"
 	"html/template"
 	"path"
+	"slices"
 	"strings"
 
+	"flo.znkr.io/generator/build"
 	"flo.znkr.io/generator/highlight"
+	gmarkst "flo.znkr.io/generator/markst"
 	"flo.znkr.io/generator/markst/builtins"
 	"flo.znkr.io/generator/site"
 	"znkr.io/markst"
@@ -23,63 +30,37 @@ import (
 	"znkr.io/markst/value"
 )
 
-// RenderData is what a [Renderer] renders, held in [site.Doc.RenderData].
-type RenderData struct {
-	Doc   *value.Document
-	Index *value.Index
-}
-
-type Renderer struct {
-	page          *template.Template
-	snippet, diff *template.Template
-}
-
-type Options struct {
-	PageTemplate string
-}
-
-func NewRenderer(templates *template.Template, opts Options) (*Renderer, error) {
-	page := templates.Lookup(opts.PageTemplate)
-	if page == nil {
-		return nil, fmt.Errorf("template not found %s", opts.PageTemplate)
+// RenderPage renders doc as a whole page, wrapped in the template its metadata
+// asks for. frags are the document's fragments, keyed the way
+// [builtins.Artifact] keys them.
+func RenderPage(templates *template.Template, doc *gmarkst.Doc, meta site.Metadata, frags map[build.Key]builtins.Fragment, docPath, docRoot string) ([]byte, error) {
+	// Lookup alone is not enough: an empty name finds the root template, and a
+	// fragment name finds a template that is no page.
+	page := templates.Lookup(meta.Type)
+	if !slices.Contains(site.DocTypes, meta.Type) || page == nil {
+		return nil, fmt.Errorf("%s: unknown doc type: %s", docPath, meta.Type)
 	}
 
-	snippet := templates.Lookup("fragments/include_snippet")
-	if snippet == nil {
-		return nil, fmt.Errorf("template not found fragments/include_snippet")
+	r, err := newRenderer(templates, doc, frags, docPath, docRoot)
+	if err != nil {
+		return nil, err
 	}
-	diff := templates.Lookup("fragments/include_diff")
-	if diff == nil {
-		return nil, fmt.Errorf("template not found fragments/include_diff")
+	content, err := r.content()
+	if err != nil {
+		return nil, err
 	}
-
-	return &Renderer{
-		page:    page,
-		snippet: snippet,
-		diff:    diff,
-	}, nil
-}
-
-func (r *Renderer) RenderContent(s *site.Site, doc *site.Doc) ([]byte, error) {
-	content, _, err := r.renderContent(doc)
-	return content, err
-}
-
-func (r *Renderer) RenderPage(s *site.Site, doc *site.Doc) ([]byte, error) {
-	content, toc, err := r.renderContent(doc)
+	toc, err := r.renderTOC(doc.Doc)
 	if err != nil {
 		return nil, err
 	}
 
 	var buf bytes.Buffer
-	err = r.page.Execute(&buf, struct {
-		Meta    *site.Metadata
-		Site    *site.Site
+	err = page.Execute(&buf, struct {
+		Meta    site.Metadata
 		Content template.HTML
 		TOC     template.HTML
 	}{
-		Meta:    doc.Meta,
-		Site:    s,
+		Meta:    meta,
 		Content: template.HTML(content),
 		TOC:     template.HTML(toc),
 	})
@@ -89,46 +70,68 @@ func (r *Renderer) RenderPage(s *site.Site, doc *site.Doc) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// RenderSummary renders the summary a document carries in its metadata. It is a
-// fragment of a document rather than one of its own, so it is rendered against
-// the site root and without the endnote list a whole page gets.
-func RenderSummary(c value.Content) (string, error) {
+// RenderContent renders doc's body alone, without the page around it. It is
+// what the feed embeds.
+func RenderContent(templates *template.Template, doc *gmarkst.Doc, frags map[build.Key]builtins.Fragment, docPath, docRoot string) ([]byte, error) {
+	r, err := newRenderer(templates, doc, frags, docPath, docRoot)
+	if err != nil {
+		return nil, err
+	}
+	return r.content()
+}
+
+// RenderSummary renders the summary doc carries in its metadata, or "" if it
+// carries none. It is a fragment of a document rather than one of its own, so
+// it is rendered against the site root and without the endnote list a whole
+// page gets.
+func RenderSummary(doc *gmarkst.Doc, frags map[build.Key]builtins.Fragment) (string, error) {
+	if doc.Summary == nil {
+		return "", nil
+	}
+	r := &renderer{path: "/", frags: frags}
 	var buf strings.Builder
-	opts := (&renderer{path: "/"}).options()
-	err := mhtml.Render(&buf, c, append(opts, mhtml.WithoutFootnoteList())...)
+	err := mhtml.Render(&buf, doc.Summary, append(r.options(), mhtml.WithoutFootnoteList())...)
 	return buf.String(), err
 }
 
-func (r *Renderer) renderContent(doc *site.Doc) (content []byte, toc []byte, err error) {
-	d := doc.RenderData.(*RenderData).Doc
-	rr := &renderer{
-		path:    doc.Path,
-		docRoot: doc.DocRoot,
-		snippet: r.snippet,
-		diff:    r.diff,
-		index:   doc.RenderData.(*RenderData).Index,
-	}
-
-	var buf bytes.Buffer
-	if err := mhtml.Render(&buf, d, rr.options()...); err != nil {
-		return nil, nil, err
-	}
-
-	toc, err = rr.renderTOC(d)
-	if err != nil {
-		return nil, nil, err
-	}
-	return buf.Bytes(), toc, nil
-}
-
 // renderer holds what the site brings to a render: where the document sits, so
-// that the paths in it resolve, and the fragments the include elements are
-// drawn with.
+// that the paths in it resolve, the fragments its includes and raw spans were
+// highlighted to, and the templates those fragments are drawn with.
 type renderer struct {
 	path          string
 	docRoot       string
 	snippet, diff *template.Template
+	doc           *value.Document
 	index         *value.Index
+	frags         map[build.Key]builtins.Fragment
+}
+
+func newRenderer(templates *template.Template, doc *gmarkst.Doc, frags map[build.Key]builtins.Fragment, docPath, docRoot string) (*renderer, error) {
+	snippet := templates.Lookup("fragments/include_snippet")
+	if snippet == nil {
+		return nil, fmt.Errorf("template not found fragments/include_snippet")
+	}
+	diff := templates.Lookup("fragments/include_diff")
+	if diff == nil {
+		return nil, fmt.Errorf("template not found fragments/include_diff")
+	}
+	return &renderer{
+		path:    docPath,
+		docRoot: docRoot,
+		snippet: snippet,
+		diff:    diff,
+		doc:     doc.Doc,
+		index:   doc.Index,
+		frags:   frags,
+	}, nil
+}
+
+func (r *renderer) content() ([]byte, error) {
+	var buf bytes.Buffer
+	if err := mhtml.Render(&buf, r.doc, r.options()...); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 // options is how the site's rendering differs from the default one.
@@ -157,9 +160,7 @@ func (r *renderer) render(e *mhtml.Encoder, c value.Content) (bool, error) {
 		return true, nil
 
 	case *value.Raw:
-		// Highlighted the same way include-snippet highlights the files it
-		// reads, so that the two look alike.
-		code, err := highlightRaw(c)
+		code, err := r.rawCode(c)
 		if err != nil {
 			return true, err
 		}
@@ -173,29 +174,42 @@ func (r *renderer) render(e *mhtml.Encoder, c value.Content) (bool, error) {
 
 	case *value.Custom:
 		// An element the generator put in the document while it compiled; see
-		// builtins.Bindings. The payload is the finished table, so all that is
-		// left is to hand it to the fragment that renders it.
-		switch p := c.Value.(type) {
-		case *builtins.SnippetData:
+		// builtins.Bindings. The include says what to draw around the fragment
+		// that was computed for it, and the fragment says which template draws
+		// it.
+		p, ok := c.Value.(*builtins.Include)
+		if !ok {
+			return true, fmt.Errorf("unsupported custom payload: %T", c.Value)
+		}
+		frag, err := r.fragment(c, c.Elem)
+		if err != nil {
+			return true, err
+		}
+		switch f := frag.(type) {
+		case builtins.Lines:
+			lines, err := p.SelectLines(f)
+			if err != nil {
+				return true, err
+			}
 			return true, r.execute(e, r.snippet, struct {
 				File, FilePath string
 				Lines          []highlight.Line
 			}{
 				File:     p.File,
 				FilePath: path.Join(r.docRoot, p.FilePath),
-				Lines:    p.Lines,
+				Lines:    lines,
 			})
-		case *builtins.DiffData:
+		case builtins.Edits:
 			return true, r.execute(e, r.diff, struct {
 				File, FilePath string
 				Diff           []highlight.Edit
 			}{
 				File:     p.File,
 				FilePath: path.Join(r.docRoot, p.FilePath),
-				Diff:     p.Diff,
+				Diff:     f,
 			})
 		default:
-			return true, fmt.Errorf("unsupported custom payload: %T", p)
+			return true, fmt.Errorf("%s resolved to a %T", c.Elem, f)
 		}
 	}
 	return false, nil
@@ -220,18 +234,29 @@ func (r *renderer) execute(e *mhtml.Encoder, t *template.Template, data any) err
 	return nil
 }
 
-// highlightRaw highlights a raw node. The lexer comes from the node's language;
-// without one -- or with one chroma doesn't know -- the fallback lexer emits
-// the text unstyled, which is what a raw node without a language should look
-// like.
-func highlightRaw(v *value.Raw) (string, error) {
-	var opt highlight.Option
-	if v.Lang != "" {
-		opt = highlight.Lang(v.Lang)
-	}
-	lines, err := highlight.Highlight(v.Text, opt)
+// fragment returns the highlighting computed for node. what names the node in
+// the error when the build did not compute it.
+func (r *renderer) fragment(node value.Content, what string) (builtins.Fragment, error) {
+	a, err := builtins.Artifact(node)
 	if err != nil {
-		return "", fmt.Errorf("highlighting raw %s: %v", rawKind(v), err)
+		return nil, err
+	}
+	frag, ok := r.frags[a.Key()]
+	if !ok {
+		return nil, fmt.Errorf("no fragment for %s", what)
+	}
+	return frag, nil
+}
+
+// rawCode returns the highlighted form of a raw node.
+func (r *renderer) rawCode(v *value.Raw) (string, error) {
+	frag, err := r.fragment(v, "raw "+rawKind(v))
+	if err != nil {
+		return "", err
+	}
+	lines, ok := frag.(builtins.Lines)
+	if !ok {
+		return "", fmt.Errorf("raw %s resolved to a %T, want highlighted lines", rawKind(v), frag)
 	}
 
 	var sb strings.Builder

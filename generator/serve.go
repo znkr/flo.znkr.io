@@ -11,7 +11,11 @@ import (
 	"strings"
 	"time"
 
+	"flo.znkr.io/generator/build"
+	"flo.znkr.io/generator/markst"
 	"flo.znkr.io/generator/server"
+	"flo.znkr.io/generator/site"
+	"flo.znkr.io/generator/source"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 )
@@ -24,16 +28,23 @@ var serveCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("determining workdir: %v", err)
 		}
+
+		// One cache for the life of the process. A build declares what the site
+		// is made of and computes none of it; a page is rendered when it is
+		// first requested, and held until something it depends on changes.
+		cache := build.NewCache(cacheSize)
+
 		start := time.Now()
-		s, err := load(cmd.Context(), dir)
+		s, err := reload(cmd.Context(), cache, dir)
 		if err != nil {
 			return fmt.Errorf("loading site: %v", err)
 		}
+		cache.Stats()
 		log.Printf("Site loaded (%v)", time.Since(start))
 
 		// Start serving.
 		const addr = "localhost:8080"
-		server, err := server.Run(addr, s)
+		server, err := server.Run(addr, cache, s)
 		if err != nil {
 			return err
 		}
@@ -46,7 +57,7 @@ var serveCmd = &cobra.Command{
 			return fmt.Errorf("starting watcher: %v", err)
 		}
 		defer watcher.Close()
-		for _, subdir := range []string{"site", "templates", "lib"} {
+		for _, subdir := range source.Dirs {
 			if err := watchDir(watcher, filepath.Join(dir, subdir)); err != nil {
 				return fmt.Errorf("starting watch: %v", err)
 			}
@@ -84,17 +95,19 @@ var serveCmd = &cobra.Command{
 			case <-debounce:
 				debounce = nil
 
-				// Reload site. This is more than fast enough for now, so now caching or anything
-				// is necessary here.
 				start := time.Now()
-				s, err := load(cmd.Context(), dir)
+				// Discard what serving the pages did since the last reload, so
+				// that the counts below cover only this one.
+				cache.Stats()
+				s, err := reload(cmd.Context(), cache, dir)
 				if err != nil {
 					log.Printf("failed to update site: %v", err)
 					continue
 				}
+				st := cache.Stats()
 				server.ReplaceSite(s)
-				d := time.Since(start)
-				log.Printf("Site reloaded (%v)", d)
+				log.Printf("Site reloaded (%v, %d documents recompiled, %d of %d steps reused)",
+					time.Since(start), st.Kinds["doc"].Misses, st.Hits, st.Hits+st.Misses)
 
 			case err := <-server.Error():
 				return fmt.Errorf("serving: %v", err)
@@ -109,6 +122,40 @@ var serveCmd = &cobra.Command{
 			}
 		}
 	},
+}
+
+// reload scans dir, and plans the site, and compiles all documents.
+//
+// Planning alone computes nothing, so the site would be served without a line
+// of it having been read. The compile is forced because a document that no
+// longer compiles, or that warns, belongs in the terminal now rather than in
+// whichever request first reaches it. Forcing the metadata renders the summary
+// with it, and highlights the fragments the summary holds. The body is what
+// waits for a request.
+//
+// The warnings are reported in full every reload, including the ones from
+// documents this reload did not have to compile, so that a warning stays on
+// screen until the document it is about is fixed.
+func reload(ctx context.Context, c *build.Cache, dir string) (*site.Site, error) {
+	tree, err := source.Scan(dir)
+	if err != nil {
+		return nil, fmt.Errorf("scanning site: %v", err)
+	}
+	s, diags, err := plan(tree)
+	if err != nil {
+		return nil, err
+	}
+	for _, d := range s.Docs() {
+		if _, err := d.Meta.Get(ctx, c); err != nil {
+			return nil, err
+		}
+	}
+	ds, err := diags.Get(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	markst.Report(ds)
+	return s, nil
 }
 
 func watchDir(watcher *fsnotify.Watcher, dir string) error {

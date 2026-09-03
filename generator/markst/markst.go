@@ -6,97 +6,149 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"slices"
 	"strings"
 
 	"flo.znkr.io/generator/markst/builtins"
-	"flo.znkr.io/generator/markst/html"
 	"flo.znkr.io/generator/site"
 	"znkr.io/markst"
 	"znkr.io/markst/name"
 	"znkr.io/markst/value"
 )
 
-// Library is a compiled set of markst bindings, shared by every document on
-// the site. It is an alias so that callers of [LoadLibrary] and [Load] need
-// only this package.
-type Library = markst.Library
+// Diagnostic is a warning about a document that compiled anyway.
+type Diagnostic = markst.Diagnostic
+
+// Lib is a compiled library and the diagnostics compiling it produced.
+type Lib struct {
+	Lib   *markst.Library
+	Diags []Diagnostic
+}
+
+// libraries returns the compiled libraries in libs.
+func libraries(libs []*Lib) []*markst.Library {
+	ret := make([]*markst.Library, len(libs))
+	for i, l := range libs {
+		ret[i] = l.Lib
+	}
+	return ret
+}
+
+// Report writes diags to stderr.
+//
+// Diagnostics are returned rather than printed where they arise, so that they
+// can be reported again for a document that did not have to be compiled again.
+func Report(diags []Diagnostic) {
+	if len(diags) > 0 {
+		markst.FormatDiagnostics(os.Stderr, diags)
+	}
+}
+
+// Doc is a compiled markst document.
+type Doc struct {
+	// Doc is the document itself and Index the label index built with it.
+	Doc   *value.Document
+	Index *value.Index
+
+	// Meta is what the document says about itself. Its Summary is empty:
+	// rendering the summary is a step of its own, so that reading a document's
+	// title does not wait on it. See [Doc.Summary].
+	Meta site.Metadata
+
+	// Summary is the summary the metadata carries, nil if there is none. It is
+	// content rather than HTML for the same reason.
+	Summary value.Content
+
+	Diags []Diagnostic
+}
 
 // LoadLibrary compiles the markst library in data, which may use anything the
 // libraries in deps define. Its own bindings are then available to every
 // document compiled with the returned library, without an import: see [Load].
-func LoadLibrary(ctx context.Context, path string, data []byte, deps []*Library) (*markst.Library, error) {
-	lib, diags, err := markst.CompileLibrary(ctx, path, data, markst.WithLibrary(deps...))
-	if len(diags) > 0 {
-		markst.FormatDiagnostics(os.Stderr, diags)
-	}
+//
+// Diagnostics are returned in [Lib.Diags] on success and written to stderr on
+// failure, where there is no compiled library for a caller to hold them with.
+func LoadLibrary(ctx context.Context, path string, data []byte, deps []*Lib) (*Lib, error) {
+	lib, diags, err := markst.CompileLibrary(ctx, path, data, markst.WithLibrary(libraries(deps)...))
 	if err != nil {
+		Report(diags)
 		var list markst.DiagnosticList
 		if !errors.As(err, &list) {
-			return nil, fmt.Errorf("%s: %v", path, err)
+			return nil, fmt.Errorf("%s: %w", path, err)
 		}
-		return nil, errors.New(format(list))
+		return nil, errors.New(Format(list))
 	}
-	return lib, nil
+	return &Lib{Lib: lib, Diags: diags}, nil
 }
 
 // Load compiles the markst document in data against libs, whose bindings the
-// document can use as if they were built in.
-func Load(ctx context.Context, path string, data []byte, docFS fs.FS, libs []*Library) (*site.Metadata, *html.RenderData, error) {
+// document can use as if they were built in. Files the document includes are
+// read from docFS.
+//
+// Nothing is highlighted: an include is compiled to the request for it, which
+// [builtins.Artifacts] declares and the build then runs.
+//
+// Diagnostics are returned in [Doc.Diags] on success and written to stderr on
+// failure, where there is no document for a caller to hold them with.
+func Load(ctx context.Context, path string, data []byte, docFS fs.FS, libs []*Lib) (*Doc, error) {
 	var index value.Index
 	d, diags, err := markst.Compile(ctx, data,
 		markst.WithName(path),
-		markst.WithLibrary(libs...),
+		markst.WithLibrary(libraries(libs)...),
 		markst.WithIndex(&index),
 		markst.WithBindings(builtins.Bindings(docFS)),
 	)
-	if len(diags) > 0 {
-		// Warnings describe a document that compiled, so they are reported
-		// but don't stop the load.
-		markst.FormatDiagnostics(os.Stderr, diags)
-	}
 	if err != nil {
+		Report(diags)
 		var list markst.DiagnosticList
 		if !errors.As(err, &list) {
-			return nil, nil, fmt.Errorf("%s: %v", path, err)
+			return nil, fmt.Errorf("%s: %w", path, err)
 		}
-		return nil, nil, errors.New(format(list))
+		return nil, errors.New(Format(list))
 	}
-	meta, err := metadata(d)
+	meta, summary, err := metadata(d)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %v", path, err)
+		Report(diags)
+		return nil, fmt.Errorf("%s: %w", path, err)
 	}
-	return meta, &html.RenderData{
-		Doc:   d,
-		Index: &index,
+	return &Doc{
+		Doc:     d,
+		Index:   &index,
+		Meta:    meta,
+		Summary: summary,
+		Diags:   diags,
 	}, nil
 }
 
-// format renders diags the way a compiler does, one per line. Each diagnostic
+// Format renders diags the way a compiler does, one per line. Each diagnostic
 // names the file it occurred in, so nothing needs to be supplied here. Writing
 // to a [strings.Builder] cannot fail, so the error from FormatDiagnostics
 // carries no information either.
-func format(diags []markst.Diagnostic) string {
+func Format(diags []Diagnostic) string {
 	var sb strings.Builder
 	markst.FormatDiagnostics(&sb, diags)
 	return strings.TrimSuffix(sb.String(), "\n")
 }
 
-func metadata(doc *value.Document) (*site.Metadata, error) {
+func metadata(doc *value.Document) (site.Metadata, value.Content, error) {
 	v, ok := markst.Query(doc, name.Make("doc-meta"))
 	if !ok {
-		return nil, fmt.Errorf("missing doc-meta in markst document: %v", value.FormatContent(doc))
+		return site.Metadata{}, nil, fmt.Errorf("missing doc-meta in markst document: %v", value.FormatContent(doc))
 	}
 	d, err := dictFromValue(v)
 	if err != nil {
-		return nil, fmt.Errorf("doc-meta is not a dict")
+		return site.Metadata{}, nil, fmt.Errorf("doc-meta is not a dict")
 	}
 
-	meta := new(site.Metadata)
+	var meta site.Metadata
 	if title, ok := d.get[value.Str]("title"); ok {
 		meta.Title = string(title)
 	}
 	if typ, ok := d.get[value.Str]("type"); ok {
 		meta.Type = string(typ)
+	}
+	if !slices.Contains(site.DocTypes, meta.Type) {
+		d.errors = append(d.errors, fmt.Errorf("unknown doc type: %q", meta.Type))
 	}
 	if published, ok := d.get[value.Datetime]("published"); ok {
 		meta.Published = published.T
@@ -105,14 +157,8 @@ func metadata(doc *value.Document) (*site.Metadata, error) {
 	if updated, ok := d.get[value.Datetime]("updated"); ok {
 		meta.Updated = updated.T
 	}
-	if summary, ok := d.get[value.Content]("summary"); ok {
-		s, err := html.RenderSummary(summary)
-		if err != nil {
-			return nil, fmt.Errorf("rendering summary: %v", err)
-		}
-		meta.Abstract = s
-	}
-	return meta, errors.Join(d.errors...)
+	summary, _ := d.get[value.Content]("summary")
+	return meta, summary, errors.Join(d.errors...)
 }
 
 type dict struct {

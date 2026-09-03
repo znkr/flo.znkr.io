@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 
+	"flo.znkr.io/generator/build"
 	"flo.znkr.io/generator/site"
 )
 
@@ -20,7 +21,7 @@ type Server struct {
 }
 
 // Run creates a new server anc runs it in a new goroutine.
-func Run(addr string, site *site.Site) (*Server, error) {
+func Run(addr string, c *build.Cache, site *site.Site) (*Server, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("starting HTTP server: %v", err)
@@ -28,7 +29,7 @@ func Run(addr string, site *site.Site) (*Server, error) {
 
 	r := newReloader()
 
-	h := &handler{reload: r}
+	h := &handler{cache: c, reload: r}
 	h.site.Store(site)
 
 	s := &Server{

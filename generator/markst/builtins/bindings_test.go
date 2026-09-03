@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"flo.znkr.io/generator/build"
 	"flo.znkr.io/generator/highlight"
 	"znkr.io/diff"
 	"znkr.io/markst"
@@ -92,18 +93,46 @@ func compileDoc(t *testing.T, fs fs.FS, src string) []any {
 }
 
 // include compiles a document consisting of the single call src and returns the
-// one payload it produced.
-func include[T any](t *testing.T, fs fs.FS, src string) T {
+// one include it produced, together with the fragment its request builds.
+//
+// The two go together: the include says what to draw around a fragment and the
+// fragment is what there is to draw, and neither is much of a test without the
+// other.
+func include(t *testing.T, fsys fs.FS, src string) (*Include, Fragment) {
 	t.Helper()
-	got := compileDoc(t, fs, src+"\n")
-	if len(got) != 1 {
-		t.Fatalf("%s produced %d custom elements, want 1", src, len(got))
+	doc, warns, err := markst.Compile(t.Context(), []byte(src+"\n"),
+		markst.WithName("index.mst"), markst.WithBindings(Bindings(fsys)))
+	if err != nil {
+		t.Fatalf("Compile() = %v", err)
 	}
-	data, ok := got[0].(T)
+	if len(warns) > 0 {
+		t.Errorf("Compile() warnings = %v, want none", warns)
+	}
+
+	var payloads []any
+	for c := range value.Preorder(doc, value.SetOf(value.KindCustom)) {
+		payloads = append(payloads, c.Node().(*value.Custom).Value)
+	}
+	if len(payloads) != 1 {
+		t.Fatalf("%s produced %d custom elements, want 1", src, len(payloads))
+	}
+	data, ok := payloads[0].(*Include)
 	if !ok {
-		t.Fatalf("%s produced a %T, want %T", src, got[0], data)
+		t.Fatalf("%s produced a %T, want *Include", src, payloads[0])
 	}
-	return data
+
+	arts, err := Artifacts(doc)
+	if err != nil {
+		t.Fatalf("Artifacts() = %v", err)
+	}
+	if len(arts) != 1 {
+		t.Fatalf("%s produced %d fragments, want 1", src, len(arts))
+	}
+	frag, err := arts[0].Get(t.Context(), build.NewCache(0))
+	if err != nil {
+		t.Fatalf("Get() = %v", err)
+	}
+	return data, frag
 }
 
 // compileErr compiles a document expected to fail and returns its diagnostics.
@@ -173,15 +202,19 @@ func TestSnippet(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := include[*SnippetData](t, fs, tt.src)
+			got, frag := include(t, fs, tt.src)
 			if got.File != tt.wantFile {
 				t.Errorf("File = %q, want %q", got.File, tt.wantFile)
 			}
 			if got.FilePath != tt.wantPath {
 				t.Errorf("FilePath = %q, want %q", got.FilePath, tt.wantPath)
 			}
+			lines, err := got.SelectLines(lines(t, frag))
+			if err != nil {
+				t.Fatalf("SelectLines() = %v", err)
+			}
 			var nos []int
-			for _, l := range got.Lines {
+			for _, l := range lines {
 				nos = append(nos, l.LineNo)
 			}
 			if len(nos) != len(tt.wantLineNos) {
@@ -192,14 +225,33 @@ func TestSnippet(t *testing.T) {
 					t.Fatalf("line numbers = %v, want %v", nos, tt.wantLineNos)
 				}
 			}
-			if got := text(string(got.Lines[0].Content)); got != tt.wantFirst {
+			if got := text(string(lines[0].Content)); got != tt.wantFirst {
 				t.Errorf("first line = %q, want %q", got, tt.wantFirst)
 			}
-			if got := text(string(got.Lines[len(got.Lines)-1].Content)); got != tt.wantLast {
+			if got := text(string(lines[len(lines)-1].Content)); got != tt.wantLast {
 				t.Errorf("last line = %q, want %q", got, tt.wantLast)
 			}
 		})
 	}
+}
+
+// lines and edits unwrap a fragment, failing the test if it is the other kind.
+func lines(t *testing.T, f Fragment) []highlight.Line {
+	t.Helper()
+	l, ok := f.(Lines)
+	if !ok {
+		t.Fatalf("fragment is a %T, want Lines", f)
+	}
+	return l
+}
+
+func edits(t *testing.T, f Fragment) []highlight.Edit {
+	t.Helper()
+	e, ok := f.(Edits)
+	if !ok {
+		t.Fatalf("fragment is a %T, want Edits", f)
+	}
+	return e
 }
 
 // wantEdits is the diff both forms of include-diff produce for the fixtures:
@@ -237,26 +289,26 @@ func TestDiff(t *testing.T) {
 	fs := docRoot(t)
 
 	t.Run("from_diff_file", func(t *testing.T) {
-		got := include[*DiffData](t, fs, `#include-diff("example.diff", lang: "go")`)
+		got, frag := include(t, fs, `#include-diff("example.diff", lang: "go")`)
 		if got.File != "example.diff" || got.FilePath != "example.diff" {
 			t.Errorf("caption = %q -> %q, want example.diff -> example.diff", got.File, got.FilePath)
 		}
-		checkEdits(t, got.Diff)
+		checkEdits(t, edits(t, frag))
 	})
 
 	t.Run("from_two_files", func(t *testing.T) {
-		got := include[*DiffData](t, fs, `#include-diff(a: "before.go", b: "after.go")`)
+		got, frag := include(t, fs, `#include-diff(a: "before.go", b: "after.go")`)
 		// The caption names the after side: a diff is about what the file
 		// became.
 		if got.File != "after.go" || got.FilePath != "after.go" {
 			t.Errorf("caption = %q -> %q, want after.go -> after.go", got.File, got.FilePath)
 		}
-		checkEdits(t, got.Diff)
+		checkEdits(t, edits(t, frag))
 	})
 
 	t.Run("dev_null_is_an_empty_side", func(t *testing.T) {
-		got := include[*DiffData](t, fs, `#include-diff(a: "/dev/null", b: "before.go")`)
-		for i, ed := range got.Diff {
+		_, frag := include(t, fs, `#include-diff(a: "/dev/null", b: "before.go")`)
+		for i, ed := range edits(t, frag) {
 			if !ed.IsInsert() {
 				t.Fatalf("edit %d is %v, want every line inserted when the before side is empty", i, ed.Op)
 			}
@@ -264,11 +316,72 @@ func TestDiff(t *testing.T) {
 	})
 
 	t.Run("display_overrides_the_caption", func(t *testing.T) {
-		got := include[*DiffData](t, fs, `#include-diff("example.diff", lang: "go", display: "the change")`)
+		got, _ := include(t, fs, `#include-diff("example.diff", lang: "go", display: "the change")`)
 		if got.File != "the change" || got.FilePath != "example.diff" {
 			t.Errorf("caption = %q -> %q, want 'the change' -> example.diff", got.File, got.FilePath)
 		}
 	})
+}
+
+// TestOneFileTwoWaysAreDistinctFragments checks the case a closed set of
+// requests makes easy to get wrong: the same file included as a snippet and as
+// a diff carries the same bytes and the same lexer, so nothing but the type of
+// the request tells the two apart.
+func TestOneFileTwoWaysAreDistinctFragments(t *testing.T) {
+	fsys := docRoot(t)
+	// The same lexer on both, so that the two requests are identical field for
+	// field and only their type separates them.
+	src := "#include-snippet(\"example.diff\", lang: \"diff\")\n\n#include-diff(\"example.diff\", lang: \"diff\")\n"
+	doc, _, err := markst.Compile(t.Context(), []byte(src),
+		markst.WithName("index.mst"), markst.WithBindings(Bindings(fsys)))
+	if err != nil {
+		t.Fatalf("Compile() = %v", err)
+	}
+
+	var reqs []Request
+	for cur := range value.Preorder(doc, value.SetOf(value.KindCustom)) {
+		r, err := request(cur.Node())
+		if err != nil {
+			t.Fatalf("request() = %v", err)
+		}
+		reqs = append(reqs, r)
+	}
+	if len(reqs) != 2 {
+		t.Fatalf("the document holds %d requests, want 2", len(reqs))
+	}
+	if _, ok := reqs[0].(Highlight); !ok {
+		t.Errorf("include-snippet produced a %T, want Highlight", reqs[0])
+	}
+	if _, ok := reqs[1].(ParseDiff); !ok {
+		t.Errorf("include-diff produced a %T, want ParseDiff", reqs[1])
+	}
+
+	// The build keys a fragment on its request alone, so the two must not agree
+	// on a key or one would be served the other's highlighting.
+	c := build.NewCache(0)
+	arts, err := Artifacts(doc)
+	if err != nil {
+		t.Fatalf("Artifacts() = %v", err)
+	}
+	a, b := arts[0], arts[1]
+	if a.Key() == b.Key() {
+		t.Fatal("the snippet and the diff share a key")
+	}
+
+	snippet, err := a.Get(t.Context(), c)
+	if err != nil {
+		t.Fatalf("resolving the snippet: %v", err)
+	}
+	diff, err := b.Get(t.Context(), c)
+	if err != nil {
+		t.Fatalf("resolving the diff: %v", err)
+	}
+	if lines, ok := snippet.(Lines); !ok || len(lines) == 0 {
+		t.Errorf("the snippet resolved to %T, want non-empty Lines", snippet)
+	}
+	if edits, ok := diff.(Edits); !ok || len(edits) == 0 {
+		t.Errorf("the diff resolved to %T, want non-empty Edits", diff)
+	}
 }
 
 // TestIncludeIsABlock checks the property the includes depend on: an
@@ -326,6 +439,30 @@ func TestErrorsPointAtTheArgument(t *testing.T) {
 		{
 			name:    "inverted_range_blames_lines",
 			src:     `#include-snippet("hello.go", lines: "5..2")`,
+			wantMsg: "empty lines range",
+			wantCol: 37,
+		},
+		{
+			name:    "negative_end_blames_lines",
+			src:     `#include-snippet("hello.go", lines: "..-1")`,
+			wantMsg: "invalid lines attribute",
+			wantCol: 37,
+		},
+		{
+			name:    "negative_start_blames_lines",
+			src:     `#include-snippet("hello.go", lines: "-3..5")`,
+			wantMsg: "invalid lines attribute",
+			wantCol: 37,
+		},
+		{
+			name:    "zero_start_blames_lines",
+			src:     `#include-snippet("hello.go", lines: "0..5")`,
+			wantMsg: "invalid lines attribute",
+			wantCol: 37,
+		},
+		{
+			name:    "start_past_the_end_blames_lines",
+			src:     `#include-snippet("hello.go", lines: "99..")`,
 			wantMsg: "empty lines range",
 			wantCol: 37,
 		},

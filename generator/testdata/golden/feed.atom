@@ -18,6 +18,8 @@
 &lt;pre&gt;&lt;code&gt;&lt;span class="hl-b"&gt;func&lt;/span&gt; unrelated() {}&lt;/code&gt;&lt;/pre&gt;
 &lt;p&gt;And one without a language:&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;a raw block&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id="variables"&gt;Variables&lt;a href="#variables" class="anchor-link"&gt;&lt;/a&gt;&lt;/h2&gt;
+&lt;p&gt;This doc is a article.&lt;/p&gt;
 &lt;div class="footnotes" role="doc-endnotes"&gt;
 &lt;hr&gt;
 &lt;ol&gt;

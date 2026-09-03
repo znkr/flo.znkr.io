@@ -4,9 +4,36 @@ package html
 import (
 	"testing"
 
+	"flo.znkr.io/generator/build"
+	"flo.znkr.io/generator/markst/builtins"
 	"znkr.io/markst"
 	"znkr.io/markst/value"
 )
+
+// compileTOC compiles src the way the loader does, with an index, which is
+// what the outline is read from.
+func compileTOC(t *testing.T, src string) (*value.Document, *renderer) {
+	t.Helper()
+	var index value.Index
+	doc, _, err := markst.Compile(t.Context(), []byte(src), markst.WithIndex(&index))
+	if err != nil {
+		t.Fatalf("compiling: %v", err)
+	}
+	arts, err := builtins.Artifacts(doc)
+	if err != nil {
+		t.Fatalf("Artifacts() = %v", err)
+	}
+	cache := build.NewCache(0)
+	frags := make(map[build.Key]builtins.Fragment, len(arts))
+	for _, a := range arts {
+		f, err := a.Get(t.Context(), cache)
+		if err != nil {
+			t.Fatalf("Get() = %v", err)
+		}
+		frags[a.Key()] = f
+	}
+	return doc, &renderer{path: "/test", doc: doc, index: &index, frags: frags}
+}
 
 func TestRenderTOC(t *testing.T) {
 	tests := []struct {
@@ -43,12 +70,8 @@ func TestRenderTOC(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var index value.Index
-			doc, _, err := markst.Compile(t.Context(), []byte(tt.in), markst.WithIndex(&index))
-			if err != nil {
-				t.Fatalf("compiling: %v", err)
-			}
-			got, err := (&renderer{path: "/test", index: &index}).renderTOC(doc)
+			doc, r := compileTOC(t, tt.in)
+			got, err := r.renderTOC(doc)
 			if err != nil {
 				t.Fatalf("renderTOC: %v", err)
 			}
@@ -63,12 +86,8 @@ func TestRenderTOC(t *testing.T) {
 // keeps the number it has in the body: the table of contents is rendered as a
 // fragment of the document, not as one of its own.
 func TestRenderTOCFootnoteNumbering(t *testing.T) {
-	var index value.Index
-	doc, _, err := markst.Compile(t.Context(), []byte("Body.#footnote[First]\n\n= Head#footnote[Second]\n"), markst.WithIndex(&index))
-	if err != nil {
-		t.Fatalf("compiling: %v", err)
-	}
-	got, err := (&renderer{path: "/test", index: &index}).renderTOC(doc)
+	doc, r := compileTOC(t, "Body.#footnote[First]\n\n= Head#footnote[Second]\n")
+	got, err := r.renderTOC(doc)
 	if err != nil {
 		t.Fatalf("renderTOC: %v", err)
 	}

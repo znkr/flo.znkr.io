@@ -17,10 +17,10 @@ var packCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("determining workdir: %v", err)
 		}
-		s, err := load(cmd.Context(), dir)
+		c, s, err := loadDir(cmd.Context(), dir)
 		if err != nil {
 			return fmt.Errorf("loading site: %v", err)
 		}
-		return pack.Pack(args[0], s)
+		return pack.Pack(cmd.Context(), args[0], c, s)
 	},
 }

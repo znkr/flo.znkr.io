@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"slices"
 	"time"
+
+	"flo.znkr.io/generator/build"
 )
 
 // Site is an in-memory representation of the to be generated site.
@@ -12,7 +14,12 @@ type Site struct {
 	docs map[string]Doc
 }
 
-// Doc is a single document of the site, that is anything that can be served as a static file.
+// Doc is a single document of the site, that is anything that can be served as
+// a static file.
+//
+// Where it is served and as what are known from the file it came from. What it
+// says and what it looks like are artifacts, computed when they are first asked
+// for, so a site can be assembled and routed without rendering anything.
 type Doc struct {
 	// Path is the path on the site, starting with a slash. Every document
 	// has a unique path.
@@ -20,33 +27,28 @@ type Doc struct {
 	// Source is the path to the source file on disk, if any. It is empty for
 	// documents that are not generated from a file.
 	Source string
-	// DocRoot is the relative path to the root of the document. It is used to
-	// resolve relative files referenced in the document. It is empty for
-	// documents that cannot reference other files, such as the index page.
-	DocRoot string
 	// MimeType is the MIME type of the document, which is used to set the
 	// Content-Type header when serving it.
 	MimeType string
-	// Meta is the metadata of the document, which is used to generate the
-	// site index and the header of each rendered page.
-	Meta *Metadata
-	// Renderer is the renderer that is used to render the document.
-	Renderer Renderer
-	// RenderData is the data that is used to render the document. It is
-	// specific to the renderer used for the document.
-	RenderData any
+	// Meta is what the document says about itself. It is the zero Metadata for
+	// a document that says nothing, such as an asset copied through unchanged.
+	Meta build.Artifact[Metadata]
+	// Page is the document as it is served.
+	Page build.Artifact[[]byte]
+	// Content is the document's body without the page around it, which is what
+	// the feed embeds. It is the whole document for an asset.
+	Content build.Artifact[[]byte]
 }
 
-type Renderer interface {
-	RenderContent(s *Site, doc *Doc) ([]byte, error)
-	RenderPage(s *Site, doc *Doc) ([]byte, error)
-}
+// DocTypes are the types a document may declare in its metadata. Each names the
+// template the document is rendered with.
+var DocTypes = []string{"article", "page"}
 
 type Metadata struct {
 	Title     string
 	Published time.Time
 	Updated   time.Time
-	Abstract  string
+	Summary   string
 	GoImport  string
 	Redirect  string
 	Type      string
@@ -77,21 +79,8 @@ func (s *Site) Doc(path string) *Doc {
 	return &d
 }
 
-func (s *Site) Articles() []*Doc {
-	var ret []*Doc
-	for _, d := range s.docs {
-		if d.Meta == nil || d.Meta.Type != "article" || d.Meta.Published.IsZero() {
-			continue
-		}
-		ret = append(ret, &d)
-	}
-	slices.SortFunc(ret, func(a, b *Doc) int {
-		return b.Meta.Published.Compare(a.Meta.Published)
-	})
-	return ret
-}
-
-func (s *Site) AllDocs() []*Doc {
+// Docs returns every document, ordered by path.
+func (s *Site) Docs() []*Doc {
 	var ret []*Doc
 	for _, d := range s.docs {
 		ret = append(ret, &d)
@@ -100,21 +89,4 @@ func (s *Site) AllDocs() []*Doc {
 		return cmp.Compare(a.Path, b.Path)
 	})
 	return ret
-}
-
-func (s *Site) RenderContent(d *Doc) ([]byte, error) {
-	b, err := d.Renderer.RenderContent(s, d)
-	if err != nil {
-		return nil, fmt.Errorf("rendering content of %s: %v", d.Path, err)
-	}
-	return b, nil
-}
-
-// RenderPage renders doc as a page.
-func (s *Site) RenderPage(d *Doc) ([]byte, error) {
-	b, err := d.Renderer.RenderPage(s, d)
-	if err != nil {
-		return nil, fmt.Errorf("rendering page for %s: %v", d.Path, err)
-	}
-	return b, nil
 }

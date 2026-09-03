@@ -9,19 +9,14 @@ import (
 	"testing"
 	"time"
 
+	"flo.znkr.io/generator/build"
 	"flo.znkr.io/generator/server"
 	"flo.znkr.io/generator/site"
 )
 
-// testRenderer renders a fixed body, ignoring the site and document.
-type testRenderer string
-
-func (r testRenderer) RenderContent(*site.Site, *site.Doc) ([]byte, error) {
-	return []byte(r), nil
-}
-
-func (r testRenderer) RenderPage(*site.Site, *site.Doc) ([]byte, error) {
-	return []byte(r), nil
+// page returns an artifact holding a fixed body.
+func page(body string) build.Artifact[[]byte] {
+	return build.Const("test.page", []byte(body))
 }
 
 const (
@@ -35,12 +30,12 @@ func newSite(t *testing.T) *site.Site {
 		{
 			Path:     "/",
 			MimeType: "text/html;charset=utf-8",
-			Renderer: testRenderer(pageBody),
+			Page:     page(pageBody),
 		},
 		{
 			Path:     "/feed.atom",
 			MimeType: "application/atom+xml;charset=utf-8",
-			Renderer: testRenderer(feedBody),
+			Page:     page(feedBody),
 		},
 	})
 	if err != nil {
@@ -53,7 +48,7 @@ func newSite(t *testing.T) *site.Site {
 // ends. It returns the base URL to make requests against.
 func runServer(t *testing.T) (*server.Server, string) {
 	t.Helper()
-	s, err := server.Run("localhost:0", newSite(t))
+	s, err := server.Run("localhost:0", build.NewCache(0), newSite(t))
 	if err != nil {
 		t.Fatalf("server.Run() = %v", err)
 	}
@@ -150,7 +145,7 @@ func TestReplaceSiteNotifiesBrowser(t *testing.T) {
 }
 
 func TestShutdownReleasesEventStreams(t *testing.T) {
-	s, err := server.Run("localhost:0", newSite(t))
+	s, err := server.Run("localhost:0", build.NewCache(0), newSite(t))
 	if err != nil {
 		t.Fatalf("server.Run() = %v", err)
 	}

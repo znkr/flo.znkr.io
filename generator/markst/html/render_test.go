@@ -6,10 +6,13 @@ import (
 	"strings"
 	"testing"
 
+	"flo.znkr.io/generator/build"
 	gmarkst "flo.znkr.io/generator/markst"
+	"flo.znkr.io/generator/markst/builtins"
 	"flo.znkr.io/generator/markst/html"
 	"flo.znkr.io/generator/site"
 	"znkr.io/markst"
+	"znkr.io/markst/value"
 )
 
 // render compiles src against the site's own markst library and renders it the
@@ -19,45 +22,9 @@ import (
 func render(t *testing.T, src string) string {
 	t.Helper()
 
-	libSrc, err := os.ReadFile("../../../lib/lib.mst")
-	if err != nil {
-		t.Fatalf("reading lib.mst: %v", err)
-	}
-	lib, diags, err := markst.CompileLibrary(t.Context(), "lib.mst", libSrc)
-	if err != nil {
-		t.Fatalf("compiling lib.mst: %v", err)
-	}
-	if len(diags) > 0 {
-		t.Errorf("lib.mst has diagnostics:\n%s", formatDiags(diags))
-	}
-
-	doc, diags, err := markst.Compile(t.Context(), []byte(src), markst.WithName("test.mst"), markst.WithLibrary(lib))
-	if err != nil {
-		t.Fatalf("compiling document: %v", err)
-	}
-	if len(diags) > 0 {
-		t.Errorf("document has diagnostics:\n%s", formatDiags(diags))
-	}
-
-	out, err := html.RenderSummary(doc.Body)
-	if err != nil {
-		t.Fatalf("rendering: %v", err)
-	}
-	return out
-}
-
-// renderBody compiles src as a whole document and renders it the way a page
-// is rendered: with the footnote list, which the summary path leaves out.
-func renderBody(t *testing.T, src string) string {
-	t.Helper()
-
 	templates := template.New("")
 	for _, name := range []string{"article", "fragments/include_snippet", "fragments/include_diff"} {
 		template.Must(templates.New(name).Parse(""))
-	}
-	r, err := html.NewRenderer(templates, html.Options{PageTemplate: "article"})
-	if err != nil {
-		t.Fatalf("creating renderer: %v", err)
 	}
 
 	libSrc, err := os.ReadFile("../../../lib/lib.mst")
@@ -68,18 +35,43 @@ func renderBody(t *testing.T, src string) string {
 	if err != nil {
 		t.Fatalf("compiling lib.mst: %v", err)
 	}
+	if len(lib.Diags) > 0 {
+		t.Errorf("lib.mst has diagnostics:\n%s", formatDiags(lib.Diags))
+	}
 
 	src = "#article(title: \"T\")\n\n" + src
-	_, rd, err := gmarkst.Load(t.Context(), "test.mst", []byte(src), nil, []*gmarkst.Library{lib})
+	doc, err := gmarkst.Load(t.Context(), "test.mst", []byte(src), nil, []*gmarkst.Lib{lib})
 	if err != nil {
 		t.Fatalf("compiling document: %v", err)
 	}
+	if len(doc.Diags) > 0 {
+		t.Errorf("document has diagnostics:\n%s", formatDiags(doc.Diags))
+	}
 
-	out, err := r.RenderContent(nil, &site.Doc{Path: "/test", RenderData: rd})
+	out, err := html.RenderContent(templates, doc, resolveAll(t, doc.Doc), "/test", "")
 	if err != nil {
 		t.Fatalf("rendering: %v", err)
 	}
 	return string(out)
+}
+
+// resolveAll does the highlighting the build would have done before rendering.
+func resolveAll(t *testing.T, c value.Content) map[build.Key]builtins.Fragment {
+	t.Helper()
+	arts, err := builtins.Artifacts(c)
+	if err != nil {
+		t.Fatalf("Artifacts() = %v", err)
+	}
+	cache := build.NewCache(0)
+	frags := make(map[build.Key]builtins.Fragment, len(arts))
+	for _, a := range arts {
+		f, err := a.Get(t.Context(), cache)
+		if err != nil {
+			t.Fatalf("Get() = %v", err)
+		}
+		frags[a.Key()] = f
+	}
+	return frags
 }
 
 func formatDiags(diags []markst.Diagnostic) string {
@@ -146,7 +138,7 @@ func TestAdmonitions(t *testing.T) {
 func TestHeadingAnchorLink(t *testing.T) {
 	// <h1> is the article title, so the document's own headings start at <h2>,
 	// and each carries a link to itself for the stylesheet to reveal on hover.
-	got := renderBody(t, "= Intro <intro>\n\n== Deeper\n")
+	got := render(t, "= Intro <intro>\n\n== Deeper\n")
 	want := "<h2 id=\"intro\">Intro<a href=\"#intro\" class=\"anchor-link\"></a></h2>\n" +
 		"<h3 id=\"deeper\">Deeper<a href=\"#deeper\" class=\"anchor-link\"></a></h3>\n"
 	if got != want {
@@ -170,7 +162,7 @@ func TestRawIsHighlighted(t *testing.T) {
 }
 
 func TestReferenceToAHeading(t *testing.T) {
-	got := renderBody(t, "= Intro <intro>\n\nSee @intro.")
+	got := render(t, "= Intro <intro>\n\nSee @intro.")
 	want := "<h2 id=\"intro\">Intro<a href=\"#intro\" class=\"anchor-link\"></a></h2>\n" +
 		`<p>See <a href="#intro">intro</a>.</p>` + "\n"
 	if got != want {
@@ -181,8 +173,31 @@ func TestReferenceToAHeading(t *testing.T) {
 func TestImagePathIsSiteRelative(t *testing.T) {
 	// A path in a document resolves against the page the document is served
 	// at, not against the site root.
-	got := renderBody(t, `#image("cat.png")`)
+	got := render(t, `#image("cat.png")`)
 	if want := `<p><img src="/test/cat.png" alt=""></p>` + "\n"; got != want {
 		t.Errorf("renderBody():\n got: %q\nwant: %q", got, want)
+	}
+}
+
+// TestRenderPageRejectsANonPageType checks the guard on metadata that does not
+// name a page template. Lookup alone does not catch it: the empty name finds
+// the root template, and a fragment name finds a template that is no page.
+func TestRenderPageRejectsANonPageType(t *testing.T) {
+	templates := template.New("")
+	for _, name := range []string{"article", "fragments/include_snippet", "fragments/include_diff"} {
+		template.Must(templates.New(name).Parse(""))
+	}
+
+	src := "#metadata((title: \"T\", type: \"article\")) <doc-meta>\n\nHello.\n"
+	doc, err := gmarkst.Load(t.Context(), "test.mst", []byte(src), nil, nil)
+	if err != nil {
+		t.Fatalf("compiling document: %v", err)
+	}
+
+	for _, typ := range []string{"", "fragments/include_snippet"} {
+		_, err := html.RenderPage(templates, doc, site.Metadata{Type: typ}, nil, "/test", "")
+		if err == nil || !strings.Contains(err.Error(), "unknown doc type") {
+			t.Errorf("RenderPage() with type %q = %v, want an unknown doc type error", typ, err)
+		}
 	}
 }

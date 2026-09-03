@@ -1,4 +1,4 @@
-// Uses doc_type from 00_base.mst.
+#let doc_type = "article"
 
 #let article(title: none, published: none, updated: none, summary: none) = {
     if type(published) == str {

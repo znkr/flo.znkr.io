@@ -1,7 +1,7 @@
 <head>
 <title>{{ .Title }}</title>
-{{- if .Abstract }}
-<meta name="description" content="{{ .Abstract }}">
+{{- if .Summary }}
+<meta name="description" content="{{ .Summary }}">
 {{- end }}
 {{- if .GoImport }}
 <meta name="go-import" content="{{ .GoImport }}">
