@@ -5,6 +5,7 @@ go 1.27
 require (
 	github.com/alecthomas/chroma/v2 v2.21.1
 	github.com/fsnotify/fsnotify v1.9.0
+	github.com/google/go-cmp v0.7.0
 	github.com/spf13/cobra v1.10.2
 	github.com/tdewolff/minify/v2 v2.24.8
 	golang.org/x/tools v0.44.0

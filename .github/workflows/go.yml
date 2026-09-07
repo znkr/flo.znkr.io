@@ -1,0 +1,99 @@
+name: Go
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version-file: 'go.mod'
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test
+      run: go test -v -vet=off ./...
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version-file: 'go.mod'
+
+    - name: Go Format
+      run: gofmt -s -w . && git diff --exit-code
+
+    - name: Verify dependencies
+      run: go mod verify
+
+    - name: Go Mod Tidy
+      run: go mod tidy && git diff --exit-code
+
+    - name: Go Vet
+      run: go vet ./...
+
+    - name: Go Generate
+      run: go generate ./... && git diff --exit-code
+
+  vulncheck:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Go Vulncheck
+      uses: golang/govulncheck-action@v1
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version-file: 'go.mod'
+    - name: Build Site
+      run: go run ./generator pack ${{ runner.temp }}/znkr.tar
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: github-pages
+        path: ${{ runner.temp }}/znkr.tar
+        retention-days: 1
+        if-no-files-found: error
+
+  deploy:
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.actor == github.repository_owner &&
+       github.event.pull_request.user.login == github.repository_owner &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+    concurrency:
+      group: "pages"
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
