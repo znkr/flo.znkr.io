@@ -51,7 +51,6 @@ table {
 }
 
 html {
-    max-height: 100%;
     min-height: 100vh;
     margin: 0;
     scroll-behavior: smooth;
@@ -59,7 +58,12 @@ html {
 
 body {
     margin: 0;
-    max-height: 100%;
+
+    /* A column that is at least as tall as the viewport, so that a short page
+       keeps the footer at the bottom edge instead of below the content. */
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
 
     background: var(--color-bg);
     color: var(--color-text);
@@ -110,7 +114,9 @@ a:focus {
 }
 
 main {
-    overflow-x: scroll;
+    overflow-x: auto;
+    flex: 1;
+    width: 100%;
     max-width: 55em;
     margin: 0 auto;
     padding: 0 1.5rem 2.875rem 1.5rem;
@@ -262,6 +268,7 @@ main {
         overflow-x: visible;
         max-width: unset;
         display: grid;
+        align-content: start;
         grid-template-columns: 1fr auto 1fr;
         grid-template-rows: auto;
         grid-template-areas:
@@ -308,6 +315,16 @@ main {
             }
         }
     }
+}
+
+
+.site-footer {
+    padding: 1rem 1.5rem 2rem 1.5rem;
+
+    border-top: 1px solid var(--color-bg-accent);
+    color: var(--color-text-soft-extra);
+    font-size: 0.8rem;
+    text-align: right;
 }
 
 
