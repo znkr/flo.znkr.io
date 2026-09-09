@@ -52,7 +52,7 @@ scenarios#footnote[
     breaking an existing feature in a way that triggers a worst-case scenario in a test. If the
     test is running for a very long time or runs out of memory, you're going to have to debug two
     problems instead of one.
-] <why-worst-case-scenarios>.
+]<why-worst-case-scenarios>.
 
 With that, we can evaluate existing diff libraries. For Go, I went through a number of libraries
 and summarized them.
@@ -67,21 +67,21 @@ and summarized them.
         [Performance#footnote[
             See #link("/diff/benchmark_comparison.txt")[benchmark_comparison.txt] for the source of
             these ratings.
-        ] <see-benchmarks>],
+        ]<see-benchmarks>],
         [Diff\ Readability],
         [Diff\ Minimality@see-benchmarks],
     ),
     [#link("https://github.com/sergi/go-diff")[diffmatchpatch]],
-    [❌#footnote[No support for arbitrary sequences] <no-arbitrary-seq>],
-    [❌#footnote[No support for unified diffs] <no-unified>],
-    [🤔#footnote[The diffmatchpatch API is very hard to use] <dmp-api>],
+    [❌#footnote[No support for arbitrary sequences]<no-arbitrary-seq>],
+    [❌#footnote[No support for unified diffs]<no-unified>],
+    [🤔#footnote[The diffmatchpatch API is very hard to use]<dmp-api>],
     [➖➖],
     [➖],
     [➖],
 
     [#link("https://github.com/rogpeppe/go-internal/tree/master/diff")[go-internal]],
     [❌@no-arbitrary-seq],
-    [❌#footnote[No support for structured results] <no-structured-out>],
+    [❌#footnote[No support for structured results]<no-structured-out>],
     [😁],
     [➕➕],
     [➕➕],
@@ -93,14 +93,14 @@ and summarized them.
     [😁],
     [➖➖➖ /🧨#footnote[
         Quadratic memory use; for my test cases, this resulted in >30 GB of memory used.
-    ] <godebug-quadratic-mem>],
+    ]<godebug-quadratic-mem>],
     [➕],
     [➕➕],
 
     [#link("https://github.com/mb0/diff")[mb0]],
     [✅],
     [❌@no-unified],
-    [😐#footnote[The mb0 API is from before generics and is a bit cumbersome to use] <mb0-api>],
+    [😐#footnote[The mb0 API is from before generics and is a bit cumbersome to use]<mb0-api>],
     [➖➖],
     [➕],
     [➕➕],
@@ -112,7 +112,7 @@ and summarized them.
     [➕#footnote[
         udiff has a very low threshold for when it starts to stop searching for an optimal
         solution. This improves the speed, but it also results in relatively large diffs.
-    ] <udiff-threshold>],
+    ]<udiff-threshold>],
     [➖],
     [➖➖@udiff-threshold],
 )
@@ -160,7 +160,7 @@ that it alone almost always results in a good diff with a runtime complexity of
 $cal(O)(N thin log thin N)$#footnote[
     There's no single patience diff heuristic, instead there are different implementations with
     different performance characteristics.
-] <not-all-patience-diffs>. An additional advantage of this algorithm is that it produces more
+]<not-all-patience-diffs>. An additional advantage of this algorithm is that it produces more
 readable diffs. However, patience diff can fail with very large diffs, and it can only be
 implemented efficiently using a hash table, which restricts the possible applications.
 

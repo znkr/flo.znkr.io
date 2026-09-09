@@ -37,5 +37,5 @@ golang.org/x/tools v0.50.0/go.mod h1:7ulVMw3831Mwi5EZD6RomGyffr4VFjuNYXf2BbCEAV0
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 znkr.io/diff v1.0.1 h1:h+kd4J3DQHccrvJC6pZ5pI4B56cLQvGVubjJnXtU8rU=
 znkr.io/diff v1.0.1/go.mod h1:4MRwV40UKLveWSNArVT3wjYxbl8XFN+I+6QY2BlSGQM=
-znkr.io/markst v0.0.0-20260907173038-f037d144b631 h1:Kbui80I+LaUkoHjsvXPdS21Kcm0Z+qHyKRBomphn5io=
-znkr.io/markst v0.0.0-20260907173038-f037d144b631/go.mod h1:WRnQ8qxyhS9tKGMdTj5vXxzAnwskxYkMerpboK6WAb8=
+znkr.io/markst v0.0.0-20260909201755-dc9558a51721 h1:OYtk+tXi+g0pUKk7LFGA9GnckLK6nCo2HwPZxJtXPKg=
+znkr.io/markst v0.0.0-20260909201755-dc9558a51721/go.mod h1:WRnQ8qxyhS9tKGMdTj5vXxzAnwskxYkMerpboK6WAb8=

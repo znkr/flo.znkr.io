@@ -625,10 +625,111 @@ div.math-box {
         border-top: 1px solid var(--color-bg-accent);
     }
 
+    li,
     p, 
     ul,
     ol {
         margin: .1em;
         font-size: 0.85rem;
+    }
+
+    li:target {
+        background: var(--color-ctrl-bg);
+    }
+}
+
+.footnote-mark {
+    all: unset;
+    position: relative;
+
+    /* all: unset inherits the line-height: 0 the sup around it carries, which
+       leaves the button no height to be hit or anchored against. */
+    line-height: 1;
+
+    /* The mark is about 12px wide. This grows what a finger has to hit without
+       moving the layout box. */
+    &::after {
+        content: "";
+        position: absolute;
+        inset: -0.6em -0.5em;
+    }
+}
+
+/* The note a mark opens. Docked to the bottom edge, which is where a thumb is
+   and what a browser without anchor positioning gets. Hidden until the popover
+   rules below turn it on: a browser that cannot parse selector(:popover-open)
+   skips them and must not be left with the note in the page. */
+.footnote-body {
+    display: none;
+    inset: auto 0 0 0;
+    margin: 0;
+    width: auto;
+    max-width: none;
+
+    border: 0;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    outline: 1px solid var(--color-text-soft);
+    background: var(--color-bg);
+    box-shadow: var(--box-shadow);
+
+    padding: 0.8em 1.2em max(0.8em, env(safe-area-inset-bottom)) 1.2em;
+    font-size: 0.85rem;
+
+    p {
+        margin: 0;
+        font-size: inherit;
+    }
+
+    p + p {
+        margin-top: 0.6em;
+    }
+}
+
+@supports (anchor-name: --x) {
+    @media screen and (min-width: 45rem) {
+        /* Beside the mark, where there is room for it. Each note names the mark
+           it belongs to in a style attribute, because an anchor name has to be
+           unique per element. */
+        .footnote-body {
+            inset: auto;
+            position-area: block-end span-inline-end;
+            position-try-fallbacks:
+                block-start span-inline-end,
+                block-end span-inline-start,
+                block-start span-inline-start;
+
+            margin: 0.4rem 0;
+            width: max-content;
+            max-width: min(30rem, calc(100vw - 3rem));
+
+            border-radius: var(--border-radius);
+            padding: 0.6em 1em;
+        }
+    }
+}
+
+/* Where a note cannot be opened, it does not exist and the endnote list is what
+   carries it. The mark stays a plain superscript number rather than a button
+   that does nothing. */
+@supports selector(:popover-open) {
+    .footnote-body {
+        display: revert;
+    }
+
+    .footnote-mark {
+        color: var(--color-link);
+        cursor: pointer;
+    }
+
+    /* Hover opens the note, which is indication enough. The keyboard gets the
+       underline, because all: unset took the focus ring with it. */
+    .footnote-mark:focus-visible {
+        text-decoration: underline;
+    }
+}
+
+@media print {
+    .footnote-body {
+        display: none;
     }
 }

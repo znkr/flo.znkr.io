@@ -12,7 +12,7 @@ import (
 
 // compileTOC compiles src the way the loader does, with an index, which is
 // what the outline is read from.
-func compileTOC(t *testing.T, src string) (*value.Document, *renderer) {
+func compileTOC(t *testing.T, src string) *renderer {
 	t.Helper()
 	var index value.Index
 	doc, _, err := markst.Compile(t.Context(), []byte(src), markst.WithIndex(&index))
@@ -32,7 +32,7 @@ func compileTOC(t *testing.T, src string) (*value.Document, *renderer) {
 		}
 		frags[a.Key()] = f
 	}
-	return doc, &renderer{path: "/test", doc: doc, index: &index, frags: frags}
+	return &renderer{path: "/test", doc: doc, index: &index, frags: frags, notes: indexNotes(doc)}
 }
 
 func TestRenderTOC(t *testing.T) {
@@ -70,8 +70,8 @@ func TestRenderTOC(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			doc, r := compileTOC(t, tt.in)
-			got, err := r.renderTOC(doc)
+			r := compileTOC(t, tt.in)
+			got, err := r.renderTOC()
 			if err != nil {
 				t.Fatalf("renderTOC: %v", err)
 			}
@@ -82,16 +82,16 @@ func TestRenderTOC(t *testing.T) {
 	}
 }
 
-// TestRenderTOCFootnoteNumbering checks that a footnote cited from a heading
-// keeps the number it has in the body: the table of contents is rendered as a
-// fragment of the document, not as one of its own.
-func TestRenderTOCFootnoteNumbering(t *testing.T) {
-	doc, r := compileTOC(t, "Body.#footnote[First]\n\n= Head#footnote[Second]\n")
-	got, err := r.renderTOC(doc)
+// TestRenderTOCDropsFootnoteMarks checks that a footnote cited from a heading
+// leaves no mark in the table of contents, and no endnote list either.
+func TestRenderTOCDropsFootnoteMarks(t *testing.T) {
+	src := "Body.#footnote[First]#footnote[Second]<second>\n\n= Head#footnote[Third] and@second\n"
+	r := compileTOC(t, src)
+	got, err := r.renderTOC()
 	if err != nil {
 		t.Fatalf("renderTOC: %v", err)
 	}
-	want := `<ul><li><a href="#head">Head<sup id="fnref:2"><a href="#fn:2">2</a></sup></a></li>` + "\n</ul>"
+	want := `<ul><li><a href="#head-and">Head and</a></li>` + "\n</ul>"
 	if string(got) != want {
 		t.Errorf("renderTOC():\n got: %q\nwant: %q", got, want)
 	}

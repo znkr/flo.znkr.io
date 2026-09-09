@@ -11,10 +11,12 @@ The first paragraph is the lede.
 
 A paragraph with #emph[emphasis], #strong[strong text], "smart quotes", a
 #link("https://example.com")[link], and a footnote.#footnote[The footnote body.]
+A labeled footnote#footnote[The labeled body.]<labeled>, cited a second
+time@labeled.
 
 #note[Library bindings are available without an import.]
 
-== A Nested Heading
+== A Nested Heading#footnote[Cited from a heading.]
 
 Deeper than the one before it, so the table of contents nests.
 

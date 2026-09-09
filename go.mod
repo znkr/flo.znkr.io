@@ -10,7 +10,7 @@ require (
 	github.com/tdewolff/minify/v2 v2.24.17
 	golang.org/x/tools v0.50.0
 	znkr.io/diff v1.0.1
-	znkr.io/markst v0.0.0-20260907173038-f037d144b631
+	znkr.io/markst v0.0.0-20260909201755-dc9558a51721
 )
 
 require (

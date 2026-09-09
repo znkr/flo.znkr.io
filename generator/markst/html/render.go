@@ -18,6 +18,7 @@ import (
 	"html/template"
 	"path"
 	"slices"
+	"strconv"
 	"strings"
 
 	"flo.znkr.io/generator/build"
@@ -27,6 +28,7 @@ import (
 	"flo.znkr.io/generator/site"
 	"znkr.io/markst"
 	mhtml "znkr.io/markst/html"
+	"znkr.io/markst/name"
 	"znkr.io/markst/value"
 )
 
@@ -45,11 +47,11 @@ func RenderPage(templates *template.Template, doc *gmarkst.Doc, meta site.Metada
 	if err != nil {
 		return nil, err
 	}
-	content, err := r.content()
+	content, err := r.content(r.renderWithFootnotes)
 	if err != nil {
 		return nil, err
 	}
-	toc, err := r.renderTOC(doc.Doc)
+	toc, err := r.renderTOC()
 	if err != nil {
 		return nil, err
 	}
@@ -71,13 +73,14 @@ func RenderPage(templates *template.Template, doc *gmarkst.Doc, meta site.Metada
 }
 
 // RenderContent renders doc's body alone, without the page around it. It is
-// what the feed embeds.
+// what the feed embeds, so its footnotes are rendered the plain way: a feed
+// reader has neither the stylesheet nor the script the panels need.
 func RenderContent(templates *template.Template, doc *gmarkst.Doc, frags map[build.Key]builtins.Fragment, docPath, docRoot string) ([]byte, error) {
 	r, err := newRenderer(templates, doc, frags, docPath, docRoot)
 	if err != nil {
 		return nil, err
 	}
-	return r.content()
+	return r.content(r.render)
 }
 
 // RenderSummary renders the summary doc carries in its metadata, or "" if it
@@ -90,7 +93,7 @@ func RenderSummary(doc *gmarkst.Doc, frags map[build.Key]builtins.Fragment) (str
 	}
 	r := &renderer{path: "/", frags: frags}
 	var buf strings.Builder
-	err := mhtml.Render(&buf, doc.Summary, append(r.options(), mhtml.WithoutFootnoteList())...)
+	err := mhtml.Render(&buf, doc.Summary, append(r.options(r.render), mhtml.WithoutFootnoteList())...)
 	return buf.String(), err
 }
 
@@ -104,6 +107,29 @@ type renderer struct {
 	doc           *value.Document
 	index         *value.Index
 	frags         map[build.Key]builtins.Fragment
+	notes         notes
+	cited         []value.Content
+}
+
+// notes numbers a document's footnotes, looked up by the footnote itself and by
+// the label an @ref cites it with.
+type notes struct {
+	byNote  map[*value.Footnote]int
+	byLabel map[name.Name]*value.Footnote
+}
+
+func indexNotes(d *value.Document) notes {
+	ns := notes{
+		byNote:  make(map[*value.Footnote]int),
+		byLabel: make(map[name.Name]*value.Footnote),
+	}
+	for i, fn := range mhtml.Footnotes(d) {
+		ns.byNote[fn] = i + 1
+		if l := fn.GetLabel(); l != nil {
+			ns.byLabel[l.Name] = fn
+		}
+	}
+	return ns
 }
 
 func newRenderer(templates *template.Template, doc *gmarkst.Doc, frags map[build.Key]builtins.Fragment, docPath, docRoot string) (*renderer, error) {
@@ -123,27 +149,113 @@ func newRenderer(templates *template.Template, doc *gmarkst.Doc, frags map[build
 		doc:     doc.Doc,
 		index:   doc.Index,
 		frags:   frags,
+		notes:   indexNotes(doc.Doc),
 	}, nil
 }
 
-func (r *renderer) content() ([]byte, error) {
+func (r *renderer) content(el mhtml.Element) ([]byte, error) {
 	var buf bytes.Buffer
-	if err := mhtml.Render(&buf, r.doc, r.options()...); err != nil {
+	if err := mhtml.Render(&buf, r.doc, r.options(el)...); err != nil {
+		return nil, err
+	}
+	if err := r.writeNotes(&buf); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
 }
 
-// options is how the site's rendering differs from the default one.
-func (r *renderer) options() []mhtml.Option {
+// options is how the site's rendering differs from the default one. el is the
+// element hook: renderWithFootnotes for a render that lands on a page of this
+// site, tocEntry for the table of contents, render for one that lands anywhere
+// else.
+func (r *renderer) options(el mhtml.Element) []mhtml.Option {
 	return []mhtml.Option{
 		// <h1> is the article title, written by the page template.
 		mhtml.WithHeadingLevel(2),
 		mhtml.WithImageURL(func(p string) (string, error) { return path.Join(r.path, p), nil }),
 		mhtml.WithIndex(r.index),
-		mhtml.WithElement(r.render),
+		mhtml.WithElement(el),
 	}
 }
+
+// renderWithFootnotes renders a footnote where it is cited, as a mark that
+// opens the note, and everything else the way render does. The note itself is
+// written by writeNotes, after the document body.
+func (r *renderer) renderWithFootnotes(e *mhtml.Encoder, c value.Content) (bool, error) {
+	switch c := c.(type) {
+	case *value.Footnote:
+		n, ok := r.notes.byNote[c]
+		if !ok {
+			// A footnote outside the document the notes were indexed from,
+			// such as one in a summary. It has no note to open.
+			return false, nil
+		}
+		r.citation(e, n, "fnref:"+strconv.Itoa(n), c.Body)
+		return true, nil
+
+	case *value.Ref:
+		fn, ok := r.notes.byLabel[c.Target]
+		if !ok {
+			return false, nil // a reference to something that is no footnote
+		}
+		r.citation(e, r.notes.byNote[fn], "", fn.Body)
+		return true, nil
+	}
+	return r.render(e, c)
+}
+
+// citation writes the mark a footnote is cited with: its number, as a button
+// that opens the note. id is the anchor the endnote links back to, empty for an
+// @ref citation, because the return trip goes to where the footnote was written
+// rather than to every mention.
+//
+// Every citation gets a note of its own, so that the anchor name a note is
+// positioned against names exactly one mark.
+func (r *renderer) citation(e *mhtml.Encoder, n int, id string, body value.Content) {
+	i := len(r.cited)
+	r.cited = append(r.cited, body)
+	num := strconv.Itoa(n)
+
+	var attrs []mhtml.Attr
+	if id != "" {
+		attrs = append(attrs, mhtml.Attr{Name: "id", Value: id})
+	}
+	attrs = append(attrs, mhtml.Attr{Name: "style", Value: "anchor-name:" + anchorName(i)})
+	e.Start("sup", attrs...)
+	e.Start("button",
+		mhtml.Attr{Name: "type", Value: "button"},
+		mhtml.Attr{Name: "class", Value: "footnote-mark"},
+		mhtml.Attr{Name: "popovertarget", Value: noteID(i)},
+		mhtml.Attr{Name: "aria-label", Value: "Footnote " + num},
+	)
+	e.Text(num)
+	e.End("button")
+	e.End("sup")
+}
+
+// writeNotes writes the note each citation opens. They come after the document
+// body because a note holds blocks and a citation sits inside a paragraph.
+// Nothing is written for a render that cited no footnotes.
+//
+// A note is a second rendering of a body the endnote list has already written,
+// so it carries no ids: the anchors an @ref points at are the endnote's.
+func (r *renderer) writeNotes(buf *bytes.Buffer) error {
+	opts := append(r.options(r.render), mhtml.WithoutFootnoteList(), mhtml.WithoutLabelIDs())
+	for i, body := range r.cited {
+		fmt.Fprintf(buf, `<div id="%s" class="footnote-body" popover style="position-anchor:%s">`, noteID(i), anchorName(i))
+		if err := mhtml.Render(buf, body, opts...); err != nil {
+			return err
+		}
+		buf.WriteString("</div>\n")
+	}
+	return nil
+}
+
+// noteID returns the id of the note the i-th citation opens.
+func noteID(i int) string { return "footnote-body-" + strconv.Itoa(i+1) }
+
+// anchorName returns the name that note is positioned against.
+func anchorName(i int) string { return "--footnote-" + strconv.Itoa(i+1) }
 
 func (r *renderer) render(e *mhtml.Encoder, c value.Content) (bool, error) {
 	switch c := c.(type) {
@@ -279,19 +391,30 @@ func rawKind(v *value.Raw) string {
 	return "span"
 }
 
+// tocEntry renders a heading body for the table of contents, and everything in
+// it the way render does. A footnote cited in the heading gets no mark, whether
+// it was written there or reached with an @ref: the entry is a link, and a mark
+// inside it is a link inside a link.
+func (r *renderer) tocEntry(e *mhtml.Encoder, c value.Content) (bool, error) {
+	switch c := c.(type) {
+	case *value.Footnote:
+		return true, nil
+	case *value.Ref:
+		if _, ok := r.notes.byLabel[c.Target]; ok {
+			return true, nil
+		}
+	}
+	return r.render(e, c)
+}
+
 // renderTOC renders the document's headings as a nested <ul> list, each entry
 // linking to its heading. It fails if a heading has no label, and with it no
 // anchor to link to.
-func (r *renderer) renderTOC(d *value.Document) ([]byte, error) {
+func (r *renderer) renderTOC() ([]byte, error) {
 	var buf bytes.Buffer
-	// The heading bodies are rendered as fragments of the document they came
-	// from, so a footnote cited in one keeps the number it has in the body
-	// rather than starting a list of its own.
-	opts := append(r.options(),
-		mhtml.WithFootnotes(mhtml.Footnotes(d)),
-		mhtml.WithIndex(r.index),
-		mhtml.WithoutFootnoteList(),
-	)
+	// A heading body is a fragment of the document: the endnotes belong to the
+	// page, and the marks are dropped by tocEntry.
+	opts := append(r.options(r.tocEntry), mhtml.WithoutFootnoteList())
 	if err := r.writeTOC(&buf, markst.Outline(r.index), opts); err != nil {
 		return nil, err
 	}

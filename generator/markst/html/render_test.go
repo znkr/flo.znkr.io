@@ -185,6 +185,35 @@ func TestImagePathIsSiteRelative(t *testing.T) {
 	}
 }
 
+// TestNoteCarriesNoIDs checks that a label inside a footnote is written once.
+// The note a mark opens is a second rendering of the body the endnote list
+// already holds, and two elements with one id is markup no browser can resolve.
+func TestNoteCarriesNoIDs(t *testing.T) {
+	templates := template.New("")
+	template.Must(templates.New("article").Parse("{{.Content}}"))
+	for _, name := range []string{"fragments/include_snippet", "fragments/include_diff"} {
+		template.Must(templates.New(name).Parse(""))
+	}
+
+	src := "#metadata((title: \"T\", type: \"article\")) <doc-meta>\n\n" +
+		"Text.#footnote[A note. <in-note>]<note> and again@note\n"
+	doc, err := gmarkst.Load(t.Context(), "test.mst", []byte(src), nil, nil)
+	if err != nil {
+		t.Fatalf("compiling document: %v", err)
+	}
+
+	out, err := html.RenderPage(templates, doc, site.Metadata{Type: "article"}, resolveAll(t, doc.Doc), "/test", "")
+	if err != nil {
+		t.Fatalf("RenderPage() = %v", err)
+	}
+	if n := strings.Count(string(out), `id="in-note"`); n != 1 {
+		t.Errorf("RenderPage() wrote id=\"in-note\" %d times, want 1:\n%s", n, out)
+	}
+	if n := strings.Count(string(out), `class="footnote-body"`); n != 2 {
+		t.Errorf("RenderPage() wrote %d notes, want 2:\n%s", n, out)
+	}
+}
+
 // TestRenderPageRejectsANonPageType checks the guard on metadata that does not
 // name a page template. Lookup alone does not catch it: the empty name finds
 // the root template, and a fragment name finds a template that is no page.

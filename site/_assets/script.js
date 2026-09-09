@@ -2,8 +2,72 @@ document.addEventListener("DOMContentLoaded", main)
 
 function main() {
     new Scroller()
+    if (window.matchMedia("(hover: hover)").matches) {
+        for (const mark of document.querySelectorAll(".footnote-mark")) {
+            let note = mark.popoverTargetElement
+            if (note != null) {
+                new Footnote(mark, note)
+            }
+        }
+    }
     for (const table of document.querySelectorAll("table.code-snippet.diff")) {
         new DiffTable(table)
+    }
+}
+
+// Footnote opens a note while the pointer rests on its mark and closes it once
+// the pointer has left. The mark is a button with a popovertarget, so tap,
+// keyboard, Escape and dismiss are the browser's; a click made with the pointer
+// is not, because on a device that hovers the note is open already.
+class Footnote {
+    static #openDelay = 120
+    static #closeDelay = 250
+
+    #note
+    #timer
+    #byHover
+
+    constructor(mark, note) {
+        this.#note = note
+        this.#watch(mark)
+        this.#watch(note)
+        mark.addEventListener("click", (e) => this.#clicked(e))
+    }
+
+    // watch opens the note while the pointer is over el. The delays are what
+    // let the pointer cross the gap between a mark and its note without the
+    // note closing on the way.
+    #watch(el) {
+        el.addEventListener("pointerenter", () => this.#schedule(true, Footnote.#openDelay))
+        el.addEventListener("pointerleave", () => this.#schedule(false, Footnote.#closeDelay))
+    }
+
+    #schedule(show, delay) {
+        clearTimeout(this.#timer)
+        if (!show && !this.#byHover) {
+            return
+        }
+        this.#timer = setTimeout(() => this.#toggle(show), delay)
+    }
+
+    // toggle opens or closes the note and records whether hover opened it. A
+    // note that is open already was opened from the keyboard, and closing that
+    // one is the reader's to do.
+    #toggle(show) {
+        if (show && this.#note.matches(":popover-open")) {
+            return
+        }
+        this.#byHover = show
+        this.#note.togglePopover(show)
+    }
+
+    // clicked drops a click made with the pointer: the note is open already,
+    // and the popover it would toggle is the one hover is holding. A keyboard
+    // activation carries no pointer, and opens the note as it always did.
+    #clicked(e) {
+        if (e.detail > 0) {
+            e.preventDefault()
+        }
     }
 }
 
