@@ -72,23 +72,126 @@ class Footnote {
 }
 
 class Scroller {
+    // The share of the room the last heading would need to reach the top of the
+    // viewport. Giving all of it would leave a screen of blank before the
+    // footer; giving half of it brings all but the last heading or two within
+    // reach, and the reading line covers the rest.
+    static #tailShare = 0.5
+
     #tocLinks
     #headers
+    #list
+    #content
     #ticking
-    #activeHeader
+    #activeIndex
 
     constructor() {
         let tocLinks = document.querySelectorAll('.toc a');
-        if (tocLinks) {
-            this.#tocLinks = tocLinks
-            this.#headers = Array.from(this.#tocLinks).map(link => {
-                return document.querySelector(`#${link.href.split('#')[1]}`);
-            })
-            this.#update();
-            window.addEventListener('scroll', (e) => {
-                this.#onScroll()
-            })
+        if (tocLinks.length == 0) {
+            return
         }
+        this.#tocLinks = tocLinks
+        this.#list = document.querySelector('.toc section > ul')
+        this.#content = document.querySelector('main .content')
+        this.#headers = Array.from(this.#tocLinks).map(link => {
+            return document.querySelector(`#${link.href.split('#')[1]}`);
+        })
+        this.#activeIndex = -1;
+        this.#pad();
+        this.#aim();
+        this.#update();
+
+        // The rider is revealed a frame after it is placed, so that the first
+        // placement is not animated from the top of the list.
+        requestAnimationFrame(() => this.#list.classList.add('tracking'));
+
+        window.addEventListener('scroll', (e) => {
+            this.#onScroll()
+        })
+        window.addEventListener('resize', (e) => {
+            this.#pad()
+            this.#aim()
+            this.#onScroll()
+        })
+        window.addEventListener('load', (e) => {
+            this.#pad()
+            this.#aim()
+            this.#onScroll()
+        })
+    }
+
+    // tracking reports whether the layout marks a reading position. Only the
+    // sidebar layout draws a rider, and only it is worth scrolling for.
+    #tracking() {
+        return getComputedStyle(this.#list, '::before').content !== 'none';
+    }
+
+    // pad gives the document room to scroll its last headings closer to the top
+    // of the viewport. Without it the headings of the last screen cannot be
+    // reached, and a link to one of them lands short.
+    #pad() {
+        if (!this.#tracking()) {
+            this.#content.style.setProperty('--tail', '0px');
+            return;
+        }
+        let last = this.#headers[this.#headers.length - 1];
+        let top = last.getBoundingClientRect().top + window.scrollY;
+
+        // The room already given is measured rather than remembered, because the
+        // layout it is given in is the only one that takes it.
+        let given = parseFloat(getComputedStyle(this.#content).paddingBottom) || 0;
+        let trailing = document.documentElement.scrollHeight - given - top;
+        let room = Math.max(0, window.innerHeight - trailing) * Scroller.#tailShare;
+        this.#content.style.setProperty('--tail', `${room}px`);
+    }
+
+    // ramp reports where the reading line stops following the top of the
+    // viewport: the last heading that can be brought to the top, and the scroll
+    // left after it. Past that heading the line runs on to the end of the
+    // document, so that the sections below it are reached as the page bottoms
+    // out.
+    #ramp(starts) {
+        let max = document.documentElement.scrollHeight - window.innerHeight;
+        let anchor = Math.max(0, starts.findLastIndex(start => start <= max));
+        return { max: max, from: starts[anchor], span: max - starts[anchor] };
+    }
+
+    // line returns the position in the document that a scroll position reads at.
+    #line(y, ramp) {
+        let t = ramp.span > 0
+            ? Math.min(Math.max((y - ramp.from) / ramp.span, 0), 1)
+            : (y >= ramp.max ? 1 : 0);
+        return y + window.innerHeight * t;
+    }
+
+    // aim points each heading at the scroll position that reads as its own
+    // section. For a heading that can be brought to the top of the viewport that
+    // is where the browser would stop anyway; for one in the last screen it is
+    // not, and the margin makes up the difference.
+    #aim() {
+        if (!this.#tracking()) {
+            this.#headers.forEach(header => header.style.scrollMarginTop = '');
+            return;
+        }
+        let starts = this.#headers.map(h => Math.round(h.getBoundingClientRect().top + window.scrollY));
+        let ramp = this.#ramp(starts);
+
+        this.#headers.forEach((header, i) => {
+            if (starts[i] <= ramp.from) {
+                header.style.scrollMarginTop = '';
+                return;
+            }
+            // A line landing exactly on a heading is a rounding error away from
+            // reading as the section before it, so aim just inside the section.
+            let target = starts[i] + 2;
+            if (i + 1 < starts.length) {
+                target = Math.min(target, starts[i + 1] - 1);
+            }
+            let y = ramp.span > 0
+                ? (target * ramp.span + window.innerHeight * ramp.from) / (ramp.span + window.innerHeight)
+                : ramp.max;
+            header.style.scrollMarginTop = `${Math.max(0, starts[i] - y)}px`;
+        });
     }
 
     #onScroll() {
@@ -99,19 +202,21 @@ class Scroller {
     }
 
     #update() {
-        let activeIndex = this.#headers.findIndex((header) => {
-            return header.getBoundingClientRect().top > 180;
-        });
-        if (activeIndex == -1) {
-            activeIndex = this.#headers.length - 1;
-        } else if (activeIndex > 0) {
-            activeIndex--;
+        let starts = this.#headers.map(h => Math.round(h.getBoundingClientRect().top + window.scrollY));
+        let line = Math.round(this.#line(window.scrollY, this.#ramp(starts)));
+
+        let i = 0;
+        while (i + 1 < starts.length && starts[i + 1] <= line) {
+            i++;
         }
-        let active = this.#headers[activeIndex];
-        if (active !== this.#activeHeader) {
-            this.#activeHeader = active;
+        let link = this.#tocLinks[i];
+        this.#list.style.setProperty('--rider-top', `${link.offsetTop}px`);
+        this.#list.style.setProperty('--rider-height', `${link.offsetHeight}px`);
+
+        if (i !== this.#activeIndex) {
+            this.#activeIndex = i;
             this.#tocLinks.forEach(link => link.classList.remove('active'));
-            this.#tocLinks[activeIndex].classList.add('active');
+            link.classList.add('active');
         }
         this.#ticking = false;
     }
