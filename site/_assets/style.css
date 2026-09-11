@@ -8,6 +8,7 @@
     --color-text-soft: #404040;
     --color-text-soft-extra: #808080;
     --color-link: #0093aa;
+    --color-link-soft: #bfe4ea;
     --color-highlight: #625EB1;
 
     --color-ctrl-bg: #ebebfa;
@@ -289,6 +290,11 @@ main {
         .content {
             grid-area: content;
             max-width: 55rem;
+
+            /* Room to scroll the last heading to the top, so that a link to it
+               lands where a link to any other heading lands. Only the sidebar
+               layout marks a position, so only it pays for one. */
+            padding-bottom: var(--tail, 0);
         }
 
         .toc {
@@ -298,19 +304,52 @@ main {
             position: sticky;
             top: 0;
 
+            /* The rider marks the row of the section being read. It slides
+               between rows, so becoming active changes a link's color and
+               nothing else. */
+            section > ul {
+                position: relative;
+                border-left: 1px solid var(--color-link-soft);
+            }
+
+            section > ul::before {
+                content: "";
+                position: absolute;
+                left: -1px;
+                top: 0;
+                width: 2px;
+                height: var(--rider-height, 0);
+                background: var(--color-link);
+                transform: translateY(var(--rider-top, 0));
+
+                /* Until the script has run, there is no position to show. */
+                opacity: 0;
+            }
+
+            section > ul.tracking::before {
+                opacity: 1;
+                transition-property: transform, height;
+                transition-duration: .2s;
+                transition-timing-function: cubic-bezier(.4, 0, .2, 1);
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                section > ul.tracking::before {
+                    transition-property: none;
+                }
+            }
+
             a {
                 color: var(--color-text);
-                display: inline-block;
-                padding: .4em .5em; 
-                border-left: 1px solid var(--color-link);
-                transition-property: color, border;
-                transition-timing-function: cubic-bezier(.4,0,.2,1);
-                transition: .2s;
+                display: block;
+                padding: .4em .5em;
+                transition-property: color;
+                transition-duration: .2s;
+                transition-timing-function: cubic-bezier(.4, 0, .2, 1);
             }
 
             a.active {
                 color: var(--color-link);
-                border-left: 2px solid var(--color-link);
             }
 
             a:hover,
@@ -343,16 +382,16 @@ main {
 }
 
 .sub-content-header {
-    display: flex;
-    align-items: baseline;
     margin: 0.5rem 0 0.125rem 0;
 
     h3 {
-        margin: 0 0.5rem 0 0;
+        margin: 0;
     }
-    
+
     span {
+        display: block;
         color: var(--color-text-soft);
+        font-size: 0.85rem;
     }
 }
 
