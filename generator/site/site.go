@@ -3,6 +3,7 @@ package site
 import (
 	"cmp"
 	"fmt"
+	"html/template"
 	"slices"
 	"time"
 
@@ -45,13 +46,15 @@ type Doc struct {
 var DocTypes = []string{"article", "page"}
 
 type Metadata struct {
-	Title     string
-	Published time.Time
-	Updated   time.Time
-	Summary   string
-	GoImport  string
-	Redirect  string
-	Type      string
+	Title        string
+	Published    time.Time
+	Updated      time.Time
+	Summary      string
+	GoImport     string
+	Redirect     string
+	Type         string
+	CanonicalURL string
+	JSONLD       template.JS
 }
 
 // New creates a new site from the provided docs.

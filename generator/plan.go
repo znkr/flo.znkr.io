@@ -2,14 +2,17 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/fs"
 	"mime"
 	"path"
 	"strings"
+	"time"
 
 	"flo.znkr.io/generator/build"
+	"flo.znkr.io/generator/jsonld"
 	"flo.znkr.io/generator/markst"
 	"flo.znkr.io/generator/markst/builtins"
 	"flo.znkr.io/generator/markst/html"
@@ -112,7 +115,7 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 		// (often many).
 		summaryFrags := deriveFragments("summary fragments", summaryFragments, mdoc)
 		summary := build.Derive[string]("summary", html.RenderSummary, mdoc, summaryFrags)
-		meta := build.Derive[site.Metadata]("meta", withSummary, mdoc, summary)
+		meta := build.Derive[site.Metadata]("meta", enrichMetadata, p, mdoc, summary)
 
 		bodyFrags := deriveFragments("body fragments", bodyFragments, mdoc)
 		content := build.Derive[[]byte]("content", html.RenderContent, templates, mdoc, bodyFrags, p, docRoot)
@@ -207,11 +210,45 @@ func bodyFragments(d *markst.Doc) ([]build.Artifact[builtins.Fragment], error) {
 	return builtins.Artifacts(d.Doc)
 }
 
-// withSummary returns the document's metadata with its summary rendered in.
-func withSummary(d *markst.Doc, summary string) (site.Metadata, error) {
+// enrichMetadata returns the document's metadata with its summary rendered in.
+func enrichMetadata(path string, d *markst.Doc, summary string) (site.Metadata, error) {
 	m := d.Meta
 	m.Summary = summary
+
+	m.CanonicalURL = "https://flo.znkr.io" + path
+	if !strings.HasSuffix(m.CanonicalURL, "/") {
+		m.CanonicalURL += "/"
+	}
+
+	j, err := renderJSONLD(m)
+	if err != nil {
+		return site.Metadata{}, err
+	}
+	m.JSONLD = template.JS(j)
+
 	return m, nil
+}
+
+func renderJSONLD(meta site.Metadata) (string, error) {
+	switch meta.Type {
+	case "article":
+		d, err := json.Marshal(jsonld.Article{
+			Headline: meta.Title,
+			Author: []jsonld.Person{{
+				Name: "Florian Zenker",
+				URL:  "https://flo.znkr.io/about",
+			}},
+			DatePublished: meta.Published.Format(time.RFC3339),
+			DateModified:  meta.Updated.Format(time.RFC3339),
+			URL:           meta.CanonicalURL,
+		})
+		if err != nil {
+			return "", err
+		}
+		return string(d), nil
+	default:
+		return "", nil
+	}
 }
 
 func entryOf(p string, m site.Metadata) (renderers.Entry, error) {

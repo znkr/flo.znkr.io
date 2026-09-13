@@ -40,7 +40,7 @@ func RenderAtom(title string, entries []Entry, contents [][]byte) ([]byte, error
 			ID:    feed.ID + a.Path,
 			Link: []atom.Link{{
 				Rel:  "alternate",
-				Href: "https://flo.znkr.io" + a.Path,
+				Href: a.Meta.CanonicalURL,
 			}},
 			Published: atom.Time(a.Meta.Published),
 			Updated:   atom.Time(a.Meta.Updated),
@@ -54,6 +54,7 @@ func RenderAtom(title string, entries []Entry, contents [][]byte) ([]byte, error
 			},
 			Author: &atom.Person{
 				Name: "Florian Zenker",
+				URI:  "https://flo.znkr.io/about",
 			},
 		}
 		feed.Entry = append(feed.Entry, e)
