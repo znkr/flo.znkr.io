@@ -59,6 +59,7 @@ func RenderPage(templates *template.Template, doc *gmarkst.Doc, meta site.Metada
 	var buf bytes.Buffer
 	err = page.Execute(&buf, struct {
 		Meta    site.Metadata
+		JSONLD  string
 		Content template.HTML
 		TOC     template.HTML
 	}{
