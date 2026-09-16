@@ -70,7 +70,7 @@ var serveCmd = &cobra.Command{
 		// A single save usually produces several events. Rebuilding once per
 		// event would be wasteful and, worse, would refresh the browser
 		// several times, so events are coalesced.
-		const debounceDelay = 100 * time.Millisecond
+		const debounceDelay = 30 * time.Millisecond
 		var debounce <-chan time.Time
 
 		for {
