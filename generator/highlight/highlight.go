@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"log"
+	"path"
 	"strings"
 
 	"github.com/alecthomas/chroma/v2"
@@ -41,9 +43,28 @@ func Lang(lang string) Option {
 	}
 }
 
+// LangFromFilename chooses the lexer by the file name.
 func LangFromFilename(filename string) Option {
 	return func(o *highlighter) {
-		o.lexer = lexers.Match(filename)
+		// lexers.Match runs every registered lexer's globs against the name
+		// and costs about a millisecond, so the extensions the site includes
+		// are named directly. lexers.Get is a map lookup.
+		ext := path.Ext(filename)
+		switch ext {
+		case ".go":
+			o.lexer = lexers.Get("go")
+		case ".diff", ".patch":
+			o.lexer = lexers.Get("diff")
+		case ".sh":
+			o.lexer = lexers.Get("bash")
+		default:
+			o.lexer = lexers.Match(filename)
+			guess := "none"
+			if o.lexer != nil {
+				guess = o.lexer.Config().Name
+			}
+			log.Printf("highlight: %s: no lexer named for extension %q, matched every lexer's file names instead (found: %s); add the extension to LangFromFilename", filename, ext, guess)
+		}
 	}
 }
 
