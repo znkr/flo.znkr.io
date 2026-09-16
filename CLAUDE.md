@@ -34,7 +34,9 @@ reformat around it, and do not trust a gofmt exit code as a lint result.
 - `templates/` — `html/template` files. `article.html` and `page.html` are the
   two page templates, named by a document's `type` metadata; `fragments/` holds
   the partials, including the ones the snippet and diff includes are drawn with.
-- `generator/` — the generator.
+- `generator/` — the generator. `markst` compiles and renders documents and
+  knows nothing of the site or its templates; `renderers` holds every step that
+  executes a template: the page around a body, the includes, the index.
 
 ## Architecture
 
@@ -60,11 +62,13 @@ The pipeline:
    returns a `*site.Site` plus one artifact holding every diagnostic. This is
    where a change to what the site is made of goes: paths, metadata, which
    documents exist, what the index and the feed are built from.
-3. `Doc.Page.Get` or `Doc.Content.Get` computes a document on demand, against
-   the cache.
+3. `Doc.Page.Get` or `Doc.FeedContent.Get` computes a document on demand, against
+   the cache. `plan` is also where `markst.Metadata`, what a document declares,
+   becomes `site.Metadata`, and where the doc type is checked against
+   `site.DocTypes`.
 
-Granularity is deliberate. A document's summary, body, metadata, page and each
-highlighted fragment are separate artifacts, so an edit recomputes only what it
+Granularity is deliberate. A document's summary, body, table of contents,
+metadata, page and each highlighted fragment are separate artifacts, so an edit recomputes only what it
 changed. Keep it that way when adding steps.
 
 Diagnostics are returned, never printed where they arise. A compile carries its
@@ -91,7 +95,8 @@ template and must be one of `site.DocTypes`.
 `#include-snippet` and `#include-diff` (`generator/markst/builtins`) read their file and resolve
 the lexer and line range at compile time, so a missing file or a bad range is a
 compile error pointing at the argument. The highlighting itself is deferred to
-an artifact per fragment.
+an artifact per fragment, and the markup around it is the fragment templates',
+executed through `renderers`' implementation of `markst.Includes`.
 
 Files whose extension `mime.TypeByExtension` does not know (`.go`, `.diff`,
 `.mod`) are served as plain text. Do not add extension special-cases to

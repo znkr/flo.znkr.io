@@ -1,5 +1,5 @@
-// In package html, not html_test, because renderTOC is unexported.
-package html
+// In package markst, not markst_test, because renderTOC is unexported.
+package markst
 
 import (
 	"testing"

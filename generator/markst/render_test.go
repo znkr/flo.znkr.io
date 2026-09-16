@@ -1,7 +1,6 @@
-package html_test
+package markst_test
 
 import (
-	"html/template"
 	"os"
 	"strings"
 	"testing"
@@ -9,8 +8,6 @@ import (
 	"flo.znkr.io/generator/build"
 	gmarkst "flo.znkr.io/generator/markst"
 	"flo.znkr.io/generator/markst/builtins"
-	"flo.znkr.io/generator/markst/html"
-	"flo.znkr.io/generator/site"
 	"znkr.io/markst"
 	"znkr.io/markst/value"
 )
@@ -22,20 +19,15 @@ import (
 func render(t *testing.T, src string) string {
 	t.Helper()
 
-	templates := template.New("")
-	for _, name := range []string{"article", "fragments/include_snippet", "fragments/include_diff"} {
-		template.Must(templates.New(name).Parse(""))
-	}
-
 	var libs []*gmarkst.Lib
 	for _, name := range []string{"lib", "admonition", "math"} {
 		file := name + ".mst"
-		path := "../../../lib/" + file
+		path := "../../lib/" + file
 		libSrc, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatalf("reading %s: %v", path, err)
 		}
-		lib, err := gmarkst.LoadLibrary(t.Context(), file, libSrc, nil)
+		lib, err := gmarkst.LoadLibrary(t.Context(), file, libSrc)
 		if err != nil {
 			t.Fatalf("compiling %s: %v", file, err)
 		}
@@ -54,7 +46,7 @@ func render(t *testing.T, src string) string {
 		t.Errorf("document has diagnostics:\n%s", formatDiags(doc.Diags))
 	}
 
-	out, err := html.RenderContent(templates, doc, resolveAll(t, doc.Doc), "/test", "")
+	out, err := gmarkst.RenderBody(doc, resolveAll(t, doc.Doc), "/test", nil, gmarkst.Endnotes)
 	if err != nil {
 		t.Fatalf("rendering: %v", err)
 	}
@@ -189,12 +181,6 @@ func TestImagePathIsSiteRelative(t *testing.T) {
 // The note a mark opens is a second rendering of the body the endnote list
 // already holds, and two elements with one id is markup no browser can resolve.
 func TestNoteCarriesNoIDs(t *testing.T) {
-	templates := template.New("")
-	template.Must(templates.New("article").Parse("{{.Content}}"))
-	for _, name := range []string{"fragments/include_snippet", "fragments/include_diff"} {
-		template.Must(templates.New(name).Parse(""))
-	}
-
 	src := "#metadata((title: \"T\", type: \"article\")) <doc-meta>\n\n" +
 		"Text.#footnote[A note. <in-note>]<note> and again@note\n"
 	doc, err := gmarkst.Load(t.Context(), "test.mst", []byte(src), nil, nil)
@@ -202,37 +188,14 @@ func TestNoteCarriesNoIDs(t *testing.T) {
 		t.Fatalf("compiling document: %v", err)
 	}
 
-	out, err := html.RenderPage(templates, doc, site.Metadata{Type: "article"}, resolveAll(t, doc.Doc), "/test", "")
+	out, err := gmarkst.RenderBody(doc, resolveAll(t, doc.Doc), "/test", nil, gmarkst.Popovers)
 	if err != nil {
-		t.Fatalf("RenderPage() = %v", err)
+		t.Fatalf("RenderBody() = %v", err)
 	}
 	if n := strings.Count(string(out), `id="in-note"`); n != 1 {
-		t.Errorf("RenderPage() wrote id=\"in-note\" %d times, want 1:\n%s", n, out)
+		t.Errorf("RenderBody() wrote id=\"in-note\" %d times, want 1:\n%s", n, out)
 	}
 	if n := strings.Count(string(out), `class="footnote-body"`); n != 2 {
-		t.Errorf("RenderPage() wrote %d notes, want 2:\n%s", n, out)
-	}
-}
-
-// TestRenderPageRejectsANonPageType checks the guard on metadata that does not
-// name a page template. Lookup alone does not catch it: the empty name finds
-// the root template, and a fragment name finds a template that is no page.
-func TestRenderPageRejectsANonPageType(t *testing.T) {
-	templates := template.New("")
-	for _, name := range []string{"article", "fragments/include_snippet", "fragments/include_diff"} {
-		template.Must(templates.New(name).Parse(""))
-	}
-
-	src := "#metadata((title: \"T\", type: \"article\")) <doc-meta>\n\nHello.\n"
-	doc, err := gmarkst.Load(t.Context(), "test.mst", []byte(src), nil, nil)
-	if err != nil {
-		t.Fatalf("compiling document: %v", err)
-	}
-
-	for _, typ := range []string{"", "fragments/include_snippet"} {
-		_, err := html.RenderPage(templates, doc, site.Metadata{Type: typ}, nil, "/test", "")
-		if err == nil || !strings.Contains(err.Error(), "unknown doc type") {
-			t.Errorf("RenderPage() with type %q = %v, want an unknown doc type error", typ, err)
-		}
+		t.Errorf("RenderBody() wrote %d notes, want 2:\n%s", n, out)
 	}
 }

@@ -36,9 +36,10 @@ type Doc struct {
 	Meta build.Artifact[Metadata]
 	// Page is the document as it is served.
 	Page build.Artifact[[]byte]
-	// Content is the document's body without the page around it, which is what
-	// the feed embeds. It is the whole document for an asset.
-	Content build.Artifact[[]byte]
+	// FeedContent is the document's body as the feed embeds it: without the
+	// page around it, and with footnotes a feed reader can show. It is the
+	// whole document for an asset.
+	FeedContent build.Artifact[[]byte]
 }
 
 // DocTypes are the types a document may declare in its metadata. Each names the

@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"mime"
 	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -15,7 +16,6 @@ import (
 	"flo.znkr.io/generator/jsonld"
 	"flo.znkr.io/generator/markst"
 	"flo.znkr.io/generator/markst/builtins"
-	"flo.znkr.io/generator/markst/html"
 	"flo.znkr.io/generator/renderers"
 	"flo.znkr.io/generator/site"
 	"flo.znkr.io/generator/source"
@@ -49,7 +49,7 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 		// The path is relative to the working directory, so diagnostics about a
 		// library -- which surface while some *document* is being compiled --
 		// can be opened straight from an editor.
-		libs = append(libs, build.Derive[*markst.Lib]("lib", compileLib, f.Path, tree.Data(f)))
+		libs = append(libs, build.Derive[*markst.Lib]("lib", markst.LoadLibrary, f.Path, tree.Data(f)))
 	}
 
 	var docs []site.Doc
@@ -73,12 +73,12 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 			// its extension, as what. The bytes are the whole of the document.
 			data := tree.Data(f)
 			docs = append(docs, site.Doc{
-				Path:     p,
-				Source:   f.Path,
-				MimeType: mimeType(ext),
-				Meta:     noMeta(),
-				Page:     data,
-				Content:  data,
+				Path:        p,
+				Source:      f.Path,
+				MimeType:    mimeType(ext),
+				Meta:        noMeta(),
+				Page:        data,
+				FeedContent: data,
 			})
 			continue
 		}
@@ -108,26 +108,30 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 			docFS = tree.Sub(path.Join("site", dir))
 		}
 
-		mdoc := build.Derive[*markst.Doc]("doc", compileDoc, f.Path, tree.Data(f), docFS, libs)
+		mdoc := build.Derive[*markst.Doc]("doc", markst.Load, f.Path, tree.Data(f), docFS, libs)
 
 		// The summaryFrags is not reached by a walk of the body, so rendering it
 		// waits on its own fragments (usually none) and not on the article's
 		// (often many).
-		summaryFrags := deriveFragments("summary fragments", summaryFragments, mdoc)
-		summary := build.Derive[string]("summary", html.RenderSummary, mdoc, summaryFrags)
-		meta := build.Derive[site.Metadata]("meta", enrichMetadata, p, mdoc, summary)
+		summaryFrags := deriveFragments("summary fragments", (*markst.Doc).SummaryFragments, mdoc)
+		summary := build.Derive[string]("summary", markst.RenderSummary, mdoc, summaryFrags)
+		meta := build.Derive[site.Metadata]("meta", siteMetadata, f.Path, p, mdoc, summary)
 
-		bodyFrags := deriveFragments("body fragments", bodyFragments, mdoc)
-		content := build.Derive[[]byte]("content", html.RenderContent, templates, mdoc, bodyFrags, p, docRoot)
-		page := build.Derive[[]byte]("page", html.RenderPage, templates, mdoc, meta, bodyFrags, p, docRoot)
+		bodyFrags := deriveFragments("body fragments", (*markst.Doc).Fragments, mdoc)
+		// The feed embeds content, so its footnotes are drawn without the
+		// marks the page's stylesheet and script make work.
+		content := build.Derive[[]byte]("content", renderers.RenderBody, templates, mdoc, bodyFrags, p, docRoot, markst.Endnotes)
+		body := build.Derive[[]byte]("body", renderers.RenderBody, templates, mdoc, bodyFrags, p, docRoot, markst.Popovers)
+		toc := build.Derive[[]byte]("toc", markst.RenderTOC, mdoc, bodyFrags, p)
+		page := build.Derive[[]byte]("page", renderers.RenderPage, templates, meta, body, toc)
 
 		docs = append(docs, site.Doc{
-			Path:     p,
-			Source:   f.Path,
-			MimeType: "text/html;charset=utf-8",
-			Meta:     meta,
-			Page:     page,
-			Content:  content,
+			Path:        p,
+			Source:      f.Path,
+			MimeType:    "text/html;charset=utf-8",
+			Meta:        meta,
+			Page:        page,
+			FeedContent: content,
 		})
 		entries = append(entries, build.Derive[renderers.Entry]("entry", entryOf, p, meta))
 		contents = append(contents, content)
@@ -139,18 +143,18 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 
 	docs = append(docs,
 		site.Doc{
-			Path:     "/",
-			MimeType: "text/html;charset=utf-8",
-			Meta:     constMeta(siteTitle, siteGoImport),
-			Page:     index,
-			Content:  index,
+			Path:        "/",
+			MimeType:    "text/html;charset=utf-8",
+			Meta:        constMeta(siteTitle, siteGoImport),
+			Page:        index,
+			FeedContent: index,
 		},
 		site.Doc{
-			Path:     "/feed.atom",
-			MimeType: "application/atom+xml;charset=utf-8",
-			Meta:     constMeta(siteTitle, ""),
-			Page:     feed,
-			Content:  feed,
+			Path:        "/feed.atom",
+			MimeType:    "application/atom+xml;charset=utf-8",
+			Meta:        constMeta(siteTitle, ""),
+			Page:        feed,
+			FeedContent: feed,
 		},
 	)
 
@@ -195,25 +199,27 @@ func loadDir(ctx context.Context, dir string) (*build.Cache, *site.Site, error) 
 	return c, s, nil
 }
 
-// deriveFragments declares the highlighting a document needs, one artifact per
-// fragment, so that an edit costs only the deriveFragments it changed.
-func deriveFragments(kind string, walk any, doc build.Artifact[*markst.Doc]) build.Artifact[map[build.Key]builtins.Fragment] {
+// deriveFragments declares the highlighting walk finds in a document, one
+// artifact per fragment, so that an edit costs only the fragments it changed.
+func deriveFragments(kind string, walk func(*markst.Doc) ([]build.Artifact[builtins.Fragment], error), doc build.Artifact[*markst.Doc]) build.Artifact[map[build.Key]builtins.Fragment] {
 	as := build.Derive[[]build.Artifact[builtins.Fragment]](kind, walk, doc)
 	return build.Collect[builtins.Fragment]("fragments", as)
 }
 
-func summaryFragments(d *markst.Doc) ([]build.Artifact[builtins.Fragment], error) {
-	return builtins.Artifacts(d.Summary)
-}
-
-func bodyFragments(d *markst.Doc) ([]build.Artifact[builtins.Fragment], error) {
-	return builtins.Artifacts(d.Doc)
-}
-
-// enrichMetadata returns the document's metadata with its summary rendered in.
-func enrichMetadata(path string, d *markst.Doc, summary string) (site.Metadata, error) {
-	m := d.Meta
-	m.Summary = summary
+// siteMetadata returns what the site knows about the document at source: what
+// it says about itself, held to the types there is a page template for, with
+// its summary rendered in, its canonical URL and its JSON-LD.
+func siteMetadata(source, path string, d *markst.Doc, summary string) (site.Metadata, error) {
+	if !slices.Contains(site.DocTypes, d.Meta.Type) {
+		return site.Metadata{}, fmt.Errorf("%s: unknown doc type: %q", source, d.Meta.Type)
+	}
+	m := site.Metadata{
+		Title:     d.Meta.Title,
+		Type:      d.Meta.Type,
+		Published: d.Meta.Published,
+		Updated:   d.Meta.Updated,
+		Summary:   summary,
+	}
 
 	m.CanonicalURL = "https://flo.znkr.io" + path
 	if !strings.HasSuffix(m.CanonicalURL, "/") {
@@ -277,24 +283,6 @@ func mimeType(ext string) string {
 	// the sources articles link to (.go, .diff, .mod, ...). Serving those as
 	// plain text is both what they are and the same everywhere.
 	return "text/plain;charset=utf-8"
-}
-
-// The two compile rules report nothing: a warning is part of what compiling
-// produced, and is carried in the value so that it can be reported again for a
-// document that did not have to be compiled again. See collectDiags.
-//
-// The context is the one the caller that asked for the document passed to
-// [build.Artifact.Get]. It bounds the compile without being part of the key.
-func compileDoc(ctx context.Context, p string, data []byte, docFS fs.FS, libs []*markst.Lib) (*markst.Doc, error) {
-	// A compile error already names the file and the position within it.
-	return markst.Load(ctx, p, data, docFS, libs)
-}
-
-// compileLib compiles one library on its own: a library may use nothing
-// another library defines, so that each is an artifact of its own file and an
-// edit to one recompiles only that one.
-func compileLib(ctx context.Context, p string, data []byte) (*markst.Lib, error) {
-	return markst.LoadLibrary(ctx, p, data, nil)
 }
 
 // parseTemplates parses every .html file in fsys as a template named by its
