@@ -21,13 +21,15 @@ type Server struct {
 }
 
 // Run creates a new server anc runs it in a new goroutine.
-func Run(addr string, c *build.Cache, site *site.Site) (*Server, error) {
+//
+// warnings is what compiling the site warned about, as for [Server.ReplaceSite].
+func Run(addr string, c *build.Cache, site *site.Site, warnings string) (*Server, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("starting HTTP server: %v", err)
 	}
 
-	r := newReloader()
+	r := newReloader(warnings)
 
 	h := &handler{cache: c, reload: r}
 	h.site.Store(site)
@@ -58,10 +60,18 @@ func Run(addr string, c *build.Cache, site *site.Site) (*Server, error) {
 }
 
 // ReplaceSite replaces the site to serve with the one provided and tells
-// connected browsers to reload.
-func (s *Server) ReplaceSite(site *site.Site) {
+// connected browsers to reload. warnings is what compiling the site warned
+// about, formatted for display, and is shown on every page until the next
+// ReplaceSite.
+func (s *Server) ReplaceSite(site *site.Site, warnings string) {
 	s.handler.site.Store(site)
-	s.reload.notify()
+	s.reload.notify(warnings)
+}
+
+// ReportFailure tells connected browsers that rebuilding the site failed. The
+// site served stays the one from the last successful ReplaceSite.
+func (s *Server) ReportFailure(err error) {
+	s.reload.fail(err)
 }
 
 // Addr returns the address the server is listening on.
