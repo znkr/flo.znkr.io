@@ -1,93 +1,80 @@
-// Package html renders a compiled markst document as the HTML the site serves.
+// Package markst compiles markst documents for this site and renders them as
+// HTML.
 //
-// The rendering itself is znkr.io/markst/html's job. What is here is the part
-// that belongs to this site: the fragment templates the include elements are
-// drawn with, the anchor link on every heading, the site-relative resolution of
-// image paths, and the table of contents the article template puts beside the
-// body.
-//
-// Highlighting is not done here. A document's fragments are computed before it
-// is rendered and passed in, which is what lets an unchanged snippet survive an
-// edit to the prose around it.
-package html
+// Compiling is znkr.io/markst's job, rendering znkr.io/markst/html's. What is
+// here is the part that belongs to this site: the libraries every document gets
+// without an import, the metadata a document declares, the include elements
+// and the highlighting they defer to the build, the anchor link on every
+// heading, the site-relative resolution of image paths, the marks and notes
+// footnotes are drawn as, and the table of contents. Nothing here executes a
+// template: the includes are drawn through [Includes], and the page around a
+// body is the caller's.
+package markst
 
 import (
 	"bytes"
 	"fmt"
 	"html"
-	"html/template"
+	"io"
 	"path"
-	"slices"
 	"strconv"
 	"strings"
 
 	"flo.znkr.io/generator/build"
-	"flo.znkr.io/generator/highlight"
-	gmarkst "flo.znkr.io/generator/markst"
 	"flo.znkr.io/generator/markst/builtins"
-	"flo.znkr.io/generator/site"
 	"znkr.io/markst"
 	mhtml "znkr.io/markst/html"
 	"znkr.io/markst/name"
 	"znkr.io/markst/value"
 )
 
-// RenderPage renders doc as a whole page, wrapped in the template its metadata
-// asks for. frags are the document's fragments, keyed the way
-// [builtins.Artifact] keys them.
-func RenderPage(templates *template.Template, doc *gmarkst.Doc, meta site.Metadata, frags map[build.Key]builtins.Fragment, docPath, docRoot string) ([]byte, error) {
-	// Lookup alone is not enough: an empty name finds the root template, and a
-	// fragment name finds a template that is no page.
-	page := templates.Lookup(meta.Type)
-	if !slices.Contains(site.DocTypes, meta.Type) || page == nil {
-		return nil, fmt.Errorf("%s: unknown doc type: %s", docPath, meta.Type)
-	}
+// Highlighting is not done here. A document's fragments are computed before it
+// is rendered and passed in, which is what lets an unchanged snippet survive an
+// edit to the prose around it.
 
-	r, err := newRenderer(templates, doc, frags, docPath, docRoot)
-	if err != nil {
-		return nil, err
-	}
-	content, err := r.content(r.renderWithFootnotes)
-	if err != nil {
-		return nil, err
-	}
-	toc, err := r.renderTOC()
-	if err != nil {
-		return nil, err
-	}
-
-	var buf bytes.Buffer
-	err = page.Execute(&buf, struct {
-		Meta    site.Metadata
-		Content template.HTML
-		TOC     template.HTML
-	}{
-		Meta:    meta,
-		Content: template.HTML(content),
-		TOC:     template.HTML(toc),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("rendering template: %v", err)
-	}
-	return buf.Bytes(), nil
+// Includes draws the include elements of a document. lines and edits are the
+// highlighting computed for inc, lines already cut to the range it selects.
+type Includes interface {
+	Snippet(w io.Writer, inc *builtins.Include, lines builtins.Lines) error
+	Diff(w io.Writer, inc *builtins.Include, edits builtins.Edits) error
 }
 
-// RenderContent renders doc's body alone, without the page around it. It is
-// what the feed embeds, so its footnotes are rendered the plain way: a feed
-// reader has neither the stylesheet nor the script the panels need.
-func RenderContent(templates *template.Template, doc *gmarkst.Doc, frags map[build.Key]builtins.Fragment, docPath, docRoot string) ([]byte, error) {
-	r, err := newRenderer(templates, doc, frags, docPath, docRoot)
-	if err != nil {
-		return nil, err
+// Footnotes says how a body's footnotes are drawn.
+type Footnotes int
+
+const (
+	// Endnotes cites a footnote as a link to the list after the body. It
+	// needs no stylesheet or script.
+	Endnotes Footnotes = iota
+	// Popovers also draws each citation as a mark that opens the note in
+	// place. The page's stylesheet and script make the mark work.
+	Popovers
+)
+
+// RenderBody renders doc's body, without a page around it. frags are the
+// document's fragments, keyed the way [builtins.Artifact] keys them, inc draws
+// its includes, and fn says how its footnotes are drawn.
+func RenderBody(doc *Doc, frags map[build.Key]builtins.Fragment, docPath string, inc Includes, fn Footnotes) ([]byte, error) {
+	r := newRenderer(doc, frags, docPath, inc)
+	if fn == Popovers {
+		return r.content(r.renderWithFootnotes)
 	}
 	return r.content(r.render)
+}
+
+// RenderTOC renders doc's headings as a nested list, each entry linking to its
+// heading. It fails if a heading has no label, and with it no anchor to link
+// to. It returns nothing for a document without headings.
+func RenderTOC(doc *Doc, frags map[build.Key]builtins.Fragment, docPath string) ([]byte, error) {
+	// A heading holds no block element, so there is no include to draw.
+	return newRenderer(doc, frags, docPath, nil).renderTOC()
 }
 
 // RenderSummary renders the summary doc carries in its metadata, or "" if it
 // carries none. It is a fragment of a document rather than one of its own, so
 // it is rendered against the site root and without the endnote list a whole
 // page gets.
-func RenderSummary(doc *gmarkst.Doc, frags map[build.Key]builtins.Fragment) (string, error) {
+func RenderSummary(doc *Doc, frags map[build.Key]builtins.Fragment) (string, error) {
 	if doc.Summary == nil {
 		return "", nil
 	}
@@ -99,16 +86,16 @@ func RenderSummary(doc *gmarkst.Doc, frags map[build.Key]builtins.Fragment) (str
 
 // renderer holds what the site brings to a render: where the document sits, so
 // that the paths in it resolve, the fragments its includes and raw spans were
-// highlighted to, and the templates those fragments are drawn with.
+// highlighted to, and what draws the includes. includes is nil for a render
+// that can hold none.
 type renderer struct {
-	path          string
-	docRoot       string
-	snippet, diff *template.Template
-	doc           *value.Document
-	index         *value.Index
-	frags         map[build.Key]builtins.Fragment
-	notes         notes
-	cited         []value.Content
+	path     string
+	includes Includes
+	doc      *value.Document
+	index    *value.Index
+	frags    map[build.Key]builtins.Fragment
+	notes    notes
+	cited    []value.Content
 }
 
 // notes numbers a document's footnotes, looked up by the footnote itself and by
@@ -132,25 +119,15 @@ func indexNotes(d *value.Document) notes {
 	return ns
 }
 
-func newRenderer(templates *template.Template, doc *gmarkst.Doc, frags map[build.Key]builtins.Fragment, docPath, docRoot string) (*renderer, error) {
-	snippet := templates.Lookup("fragments/include_snippet")
-	if snippet == nil {
-		return nil, fmt.Errorf("template not found fragments/include_snippet")
-	}
-	diff := templates.Lookup("fragments/include_diff")
-	if diff == nil {
-		return nil, fmt.Errorf("template not found fragments/include_diff")
-	}
+func newRenderer(doc *Doc, frags map[build.Key]builtins.Fragment, docPath string, inc Includes) *renderer {
 	return &renderer{
-		path:    docPath,
-		docRoot: docRoot,
-		snippet: snippet,
-		diff:    diff,
-		doc:     doc.Doc,
-		index:   doc.Index,
-		frags:   frags,
-		notes:   indexNotes(doc.Doc),
-	}, nil
+		path:     docPath,
+		includes: inc,
+		doc:      doc.Doc,
+		index:    doc.Index,
+		frags:    frags,
+		notes:    indexNotes(doc.Doc),
+	}
 }
 
 func (r *renderer) content(el mhtml.Element) ([]byte, error) {
@@ -287,11 +264,13 @@ func (r *renderer) render(e *mhtml.Encoder, c value.Content) (bool, error) {
 	case *value.Custom:
 		// An element the generator put in the document while it compiled; see
 		// builtins.Bindings. The include says what to draw around the fragment
-		// that was computed for it, and the fragment says which template draws
-		// it.
+		// that was computed for it, and the fragment says which hook draws it.
 		p, ok := c.Value.(*builtins.Include)
 		if !ok {
 			return true, fmt.Errorf("unsupported custom payload: %T", c.Value)
+		}
+		if r.includes == nil {
+			return true, fmt.Errorf("%s cannot be rendered here", c.Elem)
 		}
 		frag, err := r.fragment(c, c.Elem)
 		if err != nil {
@@ -303,23 +282,9 @@ func (r *renderer) render(e *mhtml.Encoder, c value.Content) (bool, error) {
 			if err != nil {
 				return true, err
 			}
-			return true, r.execute(e, r.snippet, struct {
-				File, FilePath string
-				Lines          []highlight.Line
-			}{
-				File:     p.File,
-				FilePath: path.Join(r.docRoot, p.FilePath),
-				Lines:    lines,
-			})
+			return true, r.includes.Snippet(e, p, lines)
 		case builtins.Edits:
-			return true, r.execute(e, r.diff, struct {
-				File, FilePath string
-				Diff           []highlight.Edit
-			}{
-				File:     p.File,
-				FilePath: path.Join(r.docRoot, p.FilePath),
-				Diff:     f,
-			})
+			return true, r.includes.Diff(e, p, f)
 		default:
 			return true, fmt.Errorf("%s resolved to a %T", c.Elem, f)
 		}
@@ -333,17 +298,6 @@ func label(c value.Content) string {
 		return ""
 	}
 	return l.Name.String()
-}
-
-// execute renders one fragment into the document.
-func (r *renderer) execute(e *mhtml.Encoder, t *template.Template, data any) error {
-	if t == nil {
-		return fmt.Errorf("%T cannot be rendered here: no templates", data)
-	}
-	if err := t.Execute(e, data); err != nil {
-		return fmt.Errorf("rendering %s: %v", t.Name(), err)
-	}
-	return nil
 }
 
 // fragment returns the highlighting computed for node. what names the node in
@@ -407,9 +361,6 @@ func (r *renderer) tocEntry(e *mhtml.Encoder, c value.Content) (bool, error) {
 	return r.render(e, c)
 }
 
-// renderTOC renders the document's headings as a nested <ul> list, each entry
-// linking to its heading. It fails if a heading has no label, and with it no
-// anchor to link to.
 func (r *renderer) renderTOC() ([]byte, error) {
 	var buf bytes.Buffer
 	// A heading body is a fragment of the document: the endnotes belong to the

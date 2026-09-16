@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"flo.znkr.io/generator/build"
@@ -32,6 +33,23 @@ func TestPlanComputesNothing(t *testing.T) {
 	}
 	if _, err := d.Meta.Get(t.Context(), c); err == nil {
 		t.Error("Meta.Get() on a document that does not compile = nil, want error")
+	}
+}
+
+// TestMetadataRejectsAnUnknownDocType checks that a document is held to the
+// types there is a page template for when its metadata is read, which is the
+// first thing a cold start asks of every document, and that the error names
+// the file. Left to rendering, a typo would pass unnoticed until the first
+// request for the page.
+func TestMetadataRejectsAnUnknownDocType(t *testing.T) {
+	dir := fixture(t)
+	write(t, filepath.Join(dir, "site/about.mst"), "#metadata((title: \"T\", type: \"artikel\")) <doc-meta>\n")
+
+	s := load(t, dir)
+	c := build.NewCache(cacheSize)
+	_, err := s.Doc("/about").Meta.Get(t.Context(), c)
+	if err == nil || !strings.Contains(err.Error(), "site/about.mst: unknown doc type") {
+		t.Errorf("Meta.Get() = %v, want an unknown doc type error naming the file", err)
 	}
 }
 
@@ -323,8 +341,8 @@ func forceAll(t *testing.T, c *build.Cache, s *site.Site) string {
 		if _, err := d.Meta.Get(t.Context(), c); err != nil {
 			t.Fatalf("%s: Meta.Get() = %v", d.Path, err)
 		}
-		if _, err := d.Content.Get(t.Context(), c); err != nil {
-			t.Fatalf("%s: Content.Get() = %v", d.Path, err)
+		if _, err := d.FeedContent.Get(t.Context(), c); err != nil {
+			t.Fatalf("%s: FeedContent.Get() = %v", d.Path, err)
 		}
 		b, err := d.Page.Get(t.Context(), c)
 		if err != nil {

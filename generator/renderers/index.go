@@ -1,6 +1,8 @@
-// Package renderers holds the renderers for the two documents that aren't
-// compiled from a markst source: the site index and the atom feed. Both are
-// built from what the site's documents say about themselves.
+// Package renderers holds every step that draws with the site's templates: a
+// compiled document's body and the page around it, and the site index. It also
+// holds the atom feed, the other document that is not compiled from a markst
+// source. The index and the feed are built from what the site's documents say
+// about themselves.
 package renderers
 
 import (

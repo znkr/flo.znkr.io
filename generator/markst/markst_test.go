@@ -47,19 +47,6 @@ func TestLoadMetadataErrorNamesFile(t *testing.T) {
 	}
 }
 
-// TestLoadRejectsAnUnknownDocType checks that a document is held to the types
-// there is a page template for, at the point the file has a name to report.
-// Left to rendering, a typo would pass the load and fail on the first request.
-func TestLoadRejectsAnUnknownDocType(t *testing.T) {
-	for _, typ := range []string{"", "index", "fragments/include_snippet", "artikel"} {
-		src := `#metadata((title: "Test", type: "` + typ + `")) <doc-meta>` + "\n\n= Heading\n"
-		_, err := Load(t.Context(), "site/doc/index.mst", []byte(src), nil, nil)
-		if err == nil || !strings.Contains(err.Error(), "unknown doc type") {
-			t.Errorf("Load() with type %q = %v, want an unknown doc type error", typ, err)
-		}
-	}
-}
-
 // TestLoad checks the happy path: metadata comes back and nothing is reported.
 func TestLoad(t *testing.T) {
 	doc, err := Load(t.Context(), "site/doc/index.mst", []byte(docMeta+"= Heading\n\nSome text.\n"), nil, nil)
@@ -85,7 +72,7 @@ func TestLoadWithLibrary(t *testing.T) {
 	lib, err := LoadLibrary(t.Context(), "lib/lib.mst", []byte(`#let published(v) = {
     datetime.parse_date(v)
 }
-`), nil)
+`))
 	if err != nil {
 		t.Fatalf("LoadLibrary() = %v", err)
 	}
