@@ -41,7 +41,7 @@ func BenchmarkWarmForceAll(b *testing.B) {
 func BenchmarkColdLoad(b *testing.B) {
 	for b.Loop() {
 		c := build.NewCache(cacheSize)
-		if _, err := reload(b.Context(), c, ".."); err != nil {
+		if _, _, err := reload(b.Context(), c, ".."); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -71,12 +71,12 @@ func BenchmarkColdForceAll(b *testing.B) {
 // serve does after a file event when the edit changed nothing it compiles.
 func BenchmarkWarmReload(b *testing.B) {
 	c := build.NewCache(cacheSize)
-	if _, err := reload(b.Context(), c, ".."); err != nil {
+	if _, _, err := reload(b.Context(), c, ".."); err != nil {
 		b.Fatal(err)
 	}
 	b.ResetTimer()
 	for b.Loop() {
-		if _, err := reload(b.Context(), c, ".."); err != nil {
+		if _, _, err := reload(b.Context(), c, ".."); err != nil {
 			b.Fatal(err)
 		}
 	}

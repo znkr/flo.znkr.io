@@ -35,7 +35,7 @@ var serveCmd = &cobra.Command{
 		cache := build.NewCache(cacheSize)
 
 		start := time.Now()
-		s, err := reload(cmd.Context(), cache, dir)
+		s, diags, err := reload(cmd.Context(), cache, dir)
 		if err != nil {
 			return fmt.Errorf("loading site: %v", err)
 		}
@@ -44,7 +44,7 @@ var serveCmd = &cobra.Command{
 
 		// Start serving.
 		const addr = "localhost:8080"
-		server, err := server.Run(addr, cache, s)
+		server, err := server.Run(addr, cache, s, markst.Format(diags))
 		if err != nil {
 			return err
 		}
@@ -99,13 +99,14 @@ var serveCmd = &cobra.Command{
 				// Discard what serving the pages did since the last reload, so
 				// that the counts below cover only this one.
 				cache.Stats()
-				s, err := reload(cmd.Context(), cache, dir)
+				s, diags, err := reload(cmd.Context(), cache, dir)
 				if err != nil {
 					log.Printf("failed to update site: %v", err)
+					server.ReportFailure(err)
 					continue
 				}
 				st := cache.Stats()
-				server.ReplaceSite(s)
+				server.ReplaceSite(s, markst.Format(diags))
 				log.Printf("Site reloaded (%v, %d documents recompiled, %d of %d steps reused)",
 					time.Since(start), st.Kinds["doc"].Misses, st.Hits, st.Hits+st.Misses)
 
@@ -135,27 +136,28 @@ var serveCmd = &cobra.Command{
 //
 // The warnings are reported in full every reload, including the ones from
 // documents this reload did not have to compile, so that a warning stays on
-// screen until the document it is about is fixed.
-func reload(ctx context.Context, c *build.Cache, dir string) (*site.Site, error) {
+// screen until the document it is about is fixed. They are also returned, for
+// the browser.
+func reload(ctx context.Context, c *build.Cache, dir string) (*site.Site, []markst.Diagnostic, error) {
 	tree, err := source.Scan(dir)
 	if err != nil {
-		return nil, fmt.Errorf("scanning site: %v", err)
+		return nil, nil, fmt.Errorf("scanning site: %v", err)
 	}
 	s, diags, err := plan(tree)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for _, d := range s.Docs() {
 		if _, err := d.Meta.Get(ctx, c); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	ds, err := diags.Get(ctx, c)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	markst.Report(ds)
-	return s, nil
+	return s, ds, nil
 }
 
 func watchDir(watcher *fsnotify.Watcher, dir string) error {

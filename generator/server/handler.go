@@ -53,10 +53,12 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	b, err := doc.Page.Get(req.Context(), h.cache)
 	if err != nil {
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
 		log.Printf("failed to serve %v: %v", req.URL.EscapedPath(), err)
+		// The error page carries the reload script, so that the page comes
+		// back on its own once the document renders again.
+		w.Header().Set("Content-Type", "text/html;charset=utf-8")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(inject(errorPage(err)))
 		return
 	}
 
