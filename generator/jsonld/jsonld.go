@@ -10,6 +10,7 @@ type Article struct {
 	Author        []Person `json:"author"`
 	DatePublished string   `json:"datePublished"`
 	DateModified  string   `json:"dateModified"`
+	Image         string   `json:"image,omitempty"`
 	URL           string   `json:"url"`
 }
 
