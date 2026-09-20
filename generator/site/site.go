@@ -55,7 +55,10 @@ type Metadata struct {
 	Redirect     string
 	Type         string
 	CanonicalURL string
-	JSONLD       template.JS
+	// Source is the path of the file the document is written in, relative to
+	// the repository root. It is empty for a document the generator writes.
+	Source string
+	JSONLD template.JS
 }
 
 // New creates a new site from the provided docs.

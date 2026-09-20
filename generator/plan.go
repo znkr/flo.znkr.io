@@ -215,6 +215,7 @@ func siteMetadata(source, path string, d *markst.Doc, summary string) (site.Meta
 	}
 	m := site.Metadata{
 		Title:     d.Meta.Title,
+		Source:    source,
 		Type:      d.Meta.Type,
 		Published: d.Meta.Published,
 		Updated:   d.Meta.Updated,
