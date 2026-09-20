@@ -21,9 +21,30 @@
     <meta http-equiv="refresh" content="0;URL='{{ .Redirect }}'">
     {{- end }}
 
-    <meta name="author" content="Florian Zenker">
+    <meta property="og:site_name" content="flo.znkr.io">
+    <meta property="og:title" content="{{ .Title }}">
+    <meta property="og:type" content="{{ if eq .Type "article" }}article{{ else }}website{{ end }}">
+    {{- if .Image }}
+    <meta property="og:image" content="{{ .Image }}">
+    <meta name="twitter:card" content="summary_large_image">
+    {{- end }}
+    {{- if .CanonicalURL }}
+    <meta property="og:url" content="{{ .CanonicalURL }}">
+    {{- end }}
+    {{- if eq .Type "article" }}
+    <meta property="article:author" content="https://flo.znkr.io/about">
+    {{- if not .Published.IsZero }}
+    {{- $published := .Published.Format "2006-01-02" }}
+    {{- $updated := .Updated.Format "2006-01-02" }}
+    <meta property="article:published_time" content="{{ $published }}">
+    {{- if ne $published $updated }}
+    <meta property="article:modified_time" content="{{ $updated }}">
+    {{- end }}
+    {{- end }}
+    {{- end }}
     {{- if .Summary }}
     <meta name="description" content="{{ .Summary }}">
+    <meta property="og:description" content="{{ .Summary }}">
     {{- end }}
     {{- if .JSONLD -}}
     <script type="application/ld+json">

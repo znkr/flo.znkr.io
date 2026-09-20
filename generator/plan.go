@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"flo.znkr.io/generator/build"
+	"flo.znkr.io/generator/card"
 	"flo.znkr.io/generator/jsonld"
 	"flo.znkr.io/generator/markst"
 	"flo.znkr.io/generator/markst/builtins"
@@ -124,6 +125,7 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 		body := build.Derive[[]byte]("body", renderers.RenderBody, templates, mdoc, bodyFrags, p, docRoot, markst.Popovers)
 		toc := build.Derive[[]byte]("toc", markst.RenderTOC, mdoc, bodyFrags, p)
 		page := build.Derive[[]byte]("page", renderers.RenderPage, templates, meta, body, toc)
+		cardImg := build.Derive[[]byte]("card", card.Render, meta)
 
 		docs = append(docs, site.Doc{
 			Path:        p,
@@ -133,29 +135,32 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 			Page:        page,
 			FeedContent: content,
 		})
+		docs = append(docs, cardDoc(p, cardImg))
 		entries = append(entries, build.Derive[renderers.Entry]("entry", entryOf, p, meta))
 		contents = append(contents, content)
 		compiled = append(compiled, mdoc)
 	}
 
-	index := build.Derive[[]byte]("index", renderers.RenderIndex, templates, siteTitle, siteGoImport, entries)
+	indexMeta := constMeta(siteTitle, siteGoImport, cardURL("/"))
+	index := build.Derive[[]byte]("index", renderers.RenderIndex, templates, indexMeta, entries)
 	feed := build.Derive[[]byte]("feed", renderers.RenderAtom, siteTitle, entries, contents)
 
 	docs = append(docs,
 		site.Doc{
 			Path:        "/",
 			MimeType:    "text/html;charset=utf-8",
-			Meta:        constMeta(siteTitle, siteGoImport),
+			Meta:        indexMeta,
 			Page:        index,
 			FeedContent: index,
 		},
 		site.Doc{
 			Path:        "/feed.atom",
 			MimeType:    "application/atom+xml;charset=utf-8",
-			Meta:        constMeta(siteTitle, ""),
+			Meta:        constMeta(siteTitle, "", ""),
 			Page:        feed,
 			FeedContent: feed,
 		},
+		cardDoc("/", build.Derive[[]byte]("card", card.Render, indexMeta)),
 	)
 
 	// Every warning the site produces, in one artifact, so that they can be
@@ -226,6 +231,7 @@ func siteMetadata(source, path string, d *markst.Doc, summary string) (site.Meta
 	if !strings.HasSuffix(m.CanonicalURL, "/") {
 		m.CanonicalURL += "/"
 	}
+	m.Image = cardURL(path)
 
 	j, err := renderJSONLD(m)
 	if err != nil {
@@ -247,6 +253,7 @@ func renderJSONLD(meta site.Metadata) (string, error) {
 			}},
 			DatePublished: meta.Published.Format(time.RFC3339),
 			DateModified:  meta.Updated.Format(time.RFC3339),
+			Image:         meta.Image,
 			URL:           meta.CanonicalURL,
 		})
 		if err != nil {
@@ -269,10 +276,28 @@ func noMeta() build.Artifact[site.Metadata] {
 
 // constMeta returns the metadata of a document the generator writes rather than
 // reads. The index and the feed say what they say here rather than in a
-// document, so these two fields are the whole of what tells one from the other.
-func constMeta(title, goImport string) build.Artifact[site.Metadata] {
-	return build.Const("meta.const", site.Metadata{Title: title, GoImport: goImport})
+// document, so these three fields are the whole of what tells one from the
+// other.
+func constMeta(title, goImport, image string) build.Artifact[site.Metadata] {
+	return build.Const("meta.const", site.Metadata{Title: title, GoImport: goImport, Image: image})
 }
+
+// cardDoc returns the document holding the card of the page at p.
+func cardDoc(p string, img build.Artifact[[]byte]) site.Doc {
+	return site.Doc{
+		Path:        cardPath(p),
+		MimeType:    "image/png",
+		Meta:        noMeta(),
+		Page:        img,
+		FeedContent: img,
+	}
+}
+
+// cardPath returns the path the card of the page at p is served at.
+func cardPath(p string) string { return path.Join(p, "card.png") }
+
+// cardURL returns the URL a link preview loads the card of the page at p from.
+func cardURL(p string) string { return "https://flo.znkr.io" + cardPath(p) }
 
 // mimeType reports how a file with this extension is served.
 func mimeType(ext string) string {

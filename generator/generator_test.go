@@ -2,8 +2,12 @@ package main
 
 import (
 	"archive/tar"
+	"bytes"
 	"errors"
 	"flag"
+	"fmt"
+	"image"
+	"image/png"
 	"io"
 	"io/fs"
 	"os"
@@ -70,10 +74,50 @@ func TestGenerator(t *testing.T) {
 		if !ok {
 			continue // already reported above
 		}
+		if strings.HasSuffix(name, ".png") {
+			if diff := imageDiff(want[name], g); diff != "" {
+				t.Errorf("%s differs: %s", name, diff)
+			}
+			continue
+		}
 		if diff := cmp.Diff(string(want[name]), string(g)); diff != "" {
 			t.Errorf("%s differs (-want +got):\n%s", name, diff)
 		}
 	}
+}
+
+// imageDiff compares two PNGs pixel by pixel and returns an empty string if
+// they match, else what differs. The bytes are not compared: the same image
+// encodes differently across versions of compress/flate.
+func imageDiff(want, got []byte) string {
+	wi, err := png.Decode(bytes.NewReader(want))
+	if err != nil {
+		return fmt.Sprintf("golden does not decode: %v", err)
+	}
+	gi, err := png.Decode(bytes.NewReader(got))
+	if err != nil {
+		return fmt.Sprintf("does not decode: %v", err)
+	}
+	if wi.Bounds() != gi.Bounds() {
+		return fmt.Sprintf("bounds %v, want %v", gi.Bounds(), wi.Bounds())
+	}
+	b := wi.Bounds()
+	n := 0
+	var first image.Point
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			if wi.At(x, y) != gi.At(x, y) {
+				if n == 0 {
+					first = image.Pt(x, y)
+				}
+				n++
+			}
+		}
+	}
+	if n == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%d pixels differ, the first at %v", n, first)
 }
 
 // TestPackSite packs the real site in this repository, the way the deploy

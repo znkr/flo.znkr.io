@@ -46,7 +46,7 @@ func Articles(entries []Entry) []Entry {
 //
 // Every document is passed, not only the articles, because an edit can change
 // which documents are articles.
-func RenderIndex(templates *template.Template, title, goImport string, entries []Entry) ([]byte, error) {
+func RenderIndex(templates *template.Template, meta site.Metadata, entries []Entry) ([]byte, error) {
 	page := templates.Lookup("index")
 	if page == nil {
 		return nil, fmt.Errorf("template not found index")
@@ -57,7 +57,7 @@ func RenderIndex(templates *template.Template, title, goImport string, entries [
 		Meta     site.Metadata
 		Articles []Entry
 	}{
-		Meta:     site.Metadata{Title: title, GoImport: goImport},
+		Meta:     meta,
 		Articles: Articles(entries),
 	})
 	if err != nil {

@@ -29,9 +29,10 @@ func TestMarshal(t *testing.T) {
 				}},
 				DatePublished: "2026-01-02",
 				DateModified:  "2026-01-03",
+				Image:         "https://flo.znkr.io/hello/card.png",
 				URL:           "https://flo.znkr.io/hello",
 			},
-			want: `{"@context":"https://schema.org","@type":"Article","headline":"Hello","author":[{"@context":"https://schema.org","@type":"Person","name":"Florian Zenker","url":"https://flo.znkr.io/about"}],"datePublished":"2026-01-02","dateModified":"2026-01-03","url":"https://flo.znkr.io/hello"}`,
+			want: `{"@context":"https://schema.org","@type":"Article","headline":"Hello","author":[{"@context":"https://schema.org","@type":"Person","name":"Florian Zenker","url":"https://flo.znkr.io/about"}],"datePublished":"2026-01-02","dateModified":"2026-01-03","image":"https://flo.znkr.io/hello/card.png","url":"https://flo.znkr.io/hello"}`,
 		},
 	}
 	for _, tt := range tests {
