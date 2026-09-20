@@ -1,27 +1,33 @@
 :root {
-    --color-header-bg: #aaaaaa;
-    --color-header-text: #000000;
-    
+    /* One neutral ramp at hue 275 and one accent at hue 214, both from the
+       header gradient. Values are OKLCH, written as sRGB hex. */
     --color-bg: #ffffff;
-    --color-bg-accent: #f8f8f8;
-    --color-text: #000000;
-    --color-text-soft: #404040;
-    --color-text-soft-extra: #808080;
-    --color-link: #0093aa;
-    --color-link-soft: #bfe4ea;
-    --color-highlight: #625EB1;
+    --color-bg-inset: #fbfcfe;
+    --color-bg-chrome: #eef0f6;
+    --color-bg-chrome-hover: #e1e4ef;
+    --color-border: #d8dae3;
+    --color-text: #1f2129;
+    --color-text-soft: #525561;
+    --color-text-soft-extra: #717481;
+    --color-link: #008198;
 
-    --color-ctrl-bg: #ebebfa;
-    --color-ctrl-bg-accent: #dfdcf8;
-    --color-ctrl-bg-bright: #ccc8ff;
+    --color-insert: #317a45;
+    --color-insert-bg: #f3fff5;
+    --color-insert-gutter: #def8e2;
+    --color-delete: #a34945;
+    --color-delete-bg: #fff9f8;
+    --color-delete-gutter: #ffeae7;
+
+    --color-note: #116daf;
+    --color-note-bg: #eaf5ff;
+    --color-tip: #cf9a35;
+    --color-tip-bg: #fff5e4;
+
+    --gradient: linear-gradient(-225deg, #22e1ff 0%, #1d8fe1 48%, #746fd2 100%);
+
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", "Roboto Mono", monospace;
 
     --border-radius: 0.3125rem;
-    --box-shadow: 0px 0px 15px -10px rgba(0,0,0,0.70);
-    
-    --box-blue: #448aff;
-    --box-blue-light: #448aff1a;
-    --box-yellow: #f0d033;
-    --box-yellow-light: #f0d0331a;  
 
     --icon-admonition-note: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>');
     --icon-admonition-tip: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>');
@@ -29,7 +35,11 @@
     --icon-diff-unfold-up: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M7.823 1.677 4.927 4.573A.25.25 0 0 0 5.104 5H7.25v3.236a.75.75 0 1 0 1.5 0V5h2.146a.25.25 0 0 0 .177-.427L8.177 1.677a.25.25 0 0 0-.354 0ZM13.75 11a.75.75 0 0 0 0 1.5h.5a.75.75 0 0 0 0-1.5h-.5Zm-3.75.75a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1-.75-.75ZM7.75 11a.75.75 0 0 0 0 1.5h.5a.75.75 0 0 0 0-1.5h-.5ZM4 11.75a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1-.75-.75ZM1.75 11a.75.75 0 0 0 0 1.5h.5a.75.75 0 0 0 0-1.5h-.5Z"></path></svg>');
     --icon-diff-unfold: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="m8.177.677 2.896 2.896a.25.25 0 0 1-.177.427H8.75v1.25a.75.75 0 0 1-1.5 0V4H5.104a.25.25 0 0 1-.177-.427L7.823.677a.25.25 0 0 1 .354 0ZM7.25 10.75a.75.75 0 0 1 1.5 0V12h2.146a.25.25 0 0 1 .177.427l-2.896 2.896a.25.25 0 0 1-.354 0l-2.896-2.896A.25.25 0 0 1 5.104 12H7.25v-1.25Zm-5-2a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5ZM6 8a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1 0-1.5h.5A.75.75 0 0 1 6 8Zm2.25.75a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5ZM12 8a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1 0-1.5h.5A.75.75 0 0 1 12 8Zm2.25.75a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5Z"></path></svg>');
     --icon-link: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg>');
-    --icon-ext-link: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill="%230093aa" d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg>')
+    --icon-ext-link: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill="%23008198" d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg>')
+}
+
+code {
+    font-family: var(--font-mono);
 }
 
 *,
@@ -96,7 +106,6 @@ a:focus {
 
     background-image: linear-gradient(-225deg, #22e1ff 0%, #1d8fe1 48%, #746fd2 100%);
     color: var(--color-header-text);
-    box-shadow: 0 5px 15px #dcdcdc;
 
     padding: .4rem 1.5rem;
     margin-bottom: 2rem;
@@ -165,7 +174,7 @@ main {
             mask-repeat: no-repeat;
             mask-position: center bottom;
 
-            visibility: hidden;
+            opacity: .22;
         }
     } 
 
@@ -175,7 +184,7 @@ main {
     h5:hover,
     h6:hover {
         .anchor-link {
-            visibility: visible;
+            opacity: 1;
         }
     }
 
@@ -187,13 +196,13 @@ main {
 
     pre {
         overflow-x: auto;
-        background: var(--color-bg-accent);
+        background: var(--color-bg-inset);
         width: 100%;
         padding: 0.626rem 1rem;
-        outline: 1px solid var(--color-highlight);
+        outline: 1px solid var(--color-border);
         border-radius: var(--border-radius);
-        font-family: monospace;
-        box-shadow: 0px 0px 15px -10px rgba(0,0,0,0.70);
+        font-family: var(--font-mono);
+        font-size: 0.875rem;
     }
 
     .header {
@@ -215,7 +224,6 @@ main {
         }
 
         p > code {
-            color: var(--color-highlight);
             font-size: 0.9em;
         }
 
@@ -309,7 +317,7 @@ main {
                nothing else. */
             section > ul {
                 position: relative;
-                border-left: 1px solid var(--color-link-soft);
+                border-left: 1px solid var(--color-border);
             }
 
             section > ul::before {
@@ -363,12 +371,23 @@ main {
 
 
 .site-footer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
     padding: 1rem 1.5rem 2rem 1.5rem;
 
-    border-top: 1px solid var(--color-bg-accent);
+    background: var(--color-bg-inset);
     color: var(--color-text-soft-extra);
     font-size: 0.8rem;
-    text-align: right;
+
+    border-top: 2px solid transparent;
+    border-image: var(--gradient) 1;
+
+    nav {
+        display: flex;
+        gap: 1rem;
+    }
 }
 
 
@@ -392,6 +411,7 @@ main {
         display: block;
         color: var(--color-text-soft);
         font-size: 0.85rem;
+        font-variant-numeric: tabular-nums;
     }
 }
 
@@ -399,22 +419,24 @@ main {
     display: block;
     overflow-x: auto;
     width: 100%;
-    font-family: monospace;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
     border-collapse: collapse;
     border-spacing: 0;
     border: 0;
-    outline: 1px solid var(--color-highlight);
-    background: var(--color-bg-accent);
+    outline: 1px solid var(--color-border);
+    background: var(--color-bg-inset);
     border-radius: var(--border-radius);
     margin-top: 0;
-    box-shadow: var(--box-shadow);
+    font-variant-numeric: tabular-nums;
     -webkit-text-size-adjust: none;
     text-size-adjust: none;
 
     caption {
         caption-side: top;
         text-align: left;
-        background: var(--color-highlight);
+        background: var(--color-bg-chrome);
+        border-bottom: 1px solid var(--color-border);
         border-radius: var(--border-radius) var(--border-radius) 0 0;
         padding: 0.4em 1.0em;
         margin-bottom: 0;
@@ -422,7 +444,7 @@ main {
 
         a {
             font-weight: normal;
-            color: var(--color-bg);
+            color: var(--color-text-soft);
         }
     }
 
@@ -467,34 +489,42 @@ main {
     }
 
     tr.delete {
-        background: #faefef;
+        background: var(--color-delete-bg);
 
         .line-no {
-            background: #fadede;
+            background: var(--color-delete-gutter);
+        }
+
+        td.op {
+            color: var(--color-delete);
         }
     }
 
     tr.insert {
-        background: #effaef;
-        
+        background: var(--color-insert-bg);
+
         .line-no {
-            background: #defade;
+            background: var(--color-insert-gutter);
+        }
+
+        td.op {
+            color: var(--color-insert);
         }
     }
 
     tr.ctrl {
-        background: var(--color-ctrl-bg);
+        background: var(--color-bg-chrome);
         color: var(--color-text-soft-extra);
         vertical-align: middle;
     
         .fold-ctrl {
-            background: var(--color-ctrl-bg-accent);
+            background: var(--color-bg-chrome-hover);
             text-align: center;
             height: 1.8em;
         }
 
         .fold-ctrl:hover {
-            background: var(--color-ctrl-bg-bright);
+            background: var(--color-border);
         }
     
         .fold-button {
@@ -546,9 +576,10 @@ table:not(.code-snippet) {
     border-collapse: collapse;
     border-spacing: 0;
     width: 100%;
-    outline: 1px solid var(--color-highlight);
+    outline: 1px solid var(--color-border);
     border-radius: var(--border-radius);
     background: var(--color-bg);
+    font-variant-numeric: tabular-nums;
 
     th {
         background: var(--color-bg);
@@ -557,16 +588,16 @@ table:not(.code-snippet) {
         text-align: left;
         font-weight: bold;
         font-size: 1em;
-        border-right: 1px solid var(--color-highlight);
-        border-bottom: 1px solid var(--color-highlight);
+        border-right: 1px solid var(--color-border);
+        border-bottom: 1px solid var(--color-border);
     }
 
     td {
         background: var(--color-bg);
         padding: 0.4em 1.0em;
         font-size: 1em;
-        border-right: 1px solid var(--color-highlight);
-        border-bottom: 1px solid var(--color-highlight);
+        border-right: 1px solid var(--color-border);
+        border-bottom: 1px solid var(--color-border);
     }
 
     /* Remove right border from last cell in each row */
@@ -595,9 +626,8 @@ math[display="block"] {
 
 div.math-box {
     border: 1px solid;
-    border-color: var(--box-blue);
+    border-color: var(--color-note);
     border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
 
     margin: 1em 0;
     padding: 0 1em;
@@ -613,14 +643,14 @@ div.math-box {
 .admonition {
     border: 1px solid;
     border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
 
     margin: 1em 0;
     padding: 0 1em;
     page-break-inside: avoid;
 
     .admonition-title {
-        border-top-right-radius: var(--border-radius);
+        /* Inside the 1px border of the box. */
+        border-radius: calc(var(--border-radius) - 1px) calc(var(--border-radius) - 1px) 0 0;
         margin: 0 -1em -.4em -1em;
         padding: .4em 1em .4em 2.5em;
         position: relative;
@@ -637,27 +667,27 @@ div.math-box {
 }
 
 .admonition.note {
-    border-color: var(--box-blue);
+    border-color: var(--color-note);
     .admonition-title {
-        background: var(--box-blue-light);
+        background: var(--color-note-bg);
     }
 
     .admonition-title::before {
-        background-color: var(--box-blue);
+        background-color: var(--color-note);
         -webkit-mask-image: var(--icon-admonition-note);
         mask-image: var(--icon-admonition-note);
     }
 }
 
 .admonition.tip {
-    border-color:  var(--box-yellow);
+    border-color:  var(--color-tip);
 
     .admonition-title {
-        background: var(--box-yellow-light);
+        background: var(--color-tip-bg);
     }
 
     .admonition-title::before {
-        background-color: var(--box-yellow);
+        background-color: var(--color-tip);
         -webkit-mask-image: var(--icon-admonition-tip);
         mask-image: var(--icon-admonition-tip);
     }
@@ -683,7 +713,7 @@ div.math-box {
 .footnotes {
     hr {
        border: 0;
-        border-top: 1px solid var(--color-bg-accent);
+        border-top: 1px solid var(--color-border);
     }
 
     li,
@@ -695,7 +725,7 @@ div.math-box {
     }
 
     li:target {
-        background: var(--color-ctrl-bg);
+        background: var(--color-bg-chrome);
     }
 }
 
@@ -731,7 +761,7 @@ div.math-box {
     border-radius: var(--border-radius) var(--border-radius) 0 0;
     outline: 1px solid var(--color-text-soft);
     background: var(--color-bg);
-    box-shadow: var(--box-shadow);
+    box-shadow: 0px 0px 15px -10px rgba(0,0,0,0.70);
 
     padding: 0.8em 1.2em max(0.8em, env(safe-area-inset-bottom)) 1.2em;
     font-size: 0.85rem;

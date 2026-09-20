@@ -1,3 +1,11 @@
 <footer class="site-footer">
     <span>&copy; Florian Zenker</span>
+    <nav>
+        <a href="/feed.atom">Feed</a>
+        {{- if .Source }}
+        <a href="https://github.com/znkr/flo.znkr.io/blob/main/{{ .Source }}">Source</a>
+        {{- else }}
+        <a href="https://github.com/znkr/flo.znkr.io">Source</a>
+        {{- end }}
+    </nav>
 </footer>
