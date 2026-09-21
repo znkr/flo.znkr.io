@@ -570,6 +570,18 @@ main {
     }
 }
 
+/* The scroll container the renderer puts around a table. The padding keeps
+   the table's outline inside it. */
+.table-scroll {
+    overflow-x: auto;
+    padding: 1px;
+    margin: 1rem 0;
+
+    > table {
+        margin: 0;
+    }
+}
+
 /* Regular table styles (similar to code snippets) */
 table:not(.code-snippet) {
     display: table;
