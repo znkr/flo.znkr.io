@@ -171,9 +171,11 @@ main {
             -webkit-mask-image: var(--icon-link);
             -webkit-mask-repeat: no-repeat;
             -webkit-mask-position: center bottom;
+            -webkit-mask-size: contain;
             mask-image: var(--icon-link);
             mask-repeat: no-repeat;
             mask-position: center bottom;
+            mask-size: contain;
 
             opacity: .22;
         }
