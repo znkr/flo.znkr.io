@@ -248,6 +248,16 @@ func (r *renderer) render(e *mhtml.Encoder, c value.Content) (bool, error) {
 		e.Newline()
 		return true, nil
 
+	case *value.Table:
+		// A table does not scroll on its own, and main clips what is wider
+		// than the column.
+		e.Start("div", mhtml.Attr{Name: "class", Value: "table-scroll"})
+		e.Newline()
+		e.Default(c)
+		e.End("div")
+		e.Newline()
+		return true, nil
+
 	case *value.Raw:
 		code, err := r.rawCode(c)
 		if err != nil {
