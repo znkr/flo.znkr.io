@@ -52,12 +52,19 @@ func RenderIndex(templates *template.Template, meta site.Metadata, entries []Ent
 		return nil, fmt.Errorf("template not found index")
 	}
 
+	head, err := NewHead(meta)
+	if err != nil {
+		return nil, err
+	}
+
 	var buf bytes.Buffer
-	err := page.Execute(&buf, struct {
+	err = page.Execute(&buf, struct {
 		Meta     site.Metadata
+		Head     Head
 		Articles []Entry
 	}{
 		Meta:     meta,
+		Head:     head,
 		Articles: Articles(entries),
 	})
 	if err != nil {

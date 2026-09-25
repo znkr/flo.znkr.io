@@ -1,12 +1,9 @@
 <head>
 <title>{{ .Title }}</title>
-{{- if .Summary }}
-<meta name="description" content="{{ .Summary }}">
+{{- range .Tags }}
+<meta {{ .Attr }}="{{ .Name }}" content="{{ .Content }}">
 {{- end }}
-{{- if .GoImport }}
-<meta name="go-import" content="{{ .GoImport }}">
-{{- end }}
-{{- if .Redirect }}
-<meta http-equiv="refresh" content="0;URL='{{ .Redirect }}'">
+{{- if .JSONLD }}
+<script type="application/ld+json">{{ .JSONLD }}</script>
 {{- end }}
 </head>

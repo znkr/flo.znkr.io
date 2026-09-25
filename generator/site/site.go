@@ -3,7 +3,6 @@ package site
 import (
 	"cmp"
 	"fmt"
-	"html/template"
 	"slices"
 	"time"
 
@@ -47,20 +46,28 @@ type Doc struct {
 var DocTypes = []string{"article", "page"}
 
 type Metadata struct {
-	Title        string
-	Published    time.Time
-	Updated      time.Time
-	Summary      string
-	GoImport     string
-	Redirect     string
-	Type         string
+	// Title is the title of the document.
+	Title string
+	// Published is the date and time when the document was first published.
+	Published time.Time
+	// Updated is the date and time when the document was last updated.
+	Updated time.Time
+	// Summary is a short description of the document.
+	Summary string
+	// GoImport is the import path for the Go package corresponding to the
+	// URL if any.
+	GoImport string
+	// Redirect is the URL to which the document should redirect, if any.
+	Redirect string
+	// Type is the type of the document.
+	Type string
+	// CanonicalURL is the preferred URL of the document.
 	CanonicalURL string
 	// Image is the URL of the card a link to the document is previewed with.
 	Image string
 	// Source is the path of the file the document is written in, relative to
 	// the repository root. It is empty for a document the generator writes.
 	Source string
-	JSONLD template.JS
 }
 
 // New creates a new site from the provided docs.

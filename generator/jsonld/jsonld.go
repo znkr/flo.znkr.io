@@ -8,8 +8,8 @@ import (
 type Article struct {
 	Headline      string   `json:"headline"`
 	Author        []Person `json:"author"`
-	DatePublished string   `json:"datePublished"`
-	DateModified  string   `json:"dateModified"`
+	DatePublished string   `json:"datePublished,omitempty"`
+	DateModified  string   `json:"dateModified,omitempty"`
 	Image         string   `json:"image,omitempty"`
 	URL           string   `json:"url"`
 }
