@@ -37,6 +37,14 @@ const (
 	siteOrigin = "https://flo.znkr.io"
 )
 
+// robotsTxt is what a crawler is told: everything may be crawled, and the
+// sitemap is here. A draft is kept out of search by the noindex in its own
+// head, which a crawler has to fetch the document to see.
+const robotsTxt = "User-agent: *\n" +
+	"Allow: /\n" +
+	"\n" +
+	"Sitemap: " + siteOrigin + "/sitemap.xml\n"
+
 // plan declares the build of the site tree and returns it. It computes nothing:
 // a document is compiled, highlighted and rendered when the artifact holding it
 // is first asked for.
@@ -153,6 +161,11 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 	})
 	index := build.Derive[[]byte]("index", renderers.RenderIndex, templates, indexMeta, entries)
 	feed := build.Derive[[]byte]("feed", renderers.RenderAtom, siteTitle, entries, contents)
+	// entries holds the compiled documents, which the index is not one of, and
+	// the feed reads it against contents. The sitemap lists the index too.
+	indexEntry := build.Derive[renderers.Entry]("entry", entryOf, "/", indexMeta)
+	sitemap := build.Derive[[]byte]("sitemap", renderers.RenderSitemap, append(slices.Clone(entries), indexEntry))
+	robots := build.Const("robots", []byte(robotsTxt))
 
 	docs = append(docs,
 		site.Doc{
@@ -168,6 +181,20 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 			Meta:        constMeta(site.Metadata{Title: siteTitle}),
 			Page:        feed,
 			FeedContent: feed,
+		},
+		site.Doc{
+			Path:        "/sitemap.xml",
+			MimeType:    "application/xml;charset=utf-8",
+			Meta:        noMeta(),
+			Page:        sitemap,
+			FeedContent: sitemap,
+		},
+		site.Doc{
+			Path:        "/robots.txt",
+			MimeType:    "text/plain;charset=utf-8",
+			Meta:        noMeta(),
+			Page:        robots,
+			FeedContent: robots,
 		},
 		cardDoc("/", build.Derive[[]byte]("card", card.Render, indexMeta)),
 	)

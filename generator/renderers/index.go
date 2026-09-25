@@ -30,7 +30,7 @@ type Entry struct {
 func Articles(entries []Entry) []Entry {
 	var ret []Entry
 	for _, e := range entries {
-		if e.Meta.Type != "article" || e.Meta.Published.IsZero() {
+		if e.Meta.Type != "article" || e.Meta.Draft() {
 			continue
 		}
 		ret = append(ret, e)

@@ -50,7 +50,7 @@ func Pack(ctx context.Context, filename string, c *build.Cache, s *site.Site) er
 		}
 
 		switch mime {
-		case "text/css", "image/svg+xml", "application/atom+xml", "text/javascript":
+		case "text/css", "image/svg+xml", "application/atom+xml", "application/xml", "text/javascript":
 			b, err = minifier.Bytes(d.MimeType, b)
 			if err != nil {
 				return fmt.Errorf("minification of failed for %s: %v", d.Path, err)
