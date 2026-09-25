@@ -73,6 +73,12 @@ type Metadata struct {
 	Source string
 }
 
+// Draft reports whether the document is an article that has not been
+// published.
+func (m Metadata) Draft() bool {
+	return m.Type == "article" && m.Published.IsZero()
+}
+
 // New creates a new site from the provided docs.
 //
 // If there are multiple docs for the same path, New returns an error.

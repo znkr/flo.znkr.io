@@ -84,9 +84,9 @@ func NewHead(m site.Metadata) (Head, error) {
 		h.Links = append(h.Links, Link{"me", p})
 	}
 
-	// An article without a published date is a draft. It is served like every
-	// other document, so it says for itself that it is not to be indexed.
-	if m.Type == "article" && m.Published.IsZero() {
+	// A draft is served like every other document, so it says for itself that
+	// it is not to be indexed.
+	if m.Draft() {
 		h.Tags = append(h.Tags, name("robots", "noindex"))
 	}
 	if m.GoImport != "" {
