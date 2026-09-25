@@ -24,13 +24,20 @@ func RenderPage(templates *template.Template, meta site.Metadata, body, toc []by
 		return nil, fmt.Errorf("unknown doc type: %s", meta.Type)
 	}
 
+	head, err := NewHead(meta)
+	if err != nil {
+		return nil, err
+	}
+
 	var buf bytes.Buffer
-	err := page.Execute(&buf, struct {
+	err = page.Execute(&buf, struct {
 		Meta    site.Metadata
+		Head    Head
 		Content template.HTML
 		TOC     template.HTML
 	}{
 		Meta:    meta,
+		Head:    head,
 		Content: template.HTML(body),
 		TOC:     template.HTML(toc),
 	})

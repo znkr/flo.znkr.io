@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -10,11 +9,9 @@ import (
 	"path"
 	"slices"
 	"strings"
-	"time"
 
 	"flo.znkr.io/generator/build"
 	"flo.znkr.io/generator/card"
-	"flo.znkr.io/generator/jsonld"
 	"flo.znkr.io/generator/markst"
 	"flo.znkr.io/generator/markst/builtins"
 	"flo.znkr.io/generator/renderers"
@@ -213,7 +210,7 @@ func deriveFragments(kind string, walk func(*markst.Doc) ([]build.Artifact[built
 
 // siteMetadata returns what the site knows about the document at source: what
 // it says about itself, held to the types there is a page template for, with
-// its summary rendered in, its canonical URL and its JSON-LD.
+// its summary rendered in and its canonical URL.
 func siteMetadata(source, path string, d *markst.Doc, summary string) (site.Metadata, error) {
 	if !slices.Contains(site.DocTypes, d.Meta.Type) {
 		return site.Metadata{}, fmt.Errorf("%s: unknown doc type: %q", source, d.Meta.Type)
@@ -233,36 +230,7 @@ func siteMetadata(source, path string, d *markst.Doc, summary string) (site.Meta
 	}
 	m.Image = cardURL(path)
 
-	j, err := renderJSONLD(m)
-	if err != nil {
-		return site.Metadata{}, err
-	}
-	m.JSONLD = template.JS(j)
-
 	return m, nil
-}
-
-func renderJSONLD(meta site.Metadata) (string, error) {
-	switch meta.Type {
-	case "article":
-		d, err := json.Marshal(jsonld.Article{
-			Headline: meta.Title,
-			Author: []jsonld.Person{{
-				Name: "Florian Zenker",
-				URL:  "https://flo.znkr.io/about",
-			}},
-			DatePublished: meta.Published.Format(time.RFC3339),
-			DateModified:  meta.Updated.Format(time.RFC3339),
-			Image:         meta.Image,
-			URL:           meta.CanonicalURL,
-		})
-		if err != nil {
-			return "", err
-		}
-		return string(d), nil
-	default:
-		return "", nil
-	}
 }
 
 func entryOf(p string, m site.Metadata) (renderers.Entry, error) {
