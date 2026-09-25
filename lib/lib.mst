@@ -17,12 +17,13 @@
     ]
 }
 
-#let page(title: none, header: none, content) = {
+#let page(title: none, summary: none, header: none, content) = {
     set document(title: title)
     [
         #metadata((
             title: title,
             type: "page",
+            summary: summary,
         )) <doc-meta>
     ]
     html.elem("header", attrs: (style: "text-align: left", class: "header"), header)
