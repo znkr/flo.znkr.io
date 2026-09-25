@@ -30,7 +30,11 @@ const cacheSize = 2048
 
 const (
 	siteTitle    = "Florian Zenker's website"
+	siteSummary  = "Thoughts and notes about things that interest me, mostly programming."
 	siteGoImport = "flo.znkr.io git https://github.com/znkr/flo.znkr.io"
+	// siteOrigin is the site's origin, without a trailing slash: every URL of
+	// the site is it and a path.
+	siteOrigin = "https://flo.znkr.io"
 )
 
 // plan declares the build of the site tree and returns it. It computes nothing:
@@ -138,7 +142,15 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 		compiled = append(compiled, mdoc)
 	}
 
-	indexMeta := constMeta(siteTitle, siteGoImport, cardURL("/"))
+	indexMeta := constMeta(site.Metadata{
+		Title:        siteTitle,
+		Summary:      siteSummary,
+		GoImport:     siteGoImport,
+		CanonicalURL: canonicalURL("/"),
+		Image:        cardURL("/"),
+		ImageWidth:   card.Width,
+		ImageHeight:  card.Height,
+	})
 	index := build.Derive[[]byte]("index", renderers.RenderIndex, templates, indexMeta, entries)
 	feed := build.Derive[[]byte]("feed", renderers.RenderAtom, siteTitle, entries, contents)
 
@@ -153,7 +165,7 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 		site.Doc{
 			Path:        "/feed.atom",
 			MimeType:    "application/atom+xml;charset=utf-8",
-			Meta:        constMeta(siteTitle, "", ""),
+			Meta:        constMeta(site.Metadata{Title: siteTitle}),
 			Page:        feed,
 			FeedContent: feed,
 		},
@@ -224,11 +236,9 @@ func siteMetadata(source, path string, d *markst.Doc, summary string) (site.Meta
 		Summary:   summary,
 	}
 
-	m.CanonicalURL = "https://flo.znkr.io" + path
-	if !strings.HasSuffix(m.CanonicalURL, "/") {
-		m.CanonicalURL += "/"
-	}
+	m.CanonicalURL = canonicalURL(path)
 	m.Image = cardURL(path)
+	m.ImageWidth, m.ImageHeight = card.Width, card.Height
 
 	return m, nil
 }
@@ -244,10 +254,9 @@ func noMeta() build.Artifact[site.Metadata] {
 
 // constMeta returns the metadata of a document the generator writes rather than
 // reads. The index and the feed say what they say here rather than in a
-// document, so these three fields are the whole of what tells one from the
-// other.
-func constMeta(title, goImport, image string) build.Artifact[site.Metadata] {
-	return build.Const("meta.const", site.Metadata{Title: title, GoImport: goImport, Image: image})
+// document.
+func constMeta(m site.Metadata) build.Artifact[site.Metadata] {
+	return build.Const("meta.const", m)
 }
 
 // cardDoc returns the document holding the card of the page at p.
@@ -264,8 +273,17 @@ func cardDoc(p string, img build.Artifact[[]byte]) site.Doc {
 // cardPath returns the path the card of the page at p is served at.
 func cardPath(p string) string { return path.Join(p, "card.png") }
 
+// canonicalURL returns the URL the page at p is served from, which is the one
+// URL of it a search engine is to keep.
+func canonicalURL(p string) string {
+	if !strings.HasSuffix(p, "/") {
+		p += "/"
+	}
+	return siteOrigin + p
+}
+
 // cardURL returns the URL a link preview loads the card of the page at p from.
-func cardURL(p string) string { return "https://flo.znkr.io" + cardPath(p) }
+func cardURL(p string) string { return siteOrigin + cardPath(p) }
 
 // mimeType reports how a file with this extension is served.
 func mimeType(ext string) string {

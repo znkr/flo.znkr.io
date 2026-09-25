@@ -53,8 +53,8 @@ func RenderAtom(title string, entries []Entry, contents [][]byte) ([]byte, error
 				Body: string(body[a.Path]),
 			},
 			Author: &atom.Person{
-				Name: "Florian Zenker",
-				URI:  "https://flo.znkr.io/about",
+				Name: authorName,
+				URI:  authorURL,
 			},
 		}
 		feed.Entry = append(feed.Entry, e)
