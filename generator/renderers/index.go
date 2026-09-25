@@ -61,10 +61,12 @@ func RenderIndex(templates *template.Template, meta site.Metadata, entries []Ent
 	err = page.Execute(&buf, struct {
 		Meta     site.Metadata
 		Head     Head
+		Profiles []Profile
 		Articles []Entry
 	}{
 		Meta:     meta,
 		Head:     head,
+		Profiles: authorProfiles,
 		Articles: Articles(entries),
 	})
 	if err != nil {

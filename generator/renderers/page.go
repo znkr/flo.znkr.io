@@ -31,15 +31,17 @@ func RenderPage(templates *template.Template, meta site.Metadata, body, toc []by
 
 	var buf bytes.Buffer
 	err = page.Execute(&buf, struct {
-		Meta    site.Metadata
-		Head    Head
-		Content template.HTML
-		TOC     template.HTML
+		Meta     site.Metadata
+		Head     Head
+		Profiles []Profile
+		Content  template.HTML
+		TOC      template.HTML
 	}{
-		Meta:    meta,
-		Head:    head,
-		Content: template.HTML(body),
-		TOC:     template.HTML(toc),
+		Meta:     meta,
+		Head:     head,
+		Profiles: authorProfiles,
+		Content:  template.HTML(body),
+		TOC:      template.HTML(toc),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("rendering template: %v", err)
