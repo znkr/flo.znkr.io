@@ -9,6 +9,9 @@
     <link rel="icon" href="/_assets/icon.png" type="image/png" sizes="48x48">
 
     <link rel="alternate" title="flo.znkr.io" type="application/atom+xml" href="/feed.atom">
+    {{- range .Links }}
+    <link rel="{{ .Rel }}" href="{{ .Href }}">
+    {{- end }}
 
     {{- range .Tags }}
     <meta {{ .Attr }}="{{ .Name }}" content="{{ .Content }}">

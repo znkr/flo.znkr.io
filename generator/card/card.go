@@ -18,20 +18,24 @@ import (
 	"flo.znkr.io/generator/site"
 )
 
-// The card is the size link previews are made for, laid out like the site's
-// header: the gradient as a bar at the top, the title, and the site name at the
-// bottom with the mark in front of it.
+// Width and Height are the size a card is drawn at, which a link preview
+// states next to the image URL.
 const (
-	width, height = 1200, 630
-	margin        = 80
-	barHeight     = 14
-	titleTop      = 190
-	titleSize     = 76
-	minTitleSize  = 48
-	maxLines      = 4
-	nameSize      = 40
-	markSize      = 24
-	siteName      = "flo.znkr.io"
+	Width, Height = 1200, 630
+)
+
+// The card is laid out like the site's header: the gradient as a bar at the
+// top, the title, and the site name at the bottom with the mark in front of it.
+const (
+	margin       = 80
+	barHeight    = 14
+	titleTop     = 190
+	titleSize    = 76
+	minTitleSize = 48
+	maxLines     = 4
+	nameSize     = 40
+	markSize     = 24
+	siteName     = "flo.znkr.io"
 )
 
 var (
@@ -63,9 +67,9 @@ func mustParse(ttf []byte) *opentype.Font {
 
 // Render returns the card for the page described by m, as a PNG.
 func Render(m site.Metadata) ([]byte, error) {
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	img := image.NewRGBA(image.Rect(0, 0, Width, Height))
 	draw.Draw(img, img.Bounds(), image.NewUniform(bg), image.Point{}, draw.Src)
-	fillGradient(img, image.Rect(0, 0, width, barHeight))
+	fillGradient(img, image.Rect(0, 0, Width, barHeight))
 
 	// The title, at the largest size that fits the lines allowed.
 	size := titleSize
@@ -77,7 +81,7 @@ func Render(m site.Metadata) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		lines = wrap(face, m.Title, width-2*margin)
+		lines = wrap(face, m.Title, Width-2*margin)
 		if len(lines) <= maxLines || size <= minTitleSize {
 			break
 		}
@@ -95,7 +99,7 @@ func Render(m site.Metadata) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	baseline := height - margin
+	baseline := Height - margin
 	fillGradient(img, image.Rect(margin, baseline-markSize, margin+markSize, baseline))
 	d = &font.Drawer{Dst: img, Src: image.NewUniform(textSoft), Face: face}
 	d.Dot = fixed.P(margin+markSize+16, baseline)

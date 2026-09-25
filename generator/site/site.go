@@ -65,6 +65,9 @@ type Metadata struct {
 	CanonicalURL string
 	// Image is the URL of the card a link to the document is previewed with.
 	Image string
+	// ImageWidth and ImageHeight are the size Image is drawn at.
+	ImageWidth  int
+	ImageHeight int
 	// Source is the path of the file the document is written in, relative to
 	// the repository root. It is empty for a document the generator writes.
 	Source string
