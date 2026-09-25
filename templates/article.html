@@ -23,11 +23,13 @@
         
         {{ if .TOC -}}
             <aside class="toc">
-                <nav>
-                    <section>
-                        <h2>Table of Contents</h2>
-                        {{ .TOC }}
-                    </section>
+                <div class="toc-bar">
+                    <button class="toc-current" popovertarget="toc-nav" aria-label="Table of Contents">
+                        <span class="toc-crumbs"><span class="toc-title">{{ .Meta.Title }}</span><span class="toc-path"><span>Contents</span></span></span>
+                    </button>
+                </div>
+                <nav id="toc-nav" popover aria-label="Table of Contents">
+                    {{ .TOC }}
                 </nav>
             </aside>
         {{- end }}
