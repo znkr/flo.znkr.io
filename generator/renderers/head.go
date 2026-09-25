@@ -33,12 +33,34 @@ const (
 	personID  = authorURL + "#me"
 )
 
-// authorProfiles are the author's accounts elsewhere. schema.org states them as
-// sameAs, and Mastodon checks a profile's link against a rel=me here.
-var authorProfiles = []string{
-	"https://github.com/znkr",
-	"https://hachyderm.io/@znkr",
-	"https://bsky.app/profile/flo.znkr.io",
+// authorProfiles are the author's accounts elsewhere. schema.org states them
+// as sameAs, Mastodon checks a profile's link against a rel=me here, and the
+// site footer links to each of them by its icon.
+var authorProfiles = []Profile{
+	{Name: "GitHub", URL: "https://github.com/znkr", Icon: "github"},
+	{Name: "Mastodon", URL: "https://hachyderm.io/@znkr", Icon: "mastodon"},
+	{Name: "Bluesky", URL: "https://bsky.app/profile/flo.znkr.io", Icon: "bluesky"},
+}
+
+// Profile is an account of the author's elsewhere.
+type Profile struct {
+	// Name is what the account is called, which is what a link to it is
+	// labeled with.
+	Name string
+	// URL is the account's page.
+	URL string
+	// Icon names the stylesheet's icon for it.
+	Icon string
+}
+
+// profileURLs returns the URL of every profile, which is what schema.org states
+// as sameAs.
+func profileURLs() []string {
+	urls := make([]string, len(authorProfiles))
+	for i, p := range authorProfiles {
+		urls[i] = p.URL
+	}
+	return urls
 }
 
 // Head is what the head fragment draws: the title of the page, the links and
@@ -81,7 +103,7 @@ func NewHead(m site.Metadata) (Head, error) {
 	}
 	h.Links = append(h.Links, Link{"author", authorURL})
 	for _, p := range authorProfiles {
-		h.Links = append(h.Links, Link{"me", p})
+		h.Links = append(h.Links, Link{"me", p.URL})
 	}
 
 	// A draft is served like every other document, so it says for itself that
@@ -188,7 +210,7 @@ func graph(m site.Metadata) jsonld.Graph {
 			ID:     personID,
 			Name:   authorName,
 			URL:    authorURL,
-			SameAs: authorProfiles,
+			SameAs: profileURLs(),
 		},
 	)
 

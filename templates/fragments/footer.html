@@ -1,11 +1,15 @@
 <footer class="site-footer">
     <span>&copy; Florian Zenker</span>
     <nav>
+        <a href="/about">About</a>
         <a href="/feed.atom">Feed</a>
-        {{- if .Source }}
-        <a href="https://github.com/znkr/flo.znkr.io/blob/main/{{ .Source }}">Source</a>
+        {{- if .Meta.Source }}
+        <a href="https://github.com/znkr/flo.znkr.io/blob/main/{{ .Meta.Source }}">Source</a>
         {{- else }}
         <a href="https://github.com/znkr/flo.znkr.io">Source</a>
+        {{- end }}
+        {{- range .Profiles }}
+        <a class="profile profile-{{ .Icon }}" href="{{ .URL }}" rel="me" title="{{ .Name }}" aria-label="{{ .Name }}"></a>
         {{- end }}
     </nav>
 </footer>
