@@ -29,6 +29,14 @@
 
     --border-radius: 0.3125rem;
 
+    /* The text column: its width, with the gutter on either side, and the side
+       padding that lines a full-width box up with it. */
+    --column-width: 55rem;
+    --column-gutter: 1.5rem;
+    --column-inset: max(var(--column-gutter), calc((100% - var(--column-width)) / 2 + var(--column-gutter)));
+
+    --toc-bar-height: 2.75rem;
+
     --icon-admonition-note: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>');
     --icon-admonition-tip: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>');
     --icon-diff-unfold-down: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="m8.177 14.323 2.896-2.896a.25.25 0 0 0-.177-.427H8.75V7.764a.75.75 0 1 0-1.5 0V11H5.104a.25.25 0 0 0-.177.427l2.896 2.896a.25.25 0 0 0 .354 0ZM2.25 5a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5ZM6 4.25a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1 0-1.5h.5a.75.75 0 0 1 .75.75ZM8.25 5a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5ZM12 4.25a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1 0-1.5h.5a.75.75 0 0 1 .75.75Zm2.25.75a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5Z"></path></svg>');
@@ -109,34 +117,56 @@ a:focus {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
+    flex-wrap: wrap;
+    gap: 1rem;
 
-    background-image: linear-gradient(-225deg, #22e1ff 0%, #1d8fe1 48%, #746fd2 100%);
-    color: var(--color-header-text);
+    border-top: 4px solid transparent;
+    border-image: var(--gradient) 1;
 
-    padding: .4rem 1.5rem;
-    margin-bottom: 2rem;
+    padding: 1rem var(--column-inset);
+    margin-bottom: 1rem;
 
-    h1 {
-        color: var(--color-header-text);
-        font-weight: normal;
-        font-size: 1rem;
-        margin: 0;
+    .site-name {
+        color: var(--color-text);
+        font-size: 1.125rem;
+        font-weight: 600;
+        letter-spacing: -0.012em;
     }
 
-    a,
-    a:link,
-    a:visited {
-        color: inherit;
+    nav {
+        display: flex;
+        gap: 1.25rem;
+        font-size: 0.9rem;
+    }
+
+    nav a {
+        color: var(--color-text-soft);
+    }
+
+    a:hover,
+    a:focus {
+        color: var(--color-link);
+        text-decoration: none;
     }
 }
 
+/* The text column between two gutters. A child sits in the column unless it
+   asks for the full width. */
 main {
-    overflow-x: auto;
     flex: 1;
-    width: 100%;
-    max-width: 55em;
-    margin: 0 auto;
-    padding: 0 1.5rem 2.875rem 1.5rem;
+    padding-bottom: 2.875rem;
+
+    display: grid;
+    align-content: start;
+    grid-template-columns:
+        [full-start] minmax(var(--column-gutter), 1fr)
+        [content-start] minmax(0, calc(var(--column-width) - 2 * var(--column-gutter)))
+        [content-end] minmax(var(--column-gutter), 1fr)
+        [full-end];
+
+    > * {
+        grid-column: content;
+    }
 
     h1 {
         font-size: 2.05rem;
@@ -212,7 +242,8 @@ main {
 
     .header {
         text-align: center;
-        margin: 1rem 0 1rem 0;
+        /* Margins between grid items add up; the item below brings its own. */
+        margin: 1rem 0 0;
 
         h1 {
             margin: 0 auto;
@@ -224,6 +255,10 @@ main {
     }
 
     .content {
+        /* Room to scroll the last heading to the top of the reading area, so
+           that a link to it lands where a link to any other heading lands. */
+        padding-bottom: var(--tail, 0);
+
         img {
             max-width: 100%;
         }
@@ -266,121 +301,203 @@ main {
             font-size: 0.75em;
         }
     }
+}
 
-    .toc {        
-        ul {
-            list-style: none;
-            padding-left: 0;
-            margin: 0;
-        }
-        li li a {
-            padding-left: 1em;
-        }
-        li li li a {
-            padding-left: 2em;
+
+/* The table of contents is a bar below the article header that pins to the top
+   of the viewport. It names the section being read, its bottom edge fills with
+   the share of the page read so far, and it opens the list: in place before it
+   pins, as a sheet below it once pinned. */
+.toc {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    grid-column: full;
+    margin-top: 1.5rem;
+
+    /* Hidden until the popover rules below turn it on: where the list cannot
+       open as a sheet, the bar would be a button that does nothing and the
+       list would stand open over the article. */
+    display: none;
+}
+
+@supports selector(:popover-open) {
+    .toc {
+        display: block;
+    }
+
+    /* A heading scrolled to lands below the bar rather than under it. The
+       script reads the same padding as the top of the reading area. */
+    html:has(.toc-bar) {
+        scroll-padding-top: calc(var(--toc-bar-height) + 0.5rem);
+    }
+}
+
+.toc-bar {
+    position: relative;
+    height: var(--toc-bar-height);
+
+    display: flex;
+
+    /* In place below the header the bar is a plain line of text; pinned, it
+       gains a hairline and the reading progress along it. The background hides
+       the text scrolling under it. */
+    background: var(--color-bg);
+    border-bottom: 1px solid transparent;
+    transition: border-color .2s cubic-bezier(.4, 0, .2, 1);
+
+    &.pinned {
+        border-color: var(--color-border);
+    }
+
+    /* The progress uncovers the site gradient rather than stretching it,
+       so each point of the line keeps its color. */
+    &::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -1px;
+        height: 2px;
+        background: var(--gradient);
+        clip-path: inset(0 calc((1 - var(--progress, 0)) * 100%) 0 0);
+        opacity: 0;
+        transition: opacity .2s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    &.pinned::after {
+        opacity: 1;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        &,
+        &::after {
+            transition: none;
         }
     }
 }
 
-@media screen and (min-width: 90rem) {
-    main {
-        overflow-x: visible;
-        max-width: unset;
-        display: grid;
-        align-content: start;
-        grid-template-columns: 1fr auto 1fr;
-        grid-template-rows: auto;
-        grid-template-areas:
-            ". header ."
-            ". inline-toc . "
-            ". content sidebar-toc";
-        column-gap: 3em;
+.toc-current {
+    all: unset;
+    flex: 1;
+    min-width: 0;
+    padding: 0 var(--column-inset);
+    cursor: pointer;
 
-        .header {
-            grid-area: header;
-        }
-            
-        .content {
-            grid-area: content;
-            max-width: 55rem;
+    display: flex;
+    white-space: nowrap;
+    line-height: var(--toc-bar-height);
+    font-size: 0.9rem;
 
-            /* Room to scroll the last heading to the top, so that a link to it
-               lands where a link to any other heading lands. Only the sidebar
-               layout marks a position, so only it pays for one. */
-            padding-bottom: var(--tail, 0);
-        }
+    &::after {
+        content: "▾";
+        flex: none;
+        margin-left: 0.5em;
+        color: var(--color-text-soft-extra);
+    }
 
-        .toc {
-            grid-area: sidebar-toc;
-
-            align-self: start;
-            position: sticky;
-            top: 0;
-
-            /* The rider marks the row of the section being read. It slides
-               between rows, so becoming active changes a link's color and
-               nothing else. */
-            section > ul {
-                position: relative;
-                border-left: 1px solid var(--color-border);
-            }
-
-            section > ul::before {
-                content: "";
-                position: absolute;
-                left: -1px;
-                top: 0;
-                width: 2px;
-                height: var(--rider-height, 0);
-                background: var(--color-link);
-                transform: translateY(var(--rider-top, 0));
-
-                /* Until the script has run, there is no position to show. */
-                opacity: 0;
-            }
-
-            section > ul.tracking::before {
-                opacity: 1;
-                transition-property: transform, height;
-                transition-duration: .2s;
-                transition-timing-function: cubic-bezier(.4, 0, .2, 1);
-            }
-
-            @media (prefers-reduced-motion: reduce) {
-                section > ul.tracking::before {
-                    transition-property: none;
-                }
-            }
-
-            a {
-                color: var(--color-text);
-                display: block;
-                padding: .4em .5em;
-                transition-property: color;
-                transition-duration: .2s;
-                transition-timing-function: cubic-bezier(.4, 0, .2, 1);
-            }
-
-            a.active {
-                color: var(--color-link);
-            }
-
-            a:hover,
-            a:focus {
-                color: var(--color-link);
-                text-decoration: none;
-            }
-        }
+    &:focus-visible {
+        text-decoration: underline;
     }
 }
 
+/* Pinned, the bar reads as a breadcrumb: the article, then each section
+   down to the one being read. A breadcrumb longer than 85% of the room is
+   cut off at its end. */
+.toc-crumbs {
+    min-width: 0;
+    max-width: 85%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.toc-path > :not(:last-child) {
+    color: var(--color-text-soft);
+}
+
+.toc-title {
+    display: none;
+    font-weight: 600;
+}
+
+.toc-bar.pinned .toc-title {
+    display: inline;
+}
+
+.toc-bar.pinned .toc-path > ::before {
+    content: "/";
+    margin: 0 0.6em;
+    color: var(--color-text-soft-extra);
+}
+
+/* Before the bar pins, the list expands in place below it instead of opening
+   as a sheet. The bar does not pin meanwhile, so the list scrolls away with the
+   page. */
+.toc:has(.toc-current[aria-expanded="true"]) {
+    position: relative;
+
+    nav {
+        display: block;
+        position: static;
+        max-height: none;
+        overflow: visible;
+        border-bottom: 0;
+        box-shadow: none;
+    }
+
+    .toc-current::after {
+        content: "▴";
+    }
+}
+
+/* The list opens as a sheet only below the pinned bar, so its top is the bar's
+   height. */
+.toc nav {
+    inset: var(--toc-bar-height) 0 auto 0;
+    margin: 0;
+    width: auto;
+    max-height: calc(100dvh - var(--toc-bar-height) - 2rem);
+    overflow-y: auto;
+
+    border: 0;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg);
+    box-shadow: 0px 10px 15px -10px rgba(0,0,0,0.40);
+    color: var(--color-text);
+
+    padding: 0 var(--column-inset) 1rem;
+
+    ul {
+        list-style: none;
+        padding-left: 0;
+        margin: 0;
+    }
+
+    > ul {
+        margin-top: 0.5rem;
+    }
+
+    ul ul {
+        padding-left: 1em;
+    }
+
+    a {
+        display: block;
+        padding-block: .45em;
+        color: var(--color-text);
+    }
+
+    a.active {
+        color: var(--color-link);
+    }
+}
 
 .site-footer {
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 1rem;
-    padding: 1rem 1.5rem 2rem 1.5rem;
+    padding: 1rem var(--column-inset) 2rem;
 
     background: var(--color-bg-inset);
     color: var(--color-text-soft-extra);
