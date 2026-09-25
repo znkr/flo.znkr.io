@@ -260,7 +260,10 @@ func siteMetadata(source, path string, d *markst.Doc, summary string) (site.Meta
 		Type:      d.Meta.Type,
 		Published: d.Meta.Published,
 		Updated:   d.Meta.Updated,
-		Summary:   summary,
+		// The summary is rendered markup, so it carries the whitespace around
+		// the block it is written in. That whitespace is significant in the
+		// attribute of a meta tag and in the feed.
+		Summary: strings.TrimSpace(summary),
 	}
 
 	m.CanonicalURL = canonicalURL(path)

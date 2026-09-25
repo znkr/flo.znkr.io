@@ -2,7 +2,11 @@
     title: "Prose",
     published: "2025-07-08",
     updated: "2025-07-09",
-    summary: [An #doc_type covering the markup an article is written in.],
+    // Written as a block, so that the golden files hold a summary whose
+    // whitespace has been trimmed.
+    summary: [
+        An #doc_type covering the markup an article is written in.
+    ],
 )
 
 The first paragraph is the lede.
