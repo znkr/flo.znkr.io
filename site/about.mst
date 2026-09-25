@@ -1,5 +1,8 @@
 #show: page.with(
     title: "About",
+    summary: [
+        Florian Zenker, a software engineer dabbling with computers at home.
+    ],
     header: {
         html.elem("h1", attrs: (style: "margin-right: 0.5rem;"), [Florian Zenker])
         // `block: true` keeps the span out of a paragraph: inside a flow container
