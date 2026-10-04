@@ -7,14 +7,14 @@ require (
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/google/go-cmp v0.7.0
 	github.com/spf13/cobra v1.10.2
-	github.com/tdewolff/minify/v2 v2.24.17
-	golang.org/x/tools v0.50.0
-	znkr.io/diff v1.0.1
+	github.com/tdewolff/minify/v2 v2.24.19
+	golang.org/x/tools v0.51.0
+	znkr.io/diff v1.1.0
 	znkr.io/markst v0.0.0-20260909201755-dc9558a51721
 )
 
 require (
-	github.com/dlclark/regexp2/v2 v2.8.0 // indirect
+	github.com/dlclark/regexp2/v2 v2.8.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tdewolff/parse/v2 v2.8.16 // indirect
