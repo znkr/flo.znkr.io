@@ -7,9 +7,13 @@
 (() => {
     const key = "reload-scroll:" + location.pathname
 
-    const y = loadScroll()
-    if (y !== null) {
-        addEventListener("load", () => window.scrollTo(0, +y))
+    // A reload of a URL with a fragment scrolls to the fragment's target, so
+    // the page is reloaded without the fragment and the fragment is put back
+    // here. Putting it back with replaceState does not scroll.
+    const saved = loadScroll()
+    if (saved !== null) {
+        history.replaceState(history.state, "", location.pathname + location.search + saved.hash)
+        addEventListener("load", () => window.scrollTo(0, saved.y))
     }
 
     // The server reports a status holding a version that changes on every
@@ -26,7 +30,9 @@
         if (version === null) {
             version = status.version
         } else if (status.version !== version) {
-            storeScroll(window.scrollY)
+            if (storeScroll(window.scrollY, location.hash)) {
+                history.replaceState(history.state, "", location.pathname + location.search)
+            }
             location.reload()
             return
         }
@@ -80,19 +86,26 @@
     // sessionStorage throws if the browser blocks site data. Reloading without
     // the scroll position is still better than not reloading.
 
+    // loadScroll returns the scroll position and fragment stored before the
+    // reload, or null if there are none.
     function loadScroll() {
         try {
-            const y = sessionStorage.getItem(key)
+            const saved = sessionStorage.getItem(key)
             sessionStorage.removeItem(key)
-            return y
+            return saved === null ? null : JSON.parse(saved)
         } catch {
             return null
         }
     }
 
-    function storeScroll(y) {
+    // storeScroll stores the scroll position and fragment for after the
+    // reload, and reports whether it could.
+    function storeScroll(y, hash) {
         try {
-            sessionStorage.setItem(key, y)
-        } catch {}
+            sessionStorage.setItem(key, JSON.stringify({ y, hash }))
+            return true
+        } catch {
+            return false
+        }
     }
 })()
