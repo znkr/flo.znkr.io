@@ -2,21 +2,22 @@
     /* One neutral ramp at hue 275 and one accent at hue 214, both from the
        header gradient. Values are OKLCH, written as sRGB hex. */
     --color-bg: #ffffff;
-    --color-bg-inset: #fbfcfe;
+    --color-bg-footer: #fbfcfe;
+    --color-bg-code: #f5f6fa;
     --color-bg-chrome: #eef0f6;
-    --color-bg-chrome-hover: #e1e4ef;
     --color-border: #d8dae3;
     --color-text: #1f2129;
     --color-text-soft: #525561;
     --color-text-soft-extra: #717481;
+    --color-text-faint: #9b9eaa;
     --color-link: #008198;
 
     --color-insert: #317a45;
-    --color-insert-bg: #f3fff5;
-    --color-insert-gutter: #def8e2;
+    --color-insert-bg: #ecf7ee;
+    --color-insert-gutter: #def1e1;
     --color-delete: #a34945;
-    --color-delete-bg: #fff9f8;
-    --color-delete-gutter: #ffeae7;
+    --color-delete-bg: #fbf1f0;
+    --color-delete-gutter: #f8e6e4;
 
     --color-note: #116daf;
     --color-note-bg: #eaf5ff;
@@ -27,7 +28,9 @@
 
     --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", "Roboto Mono", monospace;
 
-    --border-radius: 0.3125rem;
+    --border-radius: 0.625rem;
+    /* The distance from the left edge of a code block to its first column. */
+    --block-inset: 1rem;
 
     /* The text column: its width, with the gutter on either side, and the side
        padding that lines a full-width box up with it. */
@@ -37,18 +40,41 @@
 
     --toc-bar-height: 2.75rem;
 
+    /* The shadow of something floating over the text, falling down or up. */
+    --shadow-down:
+        0 2px 4px color-mix(in srgb, var(--color-text) 12%, transparent),
+        0 10px 32px color-mix(in srgb, var(--color-text) 20%, transparent);
+    --shadow-up:
+        0 -2px 4px color-mix(in srgb, var(--color-text) 12%, transparent),
+        0 -10px 32px color-mix(in srgb, var(--color-text) 20%, transparent);
+
     --icon-admonition-note: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>');
     --icon-admonition-tip: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>');
     --icon-diff-unfold-down: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="m8.177 14.323 2.896-2.896a.25.25 0 0 0-.177-.427H8.75V7.764a.75.75 0 1 0-1.5 0V11H5.104a.25.25 0 0 0-.177.427l2.896 2.896a.25.25 0 0 0 .354 0ZM2.25 5a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5ZM6 4.25a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1 0-1.5h.5a.75.75 0 0 1 .75.75ZM8.25 5a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5ZM12 4.25a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1 0-1.5h.5a.75.75 0 0 1 .75.75Zm2.25.75a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5Z"></path></svg>');
     --icon-diff-unfold-up: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M7.823 1.677 4.927 4.573A.25.25 0 0 0 5.104 5H7.25v3.236a.75.75 0 1 0 1.5 0V5h2.146a.25.25 0 0 0 .177-.427L8.177 1.677a.25.25 0 0 0-.354 0ZM13.75 11a.75.75 0 0 0 0 1.5h.5a.75.75 0 0 0 0-1.5h-.5Zm-3.75.75a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1-.75-.75ZM7.75 11a.75.75 0 0 0 0 1.5h.5a.75.75 0 0 0 0-1.5h-.5ZM4 11.75a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1-.75-.75ZM1.75 11a.75.75 0 0 0 0 1.5h.5a.75.75 0 0 0 0-1.5h-.5Z"></path></svg>');
     --icon-diff-unfold: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="m8.177.677 2.896 2.896a.25.25 0 0 1-.177.427H8.75v1.25a.75.75 0 0 1-1.5 0V4H5.104a.25.25 0 0 1-.177-.427L7.823.677a.25.25 0 0 1 .354 0ZM7.25 10.75a.75.75 0 0 1 1.5 0V12h2.146a.25.25 0 0 1 .177.427l-2.896 2.896a.25.25 0 0 1-.354 0l-2.896-2.896A.25.25 0 0 1 5.104 12H7.25v-1.25Zm-5-2a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5ZM6 8a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1 0-1.5h.5A.75.75 0 0 1 6 8Zm2.25.75a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5ZM12 8a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1 0-1.5h.5A.75.75 0 0 1 12 8Zm2.25.75a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5Z"></path></svg>');
     --icon-link: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg>');
-    --icon-ext-link: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill="%23008198" d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg>');
+    --icon-ext-link: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg>');
 
     /* Brand marks: GitHub from primer/octicons, the other two from simple-icons. */
     --icon-github: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M6.766 11.328c-2.063-.25-3.516-1.734-3.516-3.656 0-.781.281-1.625.75-2.188-.203-.515-.172-1.609.063-2.062.625-.078 1.468.25 1.968.703.594-.187 1.219-.281 1.985-.281.765 0 1.39.094 1.953.265.484-.437 1.344-.765 1.969-.687.218.422.25 1.515.046 2.047.5.593.766 1.39.766 2.203 0 1.922-1.453 3.375-3.547 3.64.531.344.89 1.094.89 1.954v1.625c0 .468.391.734.86.547C13.781 14.359 16 11.53 16 8.03 16 3.61 12.406 0 7.984 0 3.563 0 0 3.61 0 8.031a7.88 7.88 0 0 0 5.172 7.422c.422.156.828-.125.828-.547v-1.25c-.219.094-.5.156-.75.156-1.031 0-1.64-.562-2.078-1.609-.172-.422-.36-.672-.719-.719-.187-.015-.25-.093-.25-.187 0-.188.313-.328.625-.328.453 0 .844.281 1.25.86.313.452.64.655 1.031.655s.641-.14 1-.5c.266-.265.47-.5.657-.656"></path></svg>');
     --icon-mastodon: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.518.917 5.127.64 6.412.61 7.837.661 9.143c.074 1.874.088 3.745.26 5.611.118 1.24.325 2.47.62 3.68.55 2.237 2.777 4.098 4.96 4.857 2.336.792 4.849.923 7.256.38.265-.061.527-.132.786-.213.585-.184 1.27-.39 1.774-.753a.057.057 0 0 0 .023-.043v-1.809a.052.052 0 0 0-.02-.041.053.053 0 0 0-.046-.01 20.282 20.282 0 0 1-4.709.545c-2.73 0-3.463-1.284-3.674-1.818a5.593 5.593 0 0 1-.319-1.433.053.053 0 0 1 .066-.054c1.517.363 3.072.546 4.632.546.376 0 .75 0 1.125-.01 1.57-.044 3.224-.124 4.768-.422.038-.008.077-.015.11-.024 2.435-.464 4.753-1.92 4.989-5.604.008-.145.03-1.52.03-1.67.002-.512.167-3.63-.024-5.545zm-3.748 9.195h-2.561V8.29c0-1.309-.55-1.976-1.67-1.976-1.23 0-1.846.79-1.846 2.35v3.403h-2.546V8.663c0-1.56-.617-2.35-1.848-2.35-1.112 0-1.668.668-1.67 1.977v6.218H4.822V8.102c0-1.31.337-2.35 1.011-3.12.696-.77 1.608-1.164 2.74-1.164 1.311 0 2.302.5 2.962 1.498l.638 1.06.638-1.06c.66-.999 1.65-1.498 2.96-1.498 1.13 0 2.043.395 2.74 1.164.675.77 1.012 1.81 1.012 3.12z"></path></svg>');
     --icon-bluesky: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M5.202 2.857C7.954 4.922 10.913 9.11 12 11.358c1.087-2.247 4.046-6.436 6.798-8.501C20.783 1.366 24 .213 24 3.883c0 .732-.42 6.156-.667 7.037-.856 3.061-3.978 3.842-6.755 3.37 4.854.826 6.089 3.562 3.422 6.299-5.065 5.196-7.28-1.304-7.847-2.97-.104-.305-.152-.448-.153-.327 0-.121-.05.022-.153.327-.568 1.666-2.782 8.166-7.847 2.97-2.667-2.737-1.432-5.473 3.422-6.3-2.777.473-5.899-.308-6.755-3.369C.42 10.04 0 4.615 0 3.883c0-3.67 3.217-2.517 5.202-1.026"></path></svg>');
+}
+
+/* An element that sets --icon is a box the icon is masked into, filled with
+   its background. --icon does not inherit, so what is inside the box is not
+   masked; where it is unset, the mask is none. */
+@property --icon {
+    syntax: "*";
+    inherits: false;
+}
+
+:where(*),
+:where(*)::before,
+:where(*)::after {
+    -webkit-mask: var(--icon) center / contain no-repeat;
+    mask: var(--icon) center / contain no-repeat;
 }
 
 code {
@@ -210,15 +236,7 @@ main {
             margin-left: .4em;
             
             background: var(--color-text-soft-extra);
-
-            -webkit-mask-image: var(--icon-link);
-            -webkit-mask-repeat: no-repeat;
-            -webkit-mask-position: center bottom;
-            -webkit-mask-size: contain;
-            mask-image: var(--icon-link);
-            mask-repeat: no-repeat;
-            mask-position: center bottom;
-            mask-size: contain;
+            --icon: var(--icon-link);
 
             opacity: .22;
         }
@@ -242,10 +260,9 @@ main {
 
     pre {
         overflow-x: auto;
-        background: var(--color-bg-inset);
+        background: var(--color-bg-code);
         width: 100%;
-        padding: 0.626rem 1rem;
-        outline: 1px solid var(--color-border);
+        padding: 0.626rem var(--block-inset);
         border-radius: var(--border-radius);
         font-family: var(--font-mono);
         font-size: 0.875rem;
@@ -293,21 +310,8 @@ main {
             font-size: 0.9em;
         }
 
-        a[href]:not(:where(
-            [href^="#"],
-            [href^="javascript:" i],
-            [href^="/"]:not([href^="//"]),
-            [href*="//flo.znkr.io"],
-            [href*="//znkr.io"],
-            [href*="//github.com/znkr/"],
-          )) {
-            padding-right: 1em;
-            background-image: var(--icon-ext-link);
-            background-repeat: no-repeat;
-            background-position: right center;
-            background-size: 0.8em 0.8em;
-          }
-
+        /* A link off the site ends in an icon on the baseline, drawn in the
+           link's color. */
         a[href]:not(:where(
             [href^="#"],
             [href^="javascript:" i],
@@ -316,7 +320,14 @@ main {
             [href*="//znkr.io"],
             [href*="//github.com/znkr/"],
           ))::after {
-            content: none;
+            content: "";
+            display: inline-block;
+            width: 0.8em;
+            height: 0.8em;
+            margin-left: 0.2em;
+
+            background: currentColor;
+            --icon: var(--icon-ext-link);
         }
 
         sup {
@@ -488,7 +499,7 @@ main {
     border: 0;
     border-bottom: 1px solid var(--color-border);
     background: var(--color-bg);
-    box-shadow: 0px 10px 15px -10px rgba(0,0,0,0.40);
+    box-shadow: var(--shadow-down);
     color: var(--color-text);
 
     padding: 0 var(--column-inset) 1rem;
@@ -525,7 +536,7 @@ main {
     gap: 1rem;
     padding: 1rem var(--column-inset) 2rem;
 
-    background: var(--color-bg-inset);
+    background: var(--color-bg-footer);
     color: var(--color-text-soft-extra);
     font-size: 0.8rem;
 
@@ -546,13 +557,6 @@ main {
         height: 1rem;
 
         background: currentColor;
-
-        -webkit-mask-repeat: no-repeat;
-        -webkit-mask-position: center;
-        -webkit-mask-size: contain;
-        mask-repeat: no-repeat;
-        mask-position: center;
-        mask-size: contain;
     }
 
     /* The accounts elsewhere are a group of their own, set off from the links
@@ -562,18 +566,15 @@ main {
     }
 
     .profile-github {
-        -webkit-mask-image: var(--icon-github);
-        mask-image: var(--icon-github);
+        --icon: var(--icon-github);
     }
 
     .profile-mastodon {
-        -webkit-mask-image: var(--icon-mastodon);
-        mask-image: var(--icon-mastodon);
+        --icon: var(--icon-mastodon);
     }
 
     .profile-bluesky {
-        -webkit-mask-image: var(--icon-bluesky);
-        mask-image: var(--icon-bluesky);
+        --icon: var(--icon-bluesky);
     }
 }
 
@@ -613,27 +614,27 @@ main {
     border-collapse: collapse;
     border-spacing: 0;
     border: 0;
-    outline: 1px solid var(--color-border);
-    background: var(--color-bg-inset);
+    background: var(--color-bg-code);
     border-radius: var(--border-radius);
     margin-top: 0;
     font-variant-numeric: tabular-nums;
     -webkit-text-size-adjust: none;
     text-size-adjust: none;
 
+    /* The file name and the line numbers are guides to the code, so they
+       are set smaller and fainter than it. */
     caption {
         caption-side: top;
         text-align: left;
-        background: var(--color-bg-chrome);
-        border-bottom: 1px solid var(--color-border);
-        border-radius: var(--border-radius) var(--border-radius) 0 0;
-        padding: 0.4em 1.0em;
+        /* The gap below the name is the caption's, so that a tinted first
+           row does not fill it. */
+        padding: 0.5rem var(--block-inset) 0.4rem;
         margin-bottom: 0;
-        font-size: 1em !important;
+        font-size: 0.8em;
 
         a {
             font-weight: normal;
-            color: var(--color-text-soft);
+            color: var(--color-text-soft-extra);
         }
     }
 
@@ -642,10 +643,18 @@ main {
     }
 
     tr.src {
+        td {
+            vertical-align: baseline;
+        }
+
+        td.line-no {
+            font-size: 0.85em;
+        }
+
         td.line-no,
         td.op {
             text-align: right;
-            color: var(--color-text-soft-extra);
+            color: var(--color-text-faint);
 
             user-select: none;
             -webkit-user-select: none;
@@ -665,16 +674,12 @@ main {
         }
     }
 
-    tr.src:first-child td {
-        padding-top: 0.5em;
-    }
-    
     tr.src:last-child td {
-        padding-bottom: 0.3em;
+        padding-bottom: 0.626rem;
     }
     
     tr.src td:first-child {
-        padding-left: 0.4em
+        padding-left: var(--block-inset);
     }
 
     tr.delete {
@@ -701,19 +706,19 @@ main {
         }
     }
 
+    /* A hunk header and its fold button are guides too, drawn in the faint
+       color until the pointer is on the button. */
     tr.ctrl {
-        background: var(--color-bg-chrome);
-        color: var(--color-text-soft-extra);
+        color: var(--color-text-faint);
         vertical-align: middle;
     
         .fold-ctrl {
-            background: var(--color-bg-chrome-hover);
             text-align: center;
             height: 1.8em;
         }
 
-        .fold-ctrl:hover {
-            background: var(--color-border);
+        .hunk-desc {
+            font-size: 0.85em;
         }
     
         .fold-button {
@@ -726,35 +731,26 @@ main {
             height: 1.8em;
             margin: auto;
             padding: 0;
+            background: var(--color-text-faint);
+            -webkit-mask-size: auto;
+            mask-size: auto;
+        }
+
+        .fold-button:hover,
+        .fold-button:focus-visible {
             background: var(--color-text);
         }
 
         .fold-button.unfold-down {
-            -webkit-mask-image: var(--icon-diff-unfold-down);
-            -webkit-mask-repeat: no-repeat;
-            -webkit-mask-position: center center;
-            mask-image: var(--icon-diff-unfold-down);
-            mask-repeat: no-repeat;
-            mask-position: center center;
+            --icon: var(--icon-diff-unfold-down);
         }
 
         .fold-button.unfold-up {
-            -webkit-mask-image: var(--icon-diff-unfold-up);
-            -webkit-mask-repeat: no-repeat;
-            -webkit-mask-position: center center;
-            mask-image: var(--icon-diff-unfold-up);
-            mask-repeat: no-repeat;
-            mask-position: center center;
+            --icon: var(--icon-diff-unfold-up);
         }
 
         .fold-button.unfold {
-            -webkit-mask-image: var(--icon-diff-unfold);
-            -webkit-mask-repeat: no-repeat;
-            -webkit-mask-position: center center;
-            mask-image: var(--icon-diff-unfold);
-            mask-repeat: no-repeat;
-            mask-position: center center;
-
+            --icon: var(--icon-diff-unfold);
         }
     }
 }
@@ -771,7 +767,7 @@ main {
     }
 }
 
-/* Regular table styles (similar to code snippets) */
+/* Regular table styles */
 table:not(.code-snippet) {
     display: table;
     border-collapse: collapse;
@@ -842,7 +838,8 @@ div.math-box {
 }
 
 .admonition {
-    border: 1px solid;
+    /* Holds the margins of the paragraphs inside the fill. */
+    display: flow-root;
     border-radius: var(--border-radius);
 
     margin: 1em 0;
@@ -850,11 +847,10 @@ div.math-box {
     page-break-inside: avoid;
 
     .admonition-title {
-        /* Inside the 1px border of the box. */
-        border-radius: calc(var(--border-radius) - 1px) calc(var(--border-radius) - 1px) 0 0;
         margin: 0 -1em -.4em -1em;
-        padding: .4em 1em .4em 2.5em;
+        padding: .6em 1em 0 2.5em;
         position: relative;
+        font-weight: 600;
     }
 
     .admonition-title::before {
@@ -863,34 +859,26 @@ div.math-box {
         width: 1em;
         position: absolute;
         left: 1em;
-        top: .6em;
+        /* Centered on the title's first line, below the padding. */
+        top: calc(.6em + (1lh - 1em) / 2);
     }
 }
 
 .admonition.note {
-    border-color: var(--color-note);
-    .admonition-title {
-        background: var(--color-note-bg);
-    }
+    background: var(--color-note-bg);
 
     .admonition-title::before {
         background-color: var(--color-note);
-        -webkit-mask-image: var(--icon-admonition-note);
-        mask-image: var(--icon-admonition-note);
+        --icon: var(--icon-admonition-note);
     }
 }
 
 .admonition.tip {
-    border-color:  var(--color-tip);
-
-    .admonition-title {
-        background: var(--color-tip-bg);
-    }
+    background: var(--color-tip-bg);
 
     .admonition-title::before {
         background-color: var(--color-tip);
-        -webkit-mask-image: var(--icon-admonition-tip);
-        mask-image: var(--icon-admonition-tip);
+        --icon: var(--icon-admonition-tip);
     }
 }
 
@@ -960,9 +948,11 @@ div.math-box {
 
     border: 0;
     border-radius: var(--border-radius) var(--border-radius) 0 0;
-    outline: 1px solid var(--color-text-soft);
     background: var(--color-bg);
-    box-shadow: 0px 0px 15px -10px rgba(0,0,0,0.70);
+    /* The note floats over the text: a hairline marks its edge and a shadow
+       lifts it. Docked to the bottom, the shadow falls up. */
+    outline: 1px solid var(--color-border);
+    box-shadow: var(--shadow-up);
 
     padding: 0.8em 1.2em max(0.8em, env(safe-area-inset-bottom)) 1.2em;
     font-size: 0.85rem;
@@ -995,6 +985,7 @@ div.math-box {
             max-width: min(30rem, calc(100vw - 3rem));
 
             border-radius: var(--border-radius);
+            box-shadow: var(--shadow-down);
             padding: 0.6em 1em;
         }
     }
