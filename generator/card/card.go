@@ -11,7 +11,6 @@ import (
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/gobold"
-	"golang.org/x/image/font/gofont/goregular"
 	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/fixed"
 
@@ -24,24 +23,24 @@ const (
 	Width, Height = 1200, 630
 )
 
-// The card is laid out like the site's header: the gradient as a bar at the
-// top, the title, and the site name at the bottom with the mark in front of it.
+// The card is laid out like a page: the gradient as a thin line at the top,
+// the site name below it, and the title, centered on the card from top to
+// bottom and set on the left margin.
 const (
 	margin       = 80
-	barHeight    = 14
-	titleTop     = 190
+	barHeight    = 6
+	nameTop      = 56
+	nameSize     = 32
 	titleSize    = 76
 	minTitleSize = 48
 	maxLines     = 4
-	nameSize     = 40
-	markSize     = 24
 	siteName     = "flo.znkr.io"
 )
 
+// The colors are the site's --color-bg and --color-text.
 var (
-	bg       = color.RGBA{0xff, 0xff, 0xff, 0xff}
-	text     = color.RGBA{0x16, 0x18, 0x1c, 0xff}
-	textSoft = color.RGBA{0x47, 0x4d, 0x55, 0xff}
+	bg   = color.RGBA{0xff, 0xff, 0xff, 0xff}
+	text = color.RGBA{0x1f, 0x21, 0x29, 0xff}
 
 	// The header gradient, left to right.
 	gradient = []struct {
@@ -53,8 +52,7 @@ var (
 		{1, color.RGBA{0x74, 0x6f, 0xd2, 0xff}},
 	}
 
-	bold    = mustParse(gobold.TTF)
-	regular = mustParse(goregular.TTF)
+	bold = mustParse(gobold.TTF)
 )
 
 func mustParse(ttf []byte) *opentype.Font {
@@ -71,45 +69,56 @@ func Render(m site.Metadata) ([]byte, error) {
 	draw.Draw(img, img.Bounds(), image.NewUniform(bg), image.Point{}, draw.Src)
 	fillGradient(img, image.Rect(0, 0, Width, barHeight))
 
+	nameFace, err := newFace(bold, nameSize)
+	if err != nil {
+		return nil, err
+	}
+	d := &font.Drawer{Dst: img, Src: image.NewUniform(text), Face: nameFace}
+	d.Dot = fixed.P(margin, nameTop+nameFace.Metrics().Ascent.Ceil())
+	d.DrawString(siteName)
+
 	// The title, at the largest size that fits the lines allowed.
 	size := titleSize
-	var face font.Face
-	var lines []string
+	var titleFace font.Face
+	var title []string
 	for {
-		var err error
-		face, err = opentype.NewFace(bold, &opentype.FaceOptions{Size: float64(size), DPI: 72, Hinting: font.HintingNone})
+		titleFace, err = newFace(bold, size)
 		if err != nil {
 			return nil, err
 		}
-		lines = wrap(face, m.Title, Width-2*margin)
-		if len(lines) <= maxLines || size <= minTitleSize {
+		title = wrap(titleFace, m.Title, Width-2*margin)
+		if len(title) <= maxLines || size <= minTitleSize {
 			break
 		}
 		size -= 8
 	}
-	d := &font.Drawer{Dst: img, Src: image.NewUniform(text), Face: face}
-	lineHeight := size * 118 / 100
-	for i, line := range lines {
-		d.Dot = fixed.P(margin, titleTop+i*lineHeight)
-		d.DrawString(line)
-	}
+	titleLeading := size * 118 / 100
 
-	// The site name, with the mark in front of it.
-	face, err := opentype.NewFace(regular, &opentype.FaceOptions{Size: nameSize, DPI: 72, Hinting: font.HintingNone})
-	if err != nil {
-		return nil, err
-	}
-	baseline := Height - margin
-	fillGradient(img, image.Rect(margin, baseline-markSize, margin+markSize, baseline))
-	d = &font.Drawer{Dst: img, Src: image.NewUniform(textSoft), Face: face}
-	d.Dot = fixed.P(margin+markSize+16, baseline)
-	d.DrawString(siteName)
+	drawLines(img, titleFace, text, title, (Height-len(title)*titleLeading)/2, titleLeading)
 
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, img); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func newFace(f *opentype.Font, size int) (font.Face, error) {
+	return opentype.NewFace(f, &opentype.FaceOptions{Size: float64(size), DPI: 72, Hinting: font.HintingNone})
+}
+
+// drawLines draws lines on the left margin, each in a box leading pixels
+// high starting at top.
+func drawLines(img *image.RGBA, face font.Face, c color.Color, lines []string, top, leading int) {
+	met := face.Metrics()
+	// The baseline that centers the font's ascent and descent in the box.
+	offset := (leading-(met.Ascent+met.Descent).Ceil())/2 + met.Ascent.Ceil()
+	d := &font.Drawer{Dst: img, Src: image.NewUniform(c), Face: face}
+	for _, line := range lines {
+		d.Dot = fixed.P(margin, top+offset)
+		d.DrawString(line)
+		top += leading
+	}
 }
 
 // wrap breaks s into lines no wider than maxWidth pixels in face, at spaces. A
