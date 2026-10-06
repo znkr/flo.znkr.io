@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"image"
+	"image/color"
 	"image/png"
 	"io"
 	"io/fs"
@@ -102,11 +103,13 @@ func imageDiff(want, got []byte) string {
 		return fmt.Sprintf("bounds %v, want %v", gi.Bounds(), wi.Bounds())
 	}
 	b := wi.Bounds()
-	n := 0
+	n, worst := 0, 0
 	var first image.Point
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := b.Min.X; x < b.Max.X; x++ {
-			if wi.At(x, y) != gi.At(x, y) {
+			d := channelDiff(wi.At(x, y), gi.At(x, y))
+			worst = max(worst, d)
+			if d > maxChannelDiff {
 				if n == 0 {
 					first = image.Pt(x, y)
 				}
@@ -117,7 +120,32 @@ func imageDiff(want, got []byte) string {
 	if n == 0 {
 		return ""
 	}
-	return fmt.Sprintf("%d pixels differ, the first at %v", n, first)
+	return fmt.Sprintf("%d pixels differ, the first at %v, by up to %d", n, first, worst)
+}
+
+// maxChannelDiff is how far, in 8-bit steps, a channel of a pixel may be
+// from the golden image's. golang.org/x/image/vector accumulates coverage in
+// assembly on amd64 and in Go elsewhere, and the two round differently, so an
+// anti-aliased edge can be a step off depending on the machine.
+const maxChannelDiff = 1
+
+// channelDiff returns the largest difference, in 8-bit steps, between a
+// channel of a and the same channel of b.
+func channelDiff(a, b color.Color) int {
+	ar, ag, ab, aa := a.RGBA()
+	br, bg, bb, ba := b.RGBA()
+	d := 0
+	for _, p := range [][2]uint32{{ar, br}, {ag, bg}, {ab, bb}, {aa, ba}} {
+		d = max(d, abs(int(p[0]>>8)-int(p[1]>>8)))
+	}
+	return d
+}
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
 }
 
 // TestPackSite packs the real site in this repository, the way the deploy
