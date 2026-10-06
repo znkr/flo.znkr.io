@@ -32,8 +32,10 @@ func main() {
 		fd.Name.Name = "SortInt"
 		fd.Type.TypeParams = nil
 
-		// Remove `less` from function parameters (SortInt shouldn't have a less parametr)
-		fd.Type.Params.List = slices.DeleteFunc(fd.Type.Params.List, func(f *ast.Field) bool {
+		// Remove `less` from function parameters (SortInt shouldn't have a less
+		// parameter)
+		params := fd.Type.Params
+		params.List = slices.DeleteFunc(params.List, func(f *ast.Field) bool {
 			if len(f.Names) != 1 {
 				return false
 			}
@@ -41,7 +43,7 @@ func main() {
 		})
 
 		// Specialize all type parameters in the parameter list.
-		for _, param := range fd.Type.Params.List {
+		for _, param := range params.List {
 			param.Type = astutil.Apply(param.Type, func(c *astutil.Cursor) bool {
 				if ident, ok := c.Node().(*ast.Ident); ok && ident.Name == "T" {
 					ident.Name = "int"
@@ -51,7 +53,8 @@ func main() {
 			}, nil).(ast.Expr)
 		}
 
-		// Specialize body, by replacing Sort invocation with SortInt and less invocations with `<`.
+		// Specialize body, by replacing Sort invocation with SortInt and less
+		// invocations with `<`.
 		fd.Body = astutil.Apply(fd.Body, func(c *astutil.Cursor) bool {
 			call, ok := c.Node().(*ast.CallExpr)
 			if !ok {
