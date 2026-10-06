@@ -1,5 +1,7 @@
 <head>
 <title>{{ .Title }}</title>
+<link rel="stylesheet" href="{{ .Assets.URL "/_assets/style.css" }}">
+<script src="{{ .Assets.URL "/_assets/script.js" }}" defer></script>
 {{- range .Links }}
 <link rel="{{ .Rel }}" href="{{ .Href }}">
 {{- end }}

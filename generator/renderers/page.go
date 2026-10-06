@@ -15,8 +15,9 @@ import (
 	"flo.znkr.io/generator/site"
 )
 
-// RenderPage wraps body and toc in the page template meta.Type names.
-func RenderPage(templates *template.Template, meta site.Metadata, body, toc []byte) ([]byte, error) {
+// RenderPage wraps body and toc in the page template meta.Type names, which
+// can load assets.
+func RenderPage(templates *template.Template, meta site.Metadata, assets Assets, body, toc []byte) ([]byte, error) {
 	// Lookup alone is not enough: an empty name finds the root template, and a
 	// fragment name finds a template that is no page.
 	page := templates.Lookup(meta.Type)
@@ -24,7 +25,7 @@ func RenderPage(templates *template.Template, meta site.Metadata, body, toc []by
 		return nil, fmt.Errorf("unknown doc type: %s", meta.Type)
 	}
 
-	head, err := NewHead(meta)
+	head, err := NewHead(meta, assets)
 	if err != nil {
 		return nil, err
 	}

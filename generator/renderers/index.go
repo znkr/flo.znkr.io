@@ -42,17 +42,17 @@ func Articles(entries []Entry) []Entry {
 }
 
 // RenderIndex renders the site index from entries, of which it lists the
-// published articles.
+// published articles, which can load assets.
 //
 // Every document is passed, not only the articles, because an edit can change
 // which documents are articles.
-func RenderIndex(templates *template.Template, meta site.Metadata, entries []Entry) ([]byte, error) {
+func RenderIndex(templates *template.Template, meta site.Metadata, assets Assets, entries []Entry) ([]byte, error) {
 	page := templates.Lookup("index")
 	if page == nil {
 		return nil, fmt.Errorf("template not found index")
 	}
 
-	head, err := NewHead(meta)
+	head, err := NewHead(meta, assets)
 	if err != nil {
 		return nil, err
 	}

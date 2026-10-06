@@ -46,7 +46,7 @@ func page() site.Metadata {
 // newHead is NewHead, failing the test rather than returning an error.
 func newHead(t *testing.T, m site.Metadata) renderers.Head {
 	t.Helper()
-	h, err := renderers.NewHead(m)
+	h, err := renderers.NewHead(m, renderers.Assets{})
 	if err != nil {
 		t.Fatalf("NewHead() = %v", err)
 	}
