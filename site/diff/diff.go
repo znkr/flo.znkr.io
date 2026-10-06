@@ -27,24 +27,24 @@ type Hunk[T any] struct {
 	Edits      []Edit[T] // Edits to transform x[PosX:EndX] to y[PosY:EndY]
 }
 
-// Edits compares the contents of x and y and returns the changes necessary to convert from one to
-// the other.
+// Edits compares the contents of x and y and returns the changes necessary to
+// convert from one to the other.
 //
-// Edits returns one edit for every element in the input slices. If x and y are identical, the
-// output will consist of a match edit for every input element.
+// Edits returns one edit for every element in the input slices. If x and y are
+// identical, the output will consist of a match edit for every input element.
 func Edits[T comparable](x, y []T, opts ...Option) []Edit[T]
 
-// Hunks compares the contents of x and y and returns the changes necessary to convert from one to
-// the other.
+// Hunks compares the contents of x and y and returns the changes necessary to
+// convert from one to the other.
 //
-// The output is a sequence of hunks. A hunk represents a contiguous block of changes (insertions
-// and deletions) along with some surrounding context.
+// The output is a sequence of hunks. A hunk represents a contiguous block of
+// changes (insertions and deletions) along with some surrounding context.
 func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T]
 
-// EditsFunc compares the contents of x and y using the provided equality comparison and returns the
-// changes necessary to convert from one to the other.
+// EditsFunc compares the contents of x and y using the provided equality
+// comparison and returns the changes necessary to convert from one to the other.
 func EditsFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Edit[T]
 
-// HunksFunc compares the contents of x and y using the provided equality comparison and returns the
-// changes necessary to convert from one to the other.
+// HunksFunc compares the contents of x and y using the provided equality
+// comparison and returns the changes necessary to convert from one to the other.
 func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T]

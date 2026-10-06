@@ -4,8 +4,8 @@ package textdiff
 
 import "znkr.io/diff"
 
-// Unified compares the lines in x and y and returns the changes necessary to convert from one to
-// the other in unified format.
+// Unified compares the lines in x and y and returns the changes necessary to
+// convert from one to the other in unified format.
 func Unified[T string | []byte](x, y T, opts ...diff.Option) T
 
 // Edit describes a single edit of a line-by-line diff.
@@ -21,10 +21,10 @@ type Hunk[T string | []byte] struct {
 	Edits      []Edit[T] // Edits to transform x lines PosX..EndX to y lines PosY..EndY
 }
 
-// Edits compares the lines in x and y and returns the changes necessary to convert from one to the
-// other.
+// Edits compares the lines in x and y and returns the changes necessary to
+// convert from one to the other.
 func Edits[T string | []byte](x, y T, opts ...diff.Option) []Edit[T]
 
-// Hunks compares the lines in x and y and returns the changes necessary to convert from one to the
-// other.
+// Hunks compares the lines in x and y and returns the changes necessary to
+// convert from one to the other.
 func Hunks[T string | []byte](x, y T, opts ...diff.Option) []Hunk[T]
