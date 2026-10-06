@@ -350,7 +350,7 @@ main {
     top: 0;
     z-index: 10;
     grid-column: full;
-    margin-top: 1.5rem;
+    margin-top: 0.25rem;
 
     /* Hidden until the popover rules below turn it on: where the list cannot
        open as a sheet, the bar would be a button that does nothing and the
@@ -438,6 +438,13 @@ main {
     }
 }
 
+/* Before the bar pins, its label is a line of the article header, centered
+   and set like the dates. */
+.toc-bar:not(.pinned) .toc-current {
+    justify-content: center;
+    font-size: 1rem;
+}
+
 /* Pinned, the bar reads as a breadcrumb: the article, then each section
    down to the one being read. A breadcrumb longer than 85% of the room is
    cut off at its end. */
@@ -467,6 +474,24 @@ main {
     color: var(--color-text-soft-extra);
 }
 
+/* The label fades in whenever the bar pins or unpins, since the two labels
+   differ in place, size and color. The animation is on a different element
+   in each state, so it restarts at every change. */
+@keyframes toc-label-in {
+    from {
+        opacity: 0;
+    }
+}
+
+.toc-bar.pinned .toc-crumbs,
+.toc-bar:not(.pinned) .toc-current {
+    animation: toc-label-in .2s cubic-bezier(.4, 0, .2, 1);
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+
 /* Before the bar pins, the list expands in place below it instead of opening
    as a sheet. The bar does not pin meanwhile, so the list scrolls away with the
    page. */
@@ -480,6 +505,22 @@ main {
         overflow: visible;
         border-bottom: 0;
         box-shadow: none;
+
+        margin: 0.25rem 0 2rem;
+        padding-block: 0;
+
+        a {
+            padding-block: 0.12em;
+        }
+
+        /* Nothing has been read yet, so no section is marked as current. */
+        a.active {
+            color: var(--color-text);
+        }
+
+        ul ul a.active {
+            color: var(--color-text-soft);
+        }
     }
 
     .toc-current::after {
@@ -487,8 +528,9 @@ main {
     }
 }
 
-/* The list opens as a sheet only below the pinned bar, so its top is the bar's
-   height. */
+/* The list is set like the contents of a paper: the sections in bold, the
+   subsections indented and softer. Below the pinned bar it opens as a sheet,
+   so its top is the bar's height, and the section being read is marked. */
 .toc nav {
     inset: var(--toc-bar-height) 0 auto 0;
     margin: 0;
@@ -502,7 +544,8 @@ main {
     box-shadow: var(--shadow-down);
     color: var(--color-text);
 
-    padding: 0 var(--column-inset) 1rem;
+    padding: 1rem var(--column-inset) 1.25rem;
+    font-size: 0.95rem;
 
     ul {
         list-style: none;
@@ -510,18 +553,26 @@ main {
         margin: 0;
     }
 
-    > ul {
-        margin-top: 0.5rem;
+    > ul > li + li {
+        margin-top: 0.5em;
     }
 
     ul ul {
-        padding-left: 1em;
+        padding-left: 1.25em;
     }
 
     a {
         display: block;
-        padding-block: .45em;
+        padding-block: 0.25em;
         color: var(--color-text);
+    }
+
+    > ul > li > a {
+        font-weight: 600;
+    }
+
+    ul ul a {
+        color: var(--color-text-soft);
     }
 
     a.active {
