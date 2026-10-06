@@ -580,7 +580,7 @@ main {
 
 
 .sub-content {
-    margin: 1.875rem 0;
+    margin: 2.5rem 0;
     padding: 0;
 
     p {
@@ -598,7 +598,7 @@ main {
 
     span {
         display: block;
-        color: var(--color-text-soft);
+        color: var(--color-text-soft-extra);
         font-size: 0.85rem;
         font-variant-numeric: tabular-nums;
     }
@@ -634,7 +634,7 @@ main {
 
         a {
             font-weight: normal;
-            color: var(--color-text-soft-extra);
+            color: var(--color-text-soft);
         }
     }
 
