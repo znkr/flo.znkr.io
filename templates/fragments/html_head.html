@@ -3,11 +3,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .Title }} - flo.znkr.io</title>
 
-    <link rel="stylesheet" href="/_assets/style.css">
-    <script src="/_assets/script.js" defer></script>
+    <link rel="stylesheet" href="{{ .Assets.URL "/_assets/style.css" }}">
+    <script src="{{ .Assets.URL "/_assets/script.js" }}" defer></script>
 
-    <link rel="icon" href="/_assets/icon.svg" type="image/svg+xml" sizes="any">
-    <link rel="icon" href="/_assets/icon.png" type="image/png" sizes="48x48">
+    <link rel="icon" href="{{ .Assets.URL "/_assets/icon.svg" }}" type="image/svg+xml" sizes="any">
+    <link rel="icon" href="{{ .Assets.URL "/_assets/icon.png" }}" type="image/png" sizes="48x48">
 
     <link rel="alternate" title="flo.znkr.io" type="application/atom+xml" href="/feed.atom">
     {{- range .Links }}

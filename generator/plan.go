@@ -51,6 +51,14 @@ const robotsTxt = "User-agent: *\n" +
 func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], error) {
 	templates := build.Derive[*template.Template]("templates", parseTemplates, tree.Sub("templates"))
 
+	// A page loads a file in _assets by a URL that carries the key of the
+	// file's artifact, which is a hash of its content.
+	var assets renderers.Assets
+	for _, f := range tree.Files("site/_assets") {
+		p := strings.TrimPrefix(f.Path, "site")
+		assets = append(assets, renderers.Asset{Path: p, URL: p + "?v=" + tree.Data(f).Key().String()[:8]})
+	}
+
 	var libs []build.Artifact[*markst.Lib]
 	for _, f := range tree.Files("lib") {
 		if path.Ext(f.Path) != ".mst" {
@@ -132,7 +140,7 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 		content := build.Derive[[]byte]("content", renderers.RenderBody, templates, mdoc, bodyFrags, p, docRoot, markst.Endnotes)
 		body := build.Derive[[]byte]("body", renderers.RenderBody, templates, mdoc, bodyFrags, p, docRoot, markst.Popovers)
 		toc := build.Derive[[]byte]("toc", markst.RenderTOC, mdoc, bodyFrags, p)
-		page := build.Derive[[]byte]("page", renderers.RenderPage, templates, meta, body, toc)
+		page := build.Derive[[]byte]("page", renderers.RenderPage, templates, meta, assets, body, toc)
 		cardImg := build.Derive[[]byte]("card", card.Render, meta)
 
 		docs = append(docs, site.Doc{
@@ -158,7 +166,7 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 		ImageWidth:   card.Width,
 		ImageHeight:  card.Height,
 	})
-	index := build.Derive[[]byte]("index", renderers.RenderIndex, templates, indexMeta, entries)
+	index := build.Derive[[]byte]("index", renderers.RenderIndex, templates, indexMeta, assets, entries)
 	feed := build.Derive[[]byte]("feed", renderers.RenderAtom, siteTitle, entries, contents)
 	// entries holds the compiled documents, which the index is not one of, and
 	// the feed reads it against contents. The sitemap lists the index too.

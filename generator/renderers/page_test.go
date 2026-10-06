@@ -20,7 +20,7 @@ func TestRenderPageRejectsANonPageType(t *testing.T) {
 	}
 
 	for _, typ := range []string{"", "fragments/include_snippet"} {
-		_, err := renderers.RenderPage(templates, site.Metadata{Type: typ}, nil, nil)
+		_, err := renderers.RenderPage(templates, site.Metadata{Type: typ}, renderers.Assets{}, nil, nil)
 		if err == nil || !strings.Contains(err.Error(), "unknown doc type") {
 			t.Errorf("RenderPage() with type %q = %v, want an unknown doc type error", typ, err)
 		}

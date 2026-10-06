@@ -63,10 +63,12 @@ func profileURLs() []string {
 	return urls
 }
 
-// Head is what the head fragment draws: the title of the page, the links and
-// meta tags it sets, and what it says about itself as JSON-LD.
+// Head is what the head fragment draws: the title of the page, the assets it
+// can load, the links and meta tags it sets, and what it says about itself as
+// JSON-LD.
 type Head struct {
 	Title  string
+	Assets Assets
 	Links  []Link
 	Tags   []Tag
 	JSONLD template.JS
@@ -94,9 +96,9 @@ type Tag struct {
 func name(n, content string) Tag     { return Tag{Attr: "name", Name: n, Content: content} }
 func property(n, content string) Tag { return Tag{Attr: "property", Name: n, Content: content} }
 
-// NewHead returns the head of the page m describes.
-func NewHead(m site.Metadata) (Head, error) {
-	h := Head{Title: m.Title}
+// NewHead returns the head of the page m describes, which can load assets.
+func NewHead(m site.Metadata, assets Assets) (Head, error) {
+	h := Head{Title: m.Title, Assets: assets}
 
 	if m.CanonicalURL != "" {
 		h.Links = append(h.Links, Link{"canonical", m.CanonicalURL})
