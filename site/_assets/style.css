@@ -733,6 +733,12 @@ main {
         padding-left: var(--block-inset);
     }
 
+    /* In a diff, the matching lines are context for the changes and are set
+       fainter than them. */
+    tr.match td.code {
+        opacity: 0.75;
+    }
+
     tr.delete {
         background: var(--color-delete-bg);
 
