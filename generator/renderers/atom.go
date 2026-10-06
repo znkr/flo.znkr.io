@@ -3,6 +3,7 @@ package renderers
 import (
 	"encoding/xml"
 	"fmt"
+	"strings"
 
 	"golang.org/x/tools/blog/atom"
 )
@@ -37,7 +38,9 @@ func RenderAtom(title string, entries []Entry, contents [][]byte) ([]byte, error
 	for _, a := range articles {
 		e := &atom.Entry{
 			Title: a.Meta.Title,
-			ID:    feed.ID + a.Path,
+			// An id must not change once a feed reader has seen it, and the
+			// published ids carry the path without its trailing slash.
+			ID: feed.ID + strings.TrimSuffix(a.Path, "/"),
 			Link: []atom.Link{{
 				Rel:  "alternate",
 				Href: a.Meta.CanonicalURL,

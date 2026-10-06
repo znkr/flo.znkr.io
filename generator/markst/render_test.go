@@ -137,8 +137,8 @@ func TestHeadingAnchorLink(t *testing.T) {
 	// <h1> is the article title, so the document's own headings start at <h2>,
 	// and each carries a link to itself for the stylesheet to reveal on hover.
 	got := render(t, "= Intro <intro>\n\n== Deeper\n")
-	want := "<h2 id=\"intro\">Intro<a href=\"#intro\" class=\"anchor-link\"></a></h2>\n" +
-		"<h3 id=\"deeper\">Deeper<a href=\"#deeper\" class=\"anchor-link\"></a></h3>\n"
+	want := "<h2 id=\"intro\">Intro<a href=\"#intro\" class=\"anchor-link\" aria-hidden=\"true\" tabindex=\"-1\"></a></h2>\n" +
+		"<h3 id=\"deeper\">Deeper<a href=\"#deeper\" class=\"anchor-link\" aria-hidden=\"true\" tabindex=\"-1\"></a></h3>\n"
 	if got != want {
 		t.Errorf("renderBody():\n got: %q\nwant: %q", got, want)
 	}
@@ -161,10 +161,27 @@ func TestRawIsHighlighted(t *testing.T) {
 
 func TestReferenceToAHeading(t *testing.T) {
 	got := render(t, "= Intro <intro>\n\nSee @intro.")
-	want := "<h2 id=\"intro\">Intro<a href=\"#intro\" class=\"anchor-link\"></a></h2>\n" +
+	want := "<h2 id=\"intro\">Intro<a href=\"#intro\" class=\"anchor-link\" aria-hidden=\"true\" tabindex=\"-1\"></a></h2>\n" +
 		`<p>See <a href="#intro">intro</a>.</p>` + "\n"
 	if got != want {
 		t.Errorf("renderBody():\n got: %q\nwant: %q", got, want)
+	}
+}
+
+func TestLinkInLinkIsText(t *testing.T) {
+	// The text of the link is a bare URL, which markup makes a link of its own.
+	got := render(t, `#link("https://example.com/a")[https://example.com/b]`)
+	want := `<p><a href="https://example.com/a">https://example.com/b</a></p>` + "\n"
+	if got != want {
+		t.Errorf("renderBody():\n got: %q\nwant: %q", got, want)
+	}
+}
+
+func TestReferenceInLinkIsText(t *testing.T) {
+	got := render(t, "= Intro <intro>\n\n#link(\"https://example.com\")[see @intro]")
+	want := `<p><a href="https://example.com">see intro</a></p>` + "\n"
+	if !strings.HasSuffix(got, want) {
+		t.Errorf("renderBody():\n got: %q\nwant suffix: %q", got, want)
 	}
 }
 

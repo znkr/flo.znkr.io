@@ -96,6 +96,8 @@ type renderer struct {
 	frags    map[build.Key]builtins.Fragment
 	notes    notes
 	cited    []value.Content
+	// inLink reports whether the content being rendered is inside a link.
+	inLink bool
 }
 
 // notes numbers a document's footnotes, looked up by the footnote itself and by
@@ -239,13 +241,49 @@ func (r *renderer) render(e *mhtml.Encoder, c value.Content) (bool, error) {
 	case *value.Heading:
 		// Every heading gets a link to itself, which the stylesheet shows on
 		// hover. The label is what it points at; realization guarantees one.
+		// The link is for the pointer: it has no text, and the table of
+		// contents links every heading for the keyboard and screen readers.
 		tag := fmt.Sprintf("h%d", min(c.Depth+1, 6))
 		e.Start(tag, mhtml.Attr{Name: "id", Value: label(c)})
 		e.Content(c.Body)
-		e.Start("a", mhtml.Attr{Name: "href", Value: "#" + label(c)}, mhtml.Attr{Name: "class", Value: "anchor-link"})
+		e.Start("a",
+			mhtml.Attr{Name: "href", Value: "#" + label(c)},
+			mhtml.Attr{Name: "class", Value: "anchor-link"},
+			mhtml.Attr{Name: "aria-hidden", Value: "true"},
+			mhtml.Attr{Name: "tabindex", Value: "-1"},
+		)
 		e.End("a")
 		e.End(tag)
 		e.Newline()
+		return true, nil
+
+	case *value.Link:
+		// A link inside a link is invalid HTML, and markup turns a bare URL
+		// into a link even when it is the text of one. The inner link is
+		// written as its text.
+		if r.inLink {
+			e.Content(c.Body)
+			return true, nil
+		}
+		r.inLink = true
+		e.Default(c)
+		r.inLink = false
+		return true, nil
+
+	case *value.Ref:
+		// A reference is a link too. Inside a link, one to anything but a
+		// footnote is written as the text it would link.
+		if !r.inLink {
+			return false, nil
+		}
+		if _, ok := r.notes.byLabel[c.Target]; ok {
+			return false, nil
+		}
+		if c.Supplement != nil {
+			e.Content(c.Supplement)
+		} else {
+			e.Text(c.Target.String())
+		}
 		return true, nil
 
 	case *value.Table:
@@ -393,7 +431,10 @@ func (r *renderer) writeTOC(buf *bytes.Buffer, sections []*markst.Section, opts 
 		}
 		buf.WriteString("<li>")
 		fmt.Fprintf(buf, "<a href=\"#%s\">", html.EscapeString(label(s.Heading)))
-		if err := mhtml.Render(buf, s.Heading.Body, opts...); err != nil {
+		r.inLink = true
+		err := mhtml.Render(buf, s.Heading.Body, opts...)
+		r.inLink = false
+		if err != nil {
 			return err
 		}
 		buf.WriteString("</a>")

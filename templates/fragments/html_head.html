@@ -1,7 +1,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+    <title>{{ .Title }} - flo.znkr.io</title>
+
     <link rel="stylesheet" href="/_assets/style.css">
     <script src="/_assets/script.js" defer></script>
 
@@ -16,11 +17,9 @@
     {{- range .Tags }}
     <meta {{ .Attr }}="{{ .Name }}" content="{{ .Content }}">
     {{- end }}
-    {{- if .JSONLD -}}
+    {{- if .JSONLD }}
     <script type="application/ld+json">
     {{- .JSONLD -}}
     </script>
     {{- end }}
-
-    <title>{{ .Title }} - flo.znkr.io</title>
 </head>

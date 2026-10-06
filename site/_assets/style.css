@@ -109,7 +109,7 @@ a:visited {
   text-decoration: none;
 }
 a:hover,
-a:focus {
+a:focus-visible {
   text-decoration: underline;
 }
 
@@ -144,7 +144,7 @@ a:focus {
     }
 
     a:hover,
-    a:focus {
+    a:focus-visible {
         color: var(--color-link);
         text-decoration: none;
     }
@@ -166,6 +166,18 @@ main {
 
     > * {
         grid-column: content;
+    }
+
+    /* An article spans the grid and lays its children out on main's columns. */
+    > article {
+        grid-column: full;
+        display: grid;
+        grid-template-columns: subgrid;
+        align-content: start;
+
+        > * {
+            grid-column: content;
+        }
     }
 
     h1 {
@@ -252,6 +264,20 @@ main {
         .date {
             display: block;
         }
+
+        p {
+            margin: 0;
+        }
+
+        .subtitle {
+            display: block;
+            color: var(--color-text-soft);
+        }
+    }
+
+    /* The header of a page, and of the index, is flush with the text below. */
+    .page-header {
+        text-align: left;
     }
 
     .content {
@@ -564,8 +590,9 @@ main {
 .sub-content-header {
     margin: 0.5rem 0 0.125rem 0;
 
-    h3 {
+    h2 {
         margin: 0;
+        font-size: 1.125rem;
     }
 
     span {

@@ -27,9 +27,9 @@ func TestPlanComputesNothing(t *testing.T) {
 	s := load(t, dir)
 
 	c := build.NewCache(cacheSize)
-	d := s.Doc("/about")
+	d := s.Doc("/about/")
 	if d == nil {
-		t.Fatal("/about is missing from the plan")
+		t.Fatal("/about/ is missing from the plan")
 	}
 	if _, err := d.Meta.Get(t.Context(), c); err == nil {
 		t.Error("Meta.Get() on a document that does not compile = nil, want error")
@@ -47,7 +47,7 @@ func TestMetadataRejectsAnUnknownDocType(t *testing.T) {
 
 	s := load(t, dir)
 	c := build.NewCache(cacheSize)
-	_, err := s.Doc("/about").Meta.Get(t.Context(), c)
+	_, err := s.Doc("/about/").Meta.Get(t.Context(), c)
 	if err == nil || !strings.Contains(err.Error(), "site/about.mst: unknown doc type") {
 		t.Errorf("Meta.Get() = %v, want an unknown doc type error naming the file", err)
 	}
@@ -130,10 +130,10 @@ func TestRebuildsOnlyWhatChanged(t *testing.T) {
 
 	// The edited document is a new page; every other one is the page it was.
 	pb, pa := pageKeys(before), pageKeys(after)
-	if pb["/diffs"] == pa["/diffs"] {
-		t.Error("/diffs was reused even though one of its includes changed")
+	if pb["/diffs/"] == pa["/diffs/"] {
+		t.Error("/diffs/ was reused even though one of its includes changed")
 	}
-	for _, p := range []string{"/about", "/snippets", "/prose", "/unpublished"} {
+	for _, p := range []string{"/about/", "/snippets/", "/prose/", "/unpublished/"} {
 		if pb[p] != pa[p] {
 			t.Errorf("%s was rebuilt even though nothing it depends on changed", p)
 		}
@@ -194,8 +194,8 @@ func TestDropsDeletedDocuments(t *testing.T) {
 
 	c := build.NewCache(cacheSize)
 	s := load(t, dir)
-	if s.Doc("/prose") == nil {
-		t.Fatal("/prose is missing from the first build")
+	if s.Doc("/prose/") == nil {
+		t.Fatal("/prose/ is missing from the first build")
 	}
 	forceAll(t, c, s)
 
@@ -204,8 +204,8 @@ func TestDropsDeletedDocuments(t *testing.T) {
 	}
 
 	s = load(t, dir)
-	if s.Doc("/prose") != nil {
-		t.Error("/prose is still served after its source was deleted")
+	if s.Doc("/prose/") != nil {
+		t.Error("/prose/ is still served after its source was deleted")
 	}
 }
 

@@ -7,14 +7,15 @@
     {{ template "fragments/header" }}
 
     <main>
+        <article>
         <header class="header">
             <h1>{{ .Meta.Title }}</h1>
             {{ if not .Meta.Published.IsZero }}
                 {{- $published := .Meta.Published.Format "January 2, 2006" }}
                 {{- $updated := .Meta.Updated.Format "January 2, 2006" }}
-                <span class="date">Posted on {{ $published }}</span>
+                <span class="date">Posted on <time datetime="{{ .Meta.Published.Format "2006-01-02" }}">{{ $published }}</time></span>
                 {{ if ne $published $updated }}
-                    <span class="date">Updated on {{ $updated }}</span>
+                    <span class="date">Updated on <time datetime="{{ .Meta.Updated.Format "2006-01-02" }}">{{ $updated }}</time></span>
                 {{ end }}
             {{ else }}
                 <span class="date">Preview</span>
@@ -24,7 +25,7 @@
         {{ if .TOC -}}
             <aside class="toc">
                 <div class="toc-bar">
-                    <button class="toc-current" popovertarget="toc-nav" aria-label="Table of Contents">
+                    <button class="toc-current" popovertarget="toc-nav">
                         <span class="toc-crumbs"><span class="toc-title">{{ .Meta.Title }}</span><span class="toc-path"><span>Contents</span></span></span>
                     </button>
                 </div>
@@ -37,6 +38,7 @@
         <div class="content">
             {{ .Content }}
         </div>
+        </article>
     </main>
 
     {{ template "fragments/footer" . }}

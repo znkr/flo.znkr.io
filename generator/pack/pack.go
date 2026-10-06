@@ -58,10 +58,8 @@ func Pack(ctx context.Context, filename string, c *build.Cache, s *site.Site) er
 		}
 
 		path := d.Path
-		if path == "/" {
-			path = "index.html"
-		} else if mime == "text/html" && filepath.Ext(path) == "" {
-			path += "/index.html"
+		if strings.HasSuffix(path, "/") {
+			path += "index.html"
 		}
 		path = strings.TrimPrefix(path, "/")
 

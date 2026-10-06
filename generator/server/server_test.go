@@ -246,3 +246,35 @@ func TestShutdownReleasesEventStreams(t *testing.T) {
 		t.Fatalf("Shutdown() = %v, want the open event stream to be released", err)
 	}
 }
+
+func TestServeRedirectsToTrailingSlash(t *testing.T) {
+	s, err := site.New([]site.Doc{{
+		Path:     "/about/",
+		MimeType: "text/html;charset=utf-8",
+		Page:     page(pageBody),
+	}})
+	if err != nil {
+		t.Fatalf("site.New() = %v", err)
+	}
+	_, base := runServerWith(t, s)
+
+	client := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	resp, err := client.Get(base + "/about")
+	if err != nil {
+		t.Fatalf("GET /about = %v", err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusMovedPermanently || resp.Header.Get("Location") != "/about/" {
+		t.Errorf("GET /about = %v to %q, want 301 to /about/", resp.Status, resp.Header.Get("Location"))
+	}
+	get(t, base+"/about/")
+
+	resp, err = client.Get(base + "/about?x=1")
+	if err != nil {
+		t.Fatalf("GET /about?x=1 = %v", err)
+	}
+	resp.Body.Close()
+	if got := resp.Header.Get("Location"); got != "/about/?x=1" {
+		t.Errorf("GET /about?x=1 redirects to %q, want /about/?x=1", got)
+	}
+}
