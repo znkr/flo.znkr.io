@@ -7,24 +7,25 @@
     {{ template "fragments/header" }}
 
     <main>
-      <header class="header" style="text-align: left;">
+      <header class="header page-header">
          <h1>{{ .Meta.Title }}</h1>
-         {{ .Meta.Summary }}
+         <p>{{ .Meta.Summary }}</p>
       </header>
 
-      <section class="content">
+      <div class="content">
          {{ range .Articles }}
             <article class="sub-content">
                <header class="sub-content-header">
                   {{- $published := .Meta.Published.Format "January 2006" }}
                   {{- $updated := .Meta.Updated.Format "January 2006" }}
-                  <h3><a href="{{ .Path }}">{{ .Meta.Title }}</a></h3>
-                  <span>{{ $published }}{{ if ne $published $updated }}, updated {{ $updated }}{{ end }}</span>
+                  <h2><a href="{{ .Path }}">{{ .Meta.Title }}</a></h2>
+                  <span><time datetime="{{ .Meta.Published.Format "2006-01-02" }}">{{ $published }}</time>
+                  {{- if ne $published $updated }}, updated <time datetime="{{ .Meta.Updated.Format "2006-01-02" }}">{{ $updated }}</time>{{ end }}</span>
                </header>
                <p>{{ .Meta.Summary }}</p>
             </article>
          {{ end }}
-      </section>
+      </div>
     </main>
 
     {{ template "fragments/footer" . }}

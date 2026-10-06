@@ -4,11 +4,11 @@
         Florian Zenker, a software engineer dabbling with computers at home.
     ],
     header: {
-        html.elem("h1", attrs: (style: "margin-right: 0.5rem;"), [Florian Zenker])
+        html.elem("h1", [Florian Zenker])
         // `block: true` keeps the span out of a paragraph: inside a flow container
         // a bare inline run would be gathered into one, and this span is a sibling
         // of the heading, not a paragraph of its own.
-        html.elem("span", attrs: (style: "color: var(--color-text-soft);"), block: true, [he/they])
+        html.elem("span", attrs: (class: "subtitle"), block: true, [he/they])
     }
 )
 

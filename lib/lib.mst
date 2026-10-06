@@ -26,6 +26,6 @@
             summary: summary,
         )) <doc-meta>
     ]
-    html.elem("header", attrs: (style: "text-align: left", class: "header"), header)
+    html.elem("header", attrs: (class: "header page-header"), header)
     html.elem("div", attrs: (class: "content"), content)
 }

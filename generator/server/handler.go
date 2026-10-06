@@ -37,6 +37,15 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	doc := s.Doc(req.URL.EscapedPath())
+	if doc == nil && s.Doc(req.URL.EscapedPath()+"/") != nil {
+		// GitHub Pages serves a directory's index.html at the path with a
+		// trailing slash and redirects the path without it, keeping the query.
+		u := *req.URL
+		u.Path += "/"
+		u.RawPath = ""
+		http.Redirect(w, req, u.RequestURI(), http.StatusMovedPermanently)
+		return
+	}
 	if doc == nil {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusNotFound)

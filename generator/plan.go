@@ -98,14 +98,13 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 		// - index.mst is served at the directory's path, so that a directory can
 		//   hold a document that is the default for it.
 		// - other files are served at the files path without the extension.
+		// Either path ends in a slash, because the page is packed as the
+		// index.html of a directory and GitHub Pages redirects the path without
+		// the slash to the one with it.
 		if name := strings.TrimSuffix(base, ext); name == "index" {
-			if dir == "/" {
-				p = dir
-			} else {
-				p = strings.TrimSuffix(dir, "/")
-			}
+			p = dir
 		} else {
-			p = dir + name
+			p = dir + name + "/"
 		}
 
 		// docFS is the file system the document can include from. It is the
@@ -305,12 +304,7 @@ func cardPath(p string) string { return path.Join(p, "card.png") }
 
 // canonicalURL returns the URL the page at p is served from, which is the one
 // URL of it a search engine is to keep.
-func canonicalURL(p string) string {
-	if !strings.HasSuffix(p, "/") {
-		p += "/"
-	}
-	return siteOrigin + p
-}
+func canonicalURL(p string) string { return siteOrigin + p }
 
 // cardURL returns the URL a link preview loads the card of the page at p from.
 func cardURL(p string) string { return siteOrigin + cardPath(p) }

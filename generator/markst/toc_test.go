@@ -96,3 +96,31 @@ func TestRenderTOCDropsFootnoteMarks(t *testing.T) {
 		t.Errorf("renderTOC():\n got: %q\nwant: %q", got, want)
 	}
 }
+
+// TestRenderTOCDropsLinks checks that a link in a heading is its text in the
+// table of contents, whose entry is a link already.
+func TestRenderTOCDropsLinks(t *testing.T) {
+	r := compileTOC(t, "= See #link(\"https://example.com\")[example] <see>\n")
+	got, err := r.renderTOC()
+	if err != nil {
+		t.Fatalf("renderTOC: %v", err)
+	}
+	want := `<ul><li><a href="#see">See example</a></li>` + "\n</ul>"
+	if string(got) != want {
+		t.Errorf("renderTOC():\n got: %q\nwant: %q", got, want)
+	}
+}
+
+// TestRenderTOCDropsReferences checks that a reference in a heading is its text
+// in the table of contents.
+func TestRenderTOCDropsReferences(t *testing.T) {
+	r := compileTOC(t, "= Other <other>\n\n= See @other <see>\n")
+	got, err := r.renderTOC()
+	if err != nil {
+		t.Fatalf("renderTOC: %v", err)
+	}
+	want := `<ul><li><a href="#other">Other</a></li>` + "\n" + `<li><a href="#see">See other</a></li>` + "\n</ul>"
+	if string(got) != want {
+		t.Errorf("renderTOC():\n got: %q\nwant: %q", got, want)
+	}
+}
