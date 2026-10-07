@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
+	"log/slog"
 	"slices"
 	"strings"
 	"time"
@@ -50,13 +50,20 @@ type Lib struct {
 	Diags []Diagnostic
 }
 
-// Report writes diags to stderr.
+// Report logs each of diags at the level of its severity.
 //
-// Diagnostics are returned rather than printed where they arise, so that they
+// Diagnostics are returned rather than logged where they arise, so that they
 // can be reported again for a document that did not have to be compiled again.
 func Report(diags []Diagnostic) {
-	if len(diags) > 0 {
-		markst.FormatDiagnostics(os.Stderr, diags)
+	for _, d := range diags {
+		level := slog.LevelError
+		if d.Severity == Warning {
+			level = slog.LevelWarn
+		}
+		// The level says what the severity label would, so the diagnostic is
+		// formatted as an error, which has none.
+		d.Severity = Error
+		slog.Log(context.Background(), level, Format([]Diagnostic{d}))
 	}
 }
 

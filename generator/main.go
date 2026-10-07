@@ -1,14 +1,17 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"os"
 
+	"flo.znkr.io/generator/logs"
 	"github.com/spf13/cobra"
 )
 
 func main() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	// The default logger also takes what the log package writes, net/http's
+	// messages included.
+	slog.SetDefault(slog.New(logs.NewHandler(os.Stderr, slog.LevelInfo, logs.Color(os.Stderr))))
 
 	rootCmd := &cobra.Command{
 		Use:          "site [command]",
