@@ -21,7 +21,7 @@ func RenderPage(templates *template.Template, meta site.Metadata, assets Assets,
 	// Lookup alone is not enough: an empty name finds the root template, and a
 	// fragment name finds a template that is no page.
 	page := templates.Lookup(meta.Type)
-	if !slices.Contains(site.DocTypes, meta.Type) || page == nil {
+	if (!slices.Contains(site.DocTypes, meta.Type) && meta.Type != site.ErrorType) || page == nil {
 		return nil, fmt.Errorf("unknown doc type: %s", meta.Type)
 	}
 

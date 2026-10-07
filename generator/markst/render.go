@@ -53,8 +53,12 @@ const (
 
 // RenderBody renders doc's body, without a page around it. frags are the
 // document's fragments, keyed the way [builtins.Artifact] keys them, inc draws
-// its includes, and fn says how its footnotes are drawn.
+// its includes, and fn says how its footnotes are drawn. For a document with
+// errors, it returns the errors as escaped text.
 func RenderBody(doc *Doc, frags map[build.Key]builtins.Fragment, docPath string, inc Includes, fn Footnotes) ([]byte, error) {
+	if err := doc.Err(); err != nil {
+		return []byte(html.EscapeString(err.Error())), nil
+	}
 	r := newRenderer(doc, frags, docPath, inc)
 	if fn == Popovers {
 		return r.content(r.renderWithFootnotes)
@@ -64,8 +68,11 @@ func RenderBody(doc *Doc, frags map[build.Key]builtins.Fragment, docPath string,
 
 // RenderTOC renders doc's headings as a nested list, each entry linking to its
 // heading. It fails if a heading has no label, and with it no anchor to link
-// to. It returns nothing for a document without headings.
+// to. It returns nothing for a document without headings or with errors.
 func RenderTOC(doc *Doc, frags map[build.Key]builtins.Fragment, docPath string) ([]byte, error) {
+	if doc.Err() != nil {
+		return nil, nil
+	}
 	// A heading holds no block element, so there is no include to draw.
 	return newRenderer(doc, frags, docPath, nil).renderTOC()
 }

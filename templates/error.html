@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{{ template "fragments/html_head" .Head }}
+
+<style>
+    /* Only serve shows this page, and pack refuses a site with errors, so its
+       styles stay here rather than in the site's stylesheet. The red bars set
+       it apart from every page that renders. */
+    .error-page {
+        background: var(--color-delete-bg);
+
+        .site-header,
+        .site-footer {
+            border-image: none;
+            border-color: var(--color-delete);
+        }
+
+        h1 {
+            color: var(--color-delete);
+            font-family: var(--font-mono);
+            font-size: 1.25rem;
+        }
+
+        .error-report {
+            margin: 0;
+            padding: var(--block-inset);
+            border-left: 4px solid var(--color-delete);
+            border-radius: 0 var(--border-radius) var(--border-radius) 0;
+            background: var(--color-bg);
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+    }
+</style>
+
+<body class="error-page">
+    {{ template "fragments/header" }}
+
+    <main>
+        <h1>{{ .Meta.Source }} has errors</h1>
+        <pre class="error-report">{{ .Content }}</pre>
+    </main>
+
+    {{ template "fragments/footer" . }}
+</body>
+
+</html>

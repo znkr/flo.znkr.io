@@ -32,7 +32,7 @@ func TestRenderPageRejectsANonPageType(t *testing.T) {
 // document holds an include for it.
 func TestRenderBodyNeedsTheFragmentTemplates(t *testing.T) {
 	src := "#metadata((title: \"T\", type: \"article\")) <doc-meta>\n\nHello.\n"
-	doc, err := markst.Load(t.Context(), "test.mst", []byte(src), nil, nil)
+	doc, err := markst.Load(t.Context(), "test.mst", []byte(src), nil, nil, []string{"article"})
 	if err != nil {
 		t.Fatalf("compiling document: %v", err)
 	}

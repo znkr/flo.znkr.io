@@ -33,6 +33,9 @@ type Doc struct {
 	// Meta is what the document says about itself. It is the zero Metadata for
 	// a document that says nothing, such as an asset copied through unchanged.
 	Meta build.Artifact[Metadata]
+	// Errors lists the errors of the document, one per line, or is empty if
+	// there are none. A document with errors is served as a page listing them.
+	Errors build.Artifact[string]
 	// Page is the document as it is served.
 	Page build.Artifact[[]byte]
 	// FeedContent is the document's body as the feed embeds it: without the
@@ -44,6 +47,11 @@ type Doc struct {
 // DocTypes are the types a document may declare in its metadata. Each names the
 // template the document is rendered with.
 var DocTypes = []string{"article", "page"}
+
+// ErrorType is the type of a document with errors, whose body is the list of
+// them. No document can declare it. It names the template the errors are
+// rendered with.
+const ErrorType = "error"
 
 type Metadata struct {
 	// Title is the title of the document.

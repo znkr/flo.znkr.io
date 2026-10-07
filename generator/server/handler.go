@@ -75,7 +75,14 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		b = inject(b)
 	}
 
-	w.WriteHeader(http.StatusOK)
+	status := http.StatusOK
+	// A document with errors renders to a page that shows them. It is served
+	// with the status of a failure, like a page that did not render.
+	if errs, err := doc.Errors.Get(req.Context(), h.cache); err == nil && errs != "" {
+		log.Printf("failed to serve %v:\n%s", req.URL.EscapedPath(), errs)
+		status = http.StatusInternalServerError
+	}
+	w.WriteHeader(status)
 	if _, err := w.Write(b); err != nil {
 		log.Printf("failed to write response: %v", err)
 	}
