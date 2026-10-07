@@ -165,12 +165,20 @@ a:focus-visible {
         font-size: 0.9rem;
     }
 
-    nav a {
-        color: var(--color-text-soft);
+    .site-name:hover,
+    .site-name:focus-visible {
+        color: var(--color-link);
+        text-decoration: none;
     }
+}
 
-    a:hover,
-    a:focus-visible {
+/* The links of the header nav and the footer's accounts are set back until
+   hovered. */
+:is(.site-header nav, .footer-profiles) a {
+    color: var(--color-text-soft);
+
+    &:hover,
+    &:focus-visible {
         color: var(--color-link);
         text-decoration: none;
     }
@@ -580,22 +588,49 @@ main {
     }
 }
 
+/* The links into the site and the statement, then the author and the accounts
+   elsewhere, each pair at the two edges of the column. */
 .site-footer {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 1rem;
-    padding: 1rem var(--column-inset) 2rem;
+    display: grid;
+    grid-template:
+        "links statement"
+        "author profiles" / 1fr auto;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    padding: 1.5rem var(--column-inset);
 
     background: var(--color-bg-footer);
-    color: var(--color-text-soft-extra);
+    color: var(--color-text-soft);
     font-size: 0.8rem;
 
     border-top: 2px solid transparent;
     border-image: var(--gradient) 1;
 
+    .footer-author {
+        grid-area: author;
+    }
+
+    .footer-statement {
+        grid-area: statement;
+        margin: 0;
+    }
+
+    .footer-links {
+        grid-area: links;
+    }
+
+    .footer-profiles {
+        grid-area: profiles;
+    }
+
+    .footer-profiles,
+    .footer-statement {
+        justify-self: end;
+    }
+
     nav {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: 1rem;
     }
@@ -604,16 +639,10 @@ main {
        masked into, drawn in the color the links around it are. */
     .profile {
         display: block;
-        width: 1rem;
-        height: 1rem;
+        width: 0.875rem;
+        height: 0.875rem;
 
         background: currentColor;
-    }
-
-    /* The accounts elsewhere are a group of their own, set off from the links
-       into the site. */
-    a:not(.profile) + .profile {
-        margin-left: .5rem;
     }
 
     .profile-github {
