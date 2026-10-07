@@ -60,9 +60,9 @@ func Run(addr string, c *build.Cache, site *site.Site, warnings string) (*Server
 }
 
 // ReplaceSite replaces the site to serve with the one provided and tells
-// connected browsers to reload. warnings is what compiling the site warned
-// about, formatted for display, and is shown on every page until the next
-// ReplaceSite.
+// connected browsers to reload. warnings is what loading the site warned
+// about, including documents whose metadata could not be computed, formatted
+// for display. It is shown on every page until the next ReplaceSite.
 func (s *Server) ReplaceSite(site *site.Site, warnings string) {
 	s.handler.site.Store(site)
 	s.reload.notify(warnings)

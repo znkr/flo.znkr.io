@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
 	"testing"
 
 	"flo.znkr.io/generator/build"
@@ -31,25 +30,41 @@ func TestPlanComputesNothing(t *testing.T) {
 	if d == nil {
 		t.Fatal("/about/ is missing from the plan")
 	}
-	if _, err := d.Meta.Get(t.Context(), c); err == nil {
-		t.Error("Meta.Get() on a document that does not compile = nil, want error")
+	if _, err := d.Page.Get(t.Context(), c); err == nil {
+		t.Error("Page.Get() with templates that do not parse = nil, want error")
 	}
 }
 
-// TestMetadataRejectsAnUnknownDocType checks that a document is held to the
-// types there is a page template for when its metadata is read, which is the
-// first thing a cold start asks of every document, and that the error names
-// the file. Left to rendering, a typo would pass unnoticed until the first
-// request for the page.
-func TestMetadataRejectsAnUnknownDocType(t *testing.T) {
-	dir := fixture(t)
-	write(t, filepath.Join(dir, "site/about.mst"), "#metadata((title: \"T\", type: \"artikel\")) <doc-meta>\n")
+// TestDocumentErrorsRenderAnErrorPage checks that a document with errors does
+// not stop the site from loading: its metadata names the error type, the index
+// is rendered without it, and its page lists the errors naming the file.
+func TestDocumentErrorsRenderAnErrorPage(t *testing.T) {
+	for _, tc := range []struct {
+		name, src, want string
+	}{
+		{"missing doc-meta", "", "site/about.mst: missing doc-meta"},
+		{"unknown doc type", "#metadata((title: \"T\", type: \"artikel\")) <doc-meta>\n", "site/about.mst: unknown doc type: &#34;artikel&#34;"},
+		{"compile error", "#no-such-function()\n", "site/about.mst:1:2: unknown variable: no-such-function"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := fixture(t)
+			write(t, filepath.Join(dir, "site/about.mst"), tc.src)
 
-	s := load(t, dir)
-	c := build.NewCache(cacheSize)
-	_, err := s.Doc("/about/").Meta.Get(t.Context(), c)
-	if err == nil || !strings.Contains(err.Error(), "site/about.mst: unknown doc type") {
-		t.Errorf("Meta.Get() = %v, want an unknown doc type error naming the file", err)
+			s := load(t, dir)
+			c := build.NewCache(cacheSize)
+			d := s.Doc("/about/")
+			meta, err := d.Meta.Get(t.Context(), c)
+			if err != nil || meta.Type != site.ErrorType {
+				t.Errorf("Meta.Get() = %+v, %v, want type %q", meta, err, site.ErrorType)
+			}
+			if _, err := s.Doc("/").Page.Get(t.Context(), c); err != nil {
+				t.Errorf("index Page.Get() = %v, want nil", err)
+			}
+			page, err := d.Page.Get(t.Context(), c)
+			if err != nil || !bytes.Contains(page, []byte(tc.want)) {
+				t.Errorf("Page.Get() = %s, %v, want a page holding %q", page, err, tc.want)
+			}
+		})
 	}
 }
 
@@ -224,6 +239,8 @@ func TestTransparency(t *testing.T) {
 		"site/ignored/index.mst": true,
 		// Appending a comment line changes no pattern.
 		"site/ignored/.ignore": true,
+		// The fixture holds no document with errors.
+		"templates/error.html": true,
 	}
 
 	base := fixture(t)
@@ -311,7 +328,7 @@ func TestNoDiagnostics(t *testing.T) {
 				t.Fatalf("diags.Get() = %v", err)
 			}
 			if len(got) > 0 {
-				t.Errorf("%s compiles with %d warnings:\n%s", dir, len(got), markst.Format(got))
+				t.Errorf("%s compiles with %d diagnostics:\n%s", dir, len(got), markst.Format(got))
 			}
 		})
 	}

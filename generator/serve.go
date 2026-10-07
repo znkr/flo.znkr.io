@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -35,20 +36,27 @@ var serveCmd = &cobra.Command{
 		cache := build.NewCache(cacheSize)
 
 		start := time.Now()
-		s, diags, err := reload(cmd.Context(), cache, dir)
-		if err != nil {
-			return fmt.Errorf("loading site: %v", err)
+		s, report, loadErr := reload(cmd.Context(), cache, dir)
+		if loadErr != nil {
+			// An empty site is served, so that the browser shows the failure
+			// and the next change to the files is picked up.
+			log.Printf("failed to load site: %v", loadErr)
+			s, _ = site.New(nil)
+		} else {
+			log.Printf("Site loaded (%v)", time.Since(start))
 		}
 		cache.Stats()
-		log.Printf("Site loaded (%v)", time.Since(start))
 
 		// Start serving.
 		const addr = "localhost:8080"
-		server, err := server.Run(addr, cache, s, markst.Format(diags))
+		server, err := server.Run(addr, cache, s, report)
 		if err != nil {
 			return err
 		}
 		defer server.Shutdown(context.Background())
+		if loadErr != nil {
+			server.ReportFailure(loadErr)
+		}
 		log.Printf("Now serving at %s, press Ctrl-C to shut down", addr)
 
 		// Setup file watcher to trigger reloading of the site should anything change on disk.
@@ -99,14 +107,14 @@ var serveCmd = &cobra.Command{
 				// Discard what serving the pages did since the last reload, so
 				// that the counts below cover only this one.
 				cache.Stats()
-				s, diags, err := reload(cmd.Context(), cache, dir)
+				s, report, err := reload(cmd.Context(), cache, dir)
 				if err != nil {
 					log.Printf("failed to update site: %v", err)
 					server.ReportFailure(err)
 					continue
 				}
 				st := cache.Stats()
-				server.ReplaceSite(s, markst.Format(diags))
+				server.ReplaceSite(s, report)
 				log.Printf("Site reloaded (%v, %d documents recompiled, %d of %d steps reused)",
 					time.Since(start), st.Kinds["doc"].Misses, st.Hits, st.Hits+st.Misses)
 
@@ -125,39 +133,56 @@ var serveCmd = &cobra.Command{
 	},
 }
 
-// reload scans dir, and plans the site, and compiles all documents.
+// reload scans dir, plans the site, and compiles all documents. It fails only
+// if the site cannot be planned. A document that fails is reported and the
+// site is served regardless; its page shows the failure when it is requested.
 //
 // Planning alone computes nothing, so the site would be served without a line
-// of it having been read. The compile is forced because a document that no
-// longer compiles, or that warns, belongs in the terminal now rather than in
+// of it having been read. The compile is forced because a document that does
+// not compile, or that warns, belongs in the terminal now rather than in
 // whichever request first reaches it. Forcing the metadata renders the summary
 // with it, and highlights the fragments the summary holds. The body is what
 // waits for a request.
 //
-// The warnings are reported in full every reload, including the ones from
-// documents this reload did not have to compile, so that a warning stays on
-// screen until the document it is about is fixed. They are also returned, for
-// the browser.
-func reload(ctx context.Context, c *build.Cache, dir string) (*site.Site, []markst.Diagnostic, error) {
+// The diagnostics are reported in full every reload, including the ones from
+// documents this reload did not have to compile, so that a diagnostic stays on
+// screen until the document it is about is fixed. The returned report holds
+// the warnings and every failure, formatted for the browser.
+func reload(ctx context.Context, c *build.Cache, dir string) (*site.Site, string, error) {
 	tree, err := source.Scan(dir)
 	if err != nil {
-		return nil, nil, fmt.Errorf("scanning site: %v", err)
+		return nil, "", fmt.Errorf("scanning site: %v", err)
 	}
 	s, diags, err := plan(tree)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", err
 	}
+	var failures []string
 	for _, d := range s.Docs() {
 		if _, err := d.Meta.Get(ctx, c); err != nil {
-			return nil, nil, err
+			failures = append(failures, err.Error())
 		}
 	}
 	ds, err := diags.Get(ctx, c)
 	if err != nil {
-		return nil, nil, err
+		failures = append(failures, err.Error())
 	}
 	markst.Report(ds)
-	return s, ds, nil
+	// A failure in a step many documents share, such as a library compile
+	// that could not run, is the failure of each of them.
+	slices.Sort(failures)
+	failures = slices.Compact(failures)
+	for _, f := range failures {
+		log.Print(f)
+	}
+	// An error in a document is shown by the document's own page, so the
+	// browser is told of the warnings and of the failures.
+	var report []string
+	if ws := markst.OfSeverity(ds, markst.Warning); len(ws) > 0 {
+		report = append(report, markst.Format(ws))
+	}
+	report = append(report, failures...)
+	return s, strings.Join(report, "\n"), nil
 }
 
 func watchDir(watcher *fsnotify.Watcher, dir string) error {

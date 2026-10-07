@@ -38,6 +38,7 @@ func TestScanReadsEverything(t *testing.T) {
 		"site/snippets/index.mst",
 		"site/unpublished/index.mst",
 		"templates/article.html",
+		"templates/error.html",
 		"templates/fragments/head.html",
 		"templates/fragments/include_diff.html",
 		"templates/fragments/include_snippet.html",
@@ -190,6 +191,7 @@ func TestSubWalks(t *testing.T) {
 	}
 	want := []string{
 		"article.html",
+		"error.html",
 		"fragments/head.html",
 		"fragments/include_diff.html",
 		"fragments/include_snippet.html",

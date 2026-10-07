@@ -38,7 +38,7 @@ func render(t *testing.T, src string) string {
 	}
 
 	src = "#article(title: \"T\")\n\n" + src
-	doc, err := gmarkst.Load(t.Context(), "test.mst", []byte(src), nil, libs)
+	doc, err := gmarkst.Load(t.Context(), "test.mst", []byte(src), nil, libs, []string{"article"})
 	if err != nil {
 		t.Fatalf("compiling document: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestImagePathIsSiteRelative(t *testing.T) {
 func TestNoteCarriesNoIDs(t *testing.T) {
 	src := "#metadata((title: \"T\", type: \"article\")) <doc-meta>\n\n" +
 		"Text.#footnote[A note. <in-note>]<note> and again@note\n"
-	doc, err := gmarkst.Load(t.Context(), "test.mst", []byte(src), nil, nil)
+	doc, err := gmarkst.Load(t.Context(), "test.mst", []byte(src), nil, nil, []string{"article"})
 	if err != nil {
 		t.Fatalf("compiling document: %v", err)
 	}

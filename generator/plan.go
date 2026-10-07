@@ -95,6 +95,7 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 				Source:      f.Path,
 				MimeType:    mimeType(ext),
 				Meta:        noMeta(),
+				Errors:      noErrors(),
 				Page:        data,
 				FeedContent: data,
 			})
@@ -125,7 +126,7 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 			docFS = tree.Sub(path.Join("site", dir))
 		}
 
-		mdoc := build.Derive[*markst.Doc]("doc", markst.Load, f.Path, tree.Data(f), docFS, libs)
+		mdoc := build.Derive[*markst.Doc]("doc", markst.Load, f.Path, tree.Data(f), docFS, libs, site.DocTypes)
 
 		// The summaryFrags is not reached by a walk of the body, so rendering it
 		// waits on its own fragments (usually none) and not on the article's
@@ -148,6 +149,7 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 			Source:      f.Path,
 			MimeType:    "text/html;charset=utf-8",
 			Meta:        meta,
+			Errors:      build.Derive[string]("errors", docErrors, mdoc),
 			Page:        page,
 			FeedContent: content,
 		})
@@ -179,6 +181,7 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 			Path:        "/",
 			MimeType:    "text/html;charset=utf-8",
 			Meta:        indexMeta,
+			Errors:      noErrors(),
 			Page:        index,
 			FeedContent: index,
 		},
@@ -186,6 +189,7 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 			Path:        "/feed.atom",
 			MimeType:    "application/atom+xml;charset=utf-8",
 			Meta:        constMeta(site.Metadata{Title: siteTitle}),
+			Errors:      noErrors(),
 			Page:        feed,
 			FeedContent: feed,
 		},
@@ -193,6 +197,7 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 			Path:        "/sitemap.xml",
 			MimeType:    "application/xml;charset=utf-8",
 			Meta:        noMeta(),
+			Errors:      noErrors(),
 			Page:        sitemap,
 			FeedContent: sitemap,
 		},
@@ -200,6 +205,7 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 			Path:        "/robots.txt",
 			MimeType:    "text/plain;charset=utf-8",
 			Meta:        noMeta(),
+			Errors:      noErrors(),
 			Page:        robots,
 			FeedContent: robots,
 		},
@@ -214,7 +220,7 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 	return s, diags, err
 }
 
-// collectDiags gathers the warnings compiling the site produced, libraries
+// collectDiags gathers the warnings and errors compiling the site produced, libraries
 // first.
 func collectDiags(libs []*markst.Lib, docs []*markst.Doc) ([]markst.Diagnostic, error) {
 	var ret []markst.Diagnostic
@@ -228,7 +234,8 @@ func collectDiags(libs []*markst.Lib, docs []*markst.Doc) ([]markst.Diagnostic, 
 }
 
 // loadDir scans dir, plans the site it holds, and returns it with a cache to
-// compute it against, reporting whatever compiling it warns about.
+// compute it against. It fails if compiling the site produces any diagnostic,
+// a warning included, and reports them.
 func loadDir(ctx context.Context, dir string) (*build.Cache, *site.Site, error) {
 	tree, err := source.Scan(dir)
 	if err != nil {
@@ -243,7 +250,10 @@ func loadDir(ctx context.Context, dir string) (*build.Cache, *site.Site, error) 
 	if err != nil {
 		return nil, nil, err
 	}
-	markst.Report(ds)
+	if len(ds) > 0 {
+		markst.Report(ds)
+		return nil, nil, fmt.Errorf("%d diagnostics", len(ds))
+	}
 	return c, s, nil
 }
 
@@ -255,11 +265,12 @@ func deriveFragments(kind string, walk func(*markst.Doc) ([]build.Artifact[built
 }
 
 // siteMetadata returns what the site knows about the document at source: what
-// it says about itself, held to the types there is a page template for, with
-// its summary rendered in and its canonical URL.
+// it says about itself, with its summary rendered in and its canonical URL. A
+// document with errors has the type [site.ErrorType] and nothing else.
 func siteMetadata(source, path string, d *markst.Doc, summary string) (site.Metadata, error) {
-	if !slices.Contains(site.DocTypes, d.Meta.Type) {
-		return site.Metadata{}, fmt.Errorf("%s: unknown doc type: %q", source, d.Meta.Type)
+	if d.Err() != nil {
+		// A document with errors has no URL, so nothing lists it.
+		return site.Metadata{Title: "Error", Source: source, Type: site.ErrorType}, nil
 	}
 	m := site.Metadata{
 		Title:     d.Meta.Title,
@@ -289,6 +300,19 @@ func noMeta() build.Artifact[site.Metadata] {
 	return build.Const("meta.none", site.Metadata{})
 }
 
+// noErrors returns the errors of a document that cannot have any.
+func noErrors() build.Artifact[string] {
+	return build.Const("errors.none", "")
+}
+
+// docErrors returns the errors of d, one per line, or "" if there are none.
+func docErrors(d *markst.Doc) (string, error) {
+	if err := d.Err(); err != nil {
+		return err.Error(), nil
+	}
+	return "", nil
+}
+
 // constMeta returns the metadata of a document the generator writes rather than
 // reads. The index and the feed say what they say here rather than in a
 // document.
@@ -302,6 +326,7 @@ func cardDoc(p string, img build.Artifact[[]byte]) site.Doc {
 		Path:        cardPath(p),
 		MimeType:    "image/png",
 		Meta:        noMeta(),
+		Errors:      noErrors(),
 		Page:        img,
 		FeedContent: img,
 	}

@@ -16,6 +16,12 @@ import (
 	"flo.znkr.io/generator/site"
 )
 
+// noMeta is the metadata of a test document, which says nothing about itself.
+var noMeta = build.Const("meta", site.Metadata{})
+
+// noErrors are the errors of a test document, which has none.
+var noErrors = build.Const("errors", "")
+
 // page returns an artifact holding a fixed body.
 func page(body string) build.Artifact[[]byte] {
 	return build.Const("test.page", []byte(body))
@@ -43,11 +49,15 @@ func siteWithIndex(t *testing.T, index build.Artifact[[]byte]) *site.Site {
 		{
 			Path:     "/",
 			MimeType: "text/html;charset=utf-8",
+			Meta:     noMeta,
+			Errors:   noErrors,
 			Page:     index,
 		},
 		{
 			Path:     "/feed.atom",
 			MimeType: "application/atom+xml;charset=utf-8",
+			Meta:     noMeta,
+			Errors:   noErrors,
 			Page:     page(feedBody),
 		},
 	})
@@ -251,6 +261,8 @@ func TestServeRedirectsToTrailingSlash(t *testing.T) {
 	s, err := site.New([]site.Doc{{
 		Path:     "/about/",
 		MimeType: "text/html;charset=utf-8",
+		Meta:     noMeta,
+		Errors:   noErrors,
 		Page:     page(pageBody),
 	}})
 	if err != nil {
@@ -276,5 +288,27 @@ func TestServeRedirectsToTrailingSlash(t *testing.T) {
 	resp.Body.Close()
 	if got := resp.Header.Get("Location"); got != "/about/?x=1" {
 		t.Errorf("GET /about?x=1 redirects to %q, want /about/?x=1", got)
+	}
+}
+
+func TestServeDocumentWithErrors(t *testing.T) {
+	s, err := site.New([]site.Doc{{
+		Path:     "/about/",
+		MimeType: "text/html;charset=utf-8",
+		Meta:     noMeta,
+		Errors:   build.Const("errors", "about.mst: boom"),
+		Page:     page(pageBody),
+	}})
+	if err != nil {
+		t.Fatalf("site.New() = %v", err)
+	}
+	_, base := runServerWith(t, s)
+
+	resp, body := getStatus(t, base+"/about/")
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("GET /about/ = %v, want 500", resp.Status)
+	}
+	if !strings.Contains(body, "<h1>hello</h1>") {
+		t.Errorf("GET /about/ = %s, want the rendered page", body)
 	}
 }
