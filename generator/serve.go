@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -40,10 +40,10 @@ var serveCmd = &cobra.Command{
 		if loadErr != nil {
 			// An empty site is served, so that the browser shows the failure
 			// and the next change to the files is picked up.
-			log.Printf("failed to load site: %v", loadErr)
+			slog.Error("failed to load site", "err", loadErr)
 			s, _ = site.New(nil)
 		} else {
-			log.Printf("Site loaded (%v)", time.Since(start))
+			slog.Info("site loaded", "took", time.Since(start))
 		}
 		cache.Stats()
 
@@ -57,7 +57,7 @@ var serveCmd = &cobra.Command{
 		if loadErr != nil {
 			server.ReportFailure(loadErr)
 		}
-		log.Printf("Now serving at %s, press Ctrl-C to shut down", addr)
+		slog.Info("serving, press Ctrl-C to shut down", "url", "http://"+addr)
 
 		// Setup file watcher to trigger reloading of the site should anything change on disk.
 		watcher, err := fsnotify.NewWatcher()
@@ -95,7 +95,7 @@ var serveCmd = &cobra.Command{
 						return fmt.Errorf("adding watch: %v", err)
 					}
 					wd, _ := filepath.Rel(dir, event.Name)
-					log.Printf("Added watch directory: %v", wd)
+					slog.Info("watching directory", "dir", wd)
 				}
 
 				debounce = time.After(debounceDelay)
@@ -109,14 +109,14 @@ var serveCmd = &cobra.Command{
 				cache.Stats()
 				s, report, err := reload(cmd.Context(), cache, dir)
 				if err != nil {
-					log.Printf("failed to update site: %v", err)
+					slog.Error("failed to reload site", "err", err)
 					server.ReportFailure(err)
 					continue
 				}
 				st := cache.Stats()
 				server.ReplaceSite(s, report)
-				log.Printf("Site reloaded (%v, %d documents recompiled, %d of %d steps reused)",
-					time.Since(start), st.Kinds["doc"].Misses, st.Hits, st.Hits+st.Misses)
+				slog.Info("site reloaded", "took", time.Since(start),
+					"recompiled", st.Kinds["doc"].Misses, "reused", fmt.Sprintf("%d/%d", st.Hits, st.Hits+st.Misses))
 
 			case err := <-server.Error():
 				return fmt.Errorf("serving: %v", err)
@@ -126,7 +126,7 @@ var serveCmd = &cobra.Command{
 
 			case <-sigint:
 				fmt.Print("\r") // remove Ctrl-C output characters
-				log.Printf("Received Ctrl-C, shutting down")
+				slog.Info("shutting down")
 				return nil
 			}
 		}
@@ -173,7 +173,7 @@ func reload(ctx context.Context, c *build.Cache, dir string) (*site.Site, string
 	slices.Sort(failures)
 	failures = slices.Compact(failures)
 	for _, f := range failures {
-		log.Print(f)
+		slog.Error(f)
 	}
 	// An error in a document is shown by the document's own page, so the
 	// browser is told of the warnings and of the failures.

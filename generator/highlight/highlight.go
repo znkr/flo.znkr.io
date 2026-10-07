@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"html"
 	"html/template"
-	"log"
+	"log/slog"
 	"path"
 	"strings"
 
@@ -63,7 +63,8 @@ func LangFromFilename(filename string) Option {
 			if o.lexer != nil {
 				guess = o.lexer.Config().Name
 			}
-			log.Printf("highlight: %s: no lexer named for extension %q, matched every lexer's file names instead (found: %s); add the extension to LangFromFilename", filename, ext, guess)
+			slog.Warn("no lexer named for extension, matched every lexer's file names instead; add the extension to LangFromFilename",
+				"file", filename, "ext", ext, "found", guess)
 		}
 	}
 }
