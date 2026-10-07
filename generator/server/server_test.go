@@ -270,11 +270,14 @@ func TestServeRedirectsToTrailingSlash(t *testing.T) {
 	}
 	_, base := runServerWith(t, s)
 
+	// Each body is read to its end before it is closed. A body closed unread
+	// leaves a connection that makes Shutdown time out in some runs.
 	client := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	resp, err := client.Get(base + "/about")
 	if err != nil {
 		t.Fatalf("GET /about = %v", err)
 	}
+	io.Copy(io.Discard, resp.Body)
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusMovedPermanently || resp.Header.Get("Location") != "/about/" {
 		t.Errorf("GET /about = %v to %q, want 301 to /about/", resp.Status, resp.Header.Get("Location"))
@@ -285,6 +288,7 @@ func TestServeRedirectsToTrailingSlash(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /about?x=1 = %v", err)
 	}
+	io.Copy(io.Discard, resp.Body)
 	resp.Body.Close()
 	if got := resp.Header.Get("Location"); got != "/about/?x=1" {
 		t.Errorf("GET /about?x=1 redirects to %q, want /about/?x=1", got)
@@ -310,5 +314,32 @@ func TestServeDocumentWithErrors(t *testing.T) {
 	}
 	if !strings.Contains(body, "<h1>hello</h1>") {
 		t.Errorf("GET /about/ = %s, want the rendered page", body)
+	}
+}
+
+func TestServeRevalidatesWithETag(t *testing.T) {
+	_, base := runServer(t)
+
+	resp, _ := getStatus(t, base+"/")
+	etag := resp.Header.Get("ETag")
+	if etag == "" {
+		t.Fatal("GET / sent no ETag")
+	}
+	if got := resp.Header.Get("Cache-Control"); got != "no-cache" {
+		t.Errorf("Cache-Control = %q, want no-cache", got)
+	}
+
+	req, err := http.NewRequest(http.MethodGet, base+"/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("If-None-Match", etag)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("GET / with If-None-Match = %v", err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusNotModified {
+		t.Errorf("GET / with a matching If-None-Match = %v, want 304", resp.Status)
 	}
 }
