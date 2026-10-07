@@ -41,14 +41,12 @@ type reloader struct {
 	mu      sync.Mutex
 	status  status
 	changed chan struct{} // closed and replaced on every status change
-	done    chan struct{} // closed when the server starts to shut down
 }
 
 func newReloader(warnings string) *reloader {
 	return &reloader{
 		status:  status{Version: time.Now().UnixNano(), Warnings: warnings},
 		changed: make(chan struct{}),
-		done:    make(chan struct{}),
 	}
 }
 
@@ -78,11 +76,6 @@ func (r *reloader) wakeLocked() {
 	r.changed = make(chan struct{})
 }
 
-// stop releases all connected browsers.
-func (r *reloader) stop() {
-	close(r.done)
-}
-
 func (r *reloader) state() (status, <-chan struct{}) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -110,8 +103,6 @@ func (r *reloader) serveEvents(w http.ResponseWriter, req *http.Request) {
 		select {
 		case <-changed:
 		case <-req.Context().Done():
-			return
-		case <-r.done:
 			return
 		}
 	}

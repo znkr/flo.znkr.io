@@ -2,10 +2,10 @@ package server_test
 
 import (
 	"bufio"
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"testing"
@@ -81,10 +81,8 @@ func runServerWith(t *testing.T, site *site.Site) (*server.Server, string) {
 		t.Fatalf("server.Run() = %v", err)
 	}
 	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := s.Shutdown(ctx); err != nil {
-			t.Errorf("Shutdown() = %v", err)
+		if err := s.Close(); err != nil {
+			t.Errorf("Close() = %v", err)
 		}
 	})
 	return s, "http://" + s.Addr().String()
@@ -238,22 +236,26 @@ func TestServeRendersErrorPage(t *testing.T) {
 	}
 }
 
-func TestShutdownReleasesEventStreams(t *testing.T) {
-	s, err := server.Run("localhost:0", build.NewCache(0), newSite(t), "")
+func TestCloseEndsEventStreams(t *testing.T) {
+	s, base := runServer(t)
+
+	resp, err := http.Get(base + eventsPath)
 	if err != nil {
-		t.Fatalf("server.Run() = %v", err)
+		t.Fatalf("GET %s = %v", eventsPath, err)
 	}
-	base := "http://" + s.Addr().String()
-
+	defer resp.Body.Close()
 	// Read the first event to make sure the stream is established and parked
-	// before shutting down.
-	next := openEvents(t, base)
-	next()
+	// before closing.
+	r := bufio.NewReader(resp.Body)
+	if _, err := r.ReadString('\n'); err != nil {
+		t.Fatalf("reading event: %v", err)
+	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := s.Shutdown(ctx); err != nil {
-		t.Fatalf("Shutdown() = %v, want the open event stream to be released", err)
+	if err := s.Close(); err != nil {
+		t.Fatalf("Close() = %v", err)
+	}
+	if _, err := io.ReadAll(r); err == nil {
+		t.Error("event stream ended without an error, want it cut off")
 	}
 }
 
@@ -270,14 +272,11 @@ func TestServeRedirectsToTrailingSlash(t *testing.T) {
 	}
 	_, base := runServerWith(t, s)
 
-	// Each body is read to its end before it is closed. A body closed unread
-	// leaves a connection that makes Shutdown time out in some runs.
 	client := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	resp, err := client.Get(base + "/about")
 	if err != nil {
 		t.Fatalf("GET /about = %v", err)
 	}
-	io.Copy(io.Discard, resp.Body)
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusMovedPermanently || resp.Header.Get("Location") != "/about/" {
 		t.Errorf("GET /about = %v to %q, want 301 to /about/", resp.Status, resp.Header.Get("Location"))
@@ -288,7 +287,6 @@ func TestServeRedirectsToTrailingSlash(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /about?x=1 = %v", err)
 	}
-	io.Copy(io.Discard, resp.Body)
 	resp.Body.Close()
 	if got := resp.Header.Get("Location"); got != "/about/?x=1" {
 		t.Errorf("GET /about?x=1 redirects to %q, want /about/?x=1", got)
@@ -341,5 +339,28 @@ func TestServeRevalidatesWithETag(t *testing.T) {
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusNotModified {
 		t.Errorf("GET / with a matching If-None-Match = %v, want 304", resp.Status)
+	}
+}
+
+func TestCloseClosesUnusedConnections(t *testing.T) {
+	s, err := server.Run("localhost:0", build.NewCache(0), newSite(t), "")
+	if err != nil {
+		t.Fatalf("server.Run() = %v", err)
+	}
+	c, err := net.Dial("tcp", s.Addr().String())
+	if err != nil {
+		t.Fatalf("Dial() = %v", err)
+	}
+	defer c.Close()
+	// The connection sends no request, and the server tracks it only once it
+	// has accepted it.
+	time.Sleep(50 * time.Millisecond)
+
+	if err := s.Close(); err != nil {
+		t.Fatalf("Close() = %v", err)
+	}
+	c.SetReadDeadline(time.Now().Add(time.Second))
+	if _, err := c.Read(make([]byte, 1)); err != io.EOF {
+		t.Errorf("Read() on a connection without a request = %v, want io.EOF", err)
 	}
 }

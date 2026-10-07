@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -35,22 +34,15 @@ func Run(addr string, c *build.Cache, site *site.Site, warnings string) (*Server
 	h.site.Store(site)
 
 	s := &Server{
-		http: &http.Server{
-			Handler: h,
-		},
 		addr:    l.Addr(),
 		handler: h,
 		reload:  r,
 		errc:    make(chan error),
 	}
-
-	// Shutdown waits for in-flight requests without cancelling them, so the
-	// reload streams have to be released explicitly or shutting down blocks
-	// for as long as a browser is connected.
-	s.http.RegisterOnShutdown(r.stop)
+	s.http = &http.Server{Handler: h}
 
 	go func() {
-		// ErrServerClosed is what a clean Shutdown looks like, not a failure.
+		// ErrServerClosed is what a clean Close looks like, not a failure.
 		if err := s.http.Serve(l); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			s.errc <- err
 		}
@@ -79,10 +71,12 @@ func (s *Server) Addr() net.Addr {
 	return s.addr
 }
 
-// Shutdown gracefully stops the sever.
-func (s *Server) Shutdown(ctx context.Context) error {
-	if err := s.http.Shutdown(ctx); err != nil {
-		return fmt.Errorf("shutting down HTTP sever: %v", err)
+// Close stops the server and closes every connection, the reload event
+// streams and connections without a request included. Nothing waits on a
+// request in flight: a page being served when the server stops is lost.
+func (s *Server) Close() error {
+	if err := s.http.Close(); err != nil {
+		return fmt.Errorf("closing HTTP server: %v", err)
 	}
 	return nil
 }

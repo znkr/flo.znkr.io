@@ -53,7 +53,7 @@ var serveCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		defer server.Shutdown(context.Background())
+		defer server.Close()
 		if loadErr != nil {
 			server.ReportFailure(loadErr)
 		}
