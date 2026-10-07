@@ -3,6 +3,7 @@ package server
 import (
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -10,6 +11,9 @@ import (
 	"flo.znkr.io/generator/build"
 	"flo.znkr.io/generator/site"
 )
+
+// instance tells this process's ETags from those of an earlier one.
+var instance = strconv.FormatInt(time.Now().UnixNano(), 36)
 
 type handler struct {
 	site   atomic.Pointer[site.Site]
@@ -34,6 +38,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	level := slog.LevelInfo
 	switch {
+	case status == http.StatusNotModified:
+		// A browser revalidates every page and asset it loads, so these
+		// would bury every other line.
+		level = slog.LevelDebug
 	case status >= 500:
 		level = slog.LevelError
 	case status >= 400:
@@ -79,6 +87,18 @@ func (h *handler) serveDoc(w http.ResponseWriter, req *http.Request) (status int
 	}
 
 	w.Header().Set("Content-Type", doc.MimeType)
+
+	// The page's key is a hash of everything it is computed from, so it is
+	// known without rendering the page and changes with any edit to it. A key
+	// holds only within one process, which instance tells apart.
+	etag := `"` + doc.Page.Key().String() + "-" + instance + `"`
+	w.Header().Set("ETag", etag)
+	w.Header().Set("Cache-Control", "no-cache")
+	if req.Header.Get("If-None-Match") == etag {
+		w.WriteHeader(http.StatusNotModified)
+		return http.StatusNotModified, ""
+	}
+
 	if req.Method == http.MethodHead {
 		return http.StatusOK, ""
 	}
