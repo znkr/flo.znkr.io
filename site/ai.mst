@@ -1,0 +1,41 @@
+#show: page.with(
+    title: "AI",
+    summary: [
+        This blog is 100% written by hand
+    ],
+    header: {
+        html.elem("h1", [Written by Hand])
+    }
+)
+
+I feel like this shouldn't have to be said, but there are many things that I
+feel like shouldn't be as they are and this is one of them: Every sentence on
+this site is written by hand. I believe that using AI for writing would be
+disrespectful to the readers of this site by wasting their time.
+
+I am not an opponent of AI. On the contrary, I use AI nearly every day at work
+and on private projects. It's an incredibly useful tool for software engineering
+and knowledge work in general. For example, the software powering this blog and
+its design have seen many improvements through the help of AI. I also use it to
+review what I wrote, and that helps me to correct and improve the texts I write.
+
+So is "written without AI" a lie? I don't believe it is. To me, writing is the
+translation of thoughts into words so that another human can understand the
+thought. AI is a tool that can help with this by pointing out problems where
+this translation process doesn't work, but it's impossible to outsource this
+process to an AI.
+
+However, every tool can be used in harmful ways. AI is so easy to misuse, and
+the misuse so prevalent, that we have a word for it: _Slop_. Slop can be
+generated cheaply (as in not requiring a lot of human time), it looks great at
+first glance, and it's often as empty as a glass full of air.
+
+Slop seems to exploit our brain's conditioning to associate a well-written text
+with actual thought. At the rate AI is being used today, this conditioning won't
+last long and the next generation growing up with Slop will learn not to trust
+text implicitly.
+
+Which brings us to why I had to write this. Using AI has a slippery-slope
+problem. You start by using a little of it and all of a sudden, you're using it
+for everything. This page is not for you, dear reader. This page is to stop me
+from using AI for writing by publicly committing to writing by hand.
