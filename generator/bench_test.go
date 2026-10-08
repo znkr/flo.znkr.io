@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"flo.znkr.io/generator/build"
+	"flo.znkr.io/generator/plan"
 	"flo.znkr.io/generator/source"
 )
 
@@ -15,7 +16,7 @@ func BenchmarkWarmForceAll(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	s, _, err := plan(tree)
+	s, _, err := plan.Plan(tree)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -41,7 +42,7 @@ func BenchmarkWarmForceAll(b *testing.B) {
 func BenchmarkColdLoad(b *testing.B) {
 	for b.Loop() {
 		c := build.NewCache(cacheSize)
-		if _, _, err := reload(b.Context(), c, ".."); err != nil {
+		if _, _, err := reload(b.Context(), c, "..", plan.Options{}); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -54,7 +55,7 @@ func BenchmarkColdForceAll(b *testing.B) {
 		b.Fatal(err)
 	}
 	for b.Loop() {
-		s, _, err := plan(tree)
+		s, _, err := plan.Plan(tree)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -71,12 +72,12 @@ func BenchmarkColdForceAll(b *testing.B) {
 // serve does after a file event when the edit changed nothing it compiles.
 func BenchmarkWarmReload(b *testing.B) {
 	c := build.NewCache(cacheSize)
-	if _, _, err := reload(b.Context(), c, ".."); err != nil {
+	if _, _, err := reload(b.Context(), c, "..", plan.Options{}); err != nil {
 		b.Fatal(err)
 	}
 	b.ResetTimer()
 	for b.Loop() {
-		if _, _, err := reload(b.Context(), c, ".."); err != nil {
+		if _, _, err := reload(b.Context(), c, "..", plan.Options{}); err != nil {
 			b.Fatal(err)
 		}
 	}

@@ -186,12 +186,16 @@ func TestPackSite(t *testing.T) {
 		}
 		entries = append(entries, renderers.Entry{Path: d.Path, Meta: meta})
 	}
-	articles := renderers.Articles(entries)
-	if len(articles) == 0 {
-		t.Error("site has no articles")
+	var articles int
+	for _, e := range entries {
+		if e.Meta.Type != "article" || e.Meta.Draft() {
+			continue
+		}
+		articles++
+		want = append(want, path.Join(e.Path, "index.html")[1:])
 	}
-	for _, a := range articles {
-		want = append(want, path.Join(a.Path, "index.html")[1:])
+	if articles == 0 {
+		t.Error("site has no articles")
 	}
 	for _, name := range want {
 		if _, ok := got[name]; !ok {

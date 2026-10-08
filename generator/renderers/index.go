@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
-	"slices"
 
 	"flo.znkr.io/generator/site"
 )
@@ -25,28 +24,9 @@ type Entry struct {
 	Meta site.Metadata
 }
 
-// Articles returns the published articles among entries, newest first. Two
-// articles published on the same day keep the order they came in.
-func Articles(entries []Entry) []Entry {
-	var ret []Entry
-	for _, e := range entries {
-		if e.Meta.Type != "article" || e.Meta.Draft() {
-			continue
-		}
-		ret = append(ret, e)
-	}
-	slices.SortStableFunc(ret, func(a, b Entry) int {
-		return b.Meta.Published.Compare(a.Meta.Published)
-	})
-	return ret
-}
-
-// RenderIndex renders the site index from entries, of which it lists the
-// published articles, which can load assets.
-//
-// Every document is passed, not only the articles, because an edit can change
-// which documents are articles.
-func RenderIndex(templates *template.Template, meta site.Metadata, assets Assets, entries []Entry) ([]byte, error) {
+// RenderIndex renders the site index, which lists articles in order and can
+// load assets.
+func RenderIndex(templates *template.Template, meta site.Metadata, assets Assets, articles []Entry) ([]byte, error) {
 	page := templates.Lookup("index")
 	if page == nil {
 		return nil, fmt.Errorf("template not found index")
@@ -67,7 +47,7 @@ func RenderIndex(templates *template.Template, meta site.Metadata, assets Assets
 		Meta:     meta,
 		Head:     head,
 		Profiles: authorProfiles,
-		Articles: Articles(entries),
+		Articles: articles,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("rendering template: %v", err)

@@ -19,8 +19,12 @@
                   {{- $published := .Meta.Published.Format "January 2006" }}
                   {{- $updated := .Meta.Updated.Format "January 2006" }}
                   <h2><a href="{{ .Path }}">{{ .Meta.Title }}</a></h2>
+                  {{- if .Meta.Published.IsZero }}
+                  <span>Draft</span>
+                  {{- else }}
                   <span><time datetime="{{ .Meta.Published.Format "2006-01-02" }}">{{ $published }}</time>
                   {{- if ne $published $updated }}, updated <time datetime="{{ .Meta.Updated.Format "2006-01-02" }}">{{ $updated }}</time>{{ end }}</span>
+                  {{- end }}
                </header>
                <p>{{ .Meta.Summary }}</p>
             </article>

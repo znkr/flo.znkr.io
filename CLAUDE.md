@@ -58,10 +58,12 @@ The pipeline:
    through the tree, so any input a step can reach is one that has been hashed.
    An `.ignore` file excludes its globs from becoming documents; the files are
    still read, because they are snippet and diff sources.
-2. `plan` (in `generator/plan.go`) declares the whole site as artifacts and
+2. `plan.Plan` (in `generator/plan`) declares the whole site as artifacts and
    returns a `*site.Site` plus one artifact holding every diagnostic. This is
    where a change to what the site is made of goes: paths, metadata, which
-   documents exist, what the index and the feed are built from.
+   documents exist, what the index and the feed are built from. `plan.Options`
+   selects variants of the site, such as an index that lists drafts; the zero
+   value is the published site.
 3. `Doc.Page.Get` or `Doc.FeedContent.Get` computes a document on demand, against
    the cache. `plan` is also where `markst.Metadata`, what a document declares,
    becomes `site.Metadata`, and where the doc type is checked against

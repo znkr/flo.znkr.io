@@ -1,8 +1,9 @@
-package main
+// Package plan declares the site a source tree holds as a build of artifacts.
+// Planning computes nothing; a value is computed when its artifact is first
+// asked for.
+package plan
 
 import (
-	"context"
-	"fmt"
 	"html/template"
 	"io/fs"
 	"mime"
@@ -18,15 +19,6 @@ import (
 	"flo.znkr.io/generator/site"
 	"flo.znkr.io/generator/source"
 )
-
-// cacheSize is how many computed values are held.
-//
-// It counts items, which is a proxy for the two costs that matter: what a value
-// takes to hold and what it takes to compute again. One build of this site
-// leaves 151 values behind, about 700KB of them bytes, and the spread between
-// the largest and the average is around twentyfold. So this is a dozen or so
-// builds of history, which is as far back as an edit is worth reusing.
-const cacheSize = 2048
 
 const (
 	siteTitle    = "Florian Zenker's website"
@@ -45,10 +37,23 @@ const robotsTxt = "User-agent: *\n" +
 	"\n" +
 	"Sitemap: " + siteOrigin + "/sitemap.xml\n"
 
-// plan declares the build of the site tree and returns it. It computes nothing:
+// Options selects what a plan of the site includes. The zero Options plans the
+// site as it is published.
+type Options struct {
+	// Drafts reports whether the index and the feed list the drafts.
+	Drafts bool
+}
+
+// Plan declares the build of the site tree with the zero [Options] and returns
+// it.
+func Plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], error) {
+	return Options{}.Plan(tree)
+}
+
+// Plan declares the build of the site tree and returns it. It computes nothing:
 // a document is compiled, highlighted and rendered when the artifact holding it
 // is first asked for.
-func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], error) {
+func (o Options) Plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], error) {
 	templates := build.Derive[*template.Template]("templates", parseTemplates, tree.Sub("templates"))
 
 	// A page loads a file in _assets by a URL that carries the key of the
@@ -71,8 +76,8 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 	}
 
 	var docs []site.Doc
-	// entries and contents run parallel over the compiled documents: the index
-	// reads the first, the feed both.
+	// entries and contents run parallel over the compiled documents: the
+	// articles are selected from the first, and the feed reads both.
 	var entries []build.Artifact[renderers.Entry]
 	var contents []build.Artifact[[]byte]
 	var compiled []build.Artifact[*markst.Doc]
@@ -168,8 +173,9 @@ func plan(tree *source.Tree) (*site.Site, build.Artifact[[]markst.Diagnostic], e
 		ImageWidth:   card.Width,
 		ImageHeight:  card.Height,
 	})
-	index := build.Derive[[]byte]("index", renderers.RenderIndex, templates, indexMeta, assets, entries)
-	feed := build.Derive[[]byte]("feed", renderers.RenderAtom, siteTitle, entries, contents)
+	listed := build.Derive[[]renderers.Entry]("articles", articles, entries, o)
+	index := build.Derive[[]byte]("index", renderers.RenderIndex, templates, indexMeta, assets, listed)
+	feed := build.Derive[[]byte]("feed", renderers.RenderAtom, siteTitle, listed, entries, contents)
 	// entries holds the compiled documents, which the index is not one of, and
 	// the feed reads it against contents. The sitemap lists the index too.
 	indexEntry := build.Derive[renderers.Entry]("entry", entryOf, "/", indexMeta)
@@ -233,30 +239,6 @@ func collectDiags(libs []*markst.Lib, docs []*markst.Doc) ([]markst.Diagnostic, 
 	return ret, nil
 }
 
-// loadDir scans dir, plans the site it holds, and returns it with a cache to
-// compute it against. It fails if compiling the site produces any diagnostic,
-// a warning included, and reports them.
-func loadDir(ctx context.Context, dir string) (*build.Cache, *site.Site, error) {
-	tree, err := source.Scan(dir)
-	if err != nil {
-		return nil, nil, fmt.Errorf("scanning %s: %v", dir, err)
-	}
-	s, diags, err := plan(tree)
-	if err != nil {
-		return nil, nil, err
-	}
-	c := build.NewCache(cacheSize)
-	ds, err := diags.Get(ctx, c)
-	if err != nil {
-		return nil, nil, err
-	}
-	if len(ds) > 0 {
-		markst.Report(ds)
-		return nil, nil, fmt.Errorf("%d diagnostics", len(ds))
-	}
-	return c, s, nil
-}
-
 // deriveFragments declares the highlighting walk finds in a document, one
 // artifact per fragment, so that an edit costs only the fragments it changed.
 func deriveFragments(kind string, walk func(*markst.Doc) ([]build.Artifact[builtins.Fragment], error), doc build.Artifact[*markst.Doc]) build.Artifact[map[build.Key]builtins.Fragment] {
@@ -289,6 +271,30 @@ func siteMetadata(source, path string, d *markst.Doc, summary string) (site.Meta
 	m.ImageWidth, m.ImageHeight = card.Width, card.Height
 
 	return m, nil
+}
+
+// articles returns the articles among entries that o selects: the drafts, if o
+// includes them, then the published articles, newest first. Two articles
+// published on the same day keep the order they came in, as do two drafts.
+func articles(entries []renderers.Entry, o Options) ([]renderers.Entry, error) {
+	var ret []renderers.Entry
+	for _, e := range entries {
+		if e.Meta.Type != "article" || (e.Meta.Draft() && !o.Drafts) {
+			continue
+		}
+		ret = append(ret, e)
+	}
+	slices.SortStableFunc(ret, func(a, b renderers.Entry) int {
+		// A draft has no publication date and sorts ahead of every date.
+		switch ad, bd := a.Meta.Draft(), b.Meta.Draft(); {
+		case ad && !bd:
+			return -1
+		case bd && !ad:
+			return 1
+		}
+		return b.Meta.Published.Compare(a.Meta.Published)
+	})
+	return ret, nil
 }
 
 func entryOf(p string, m site.Metadata) (renderers.Entry, error) {

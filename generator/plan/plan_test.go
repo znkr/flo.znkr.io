@@ -1,4 +1,4 @@
-package main
+package plan
 
 import (
 	"bytes"
@@ -25,7 +25,7 @@ func TestPlanComputesNothing(t *testing.T) {
 
 	s := load(t, dir)
 
-	c := build.NewCache(cacheSize)
+	c := build.NewCache(0)
 	d := s.Doc("/about/")
 	if d == nil {
 		t.Fatal("/about/ is missing from the plan")
@@ -51,7 +51,7 @@ func TestDocumentErrorsRenderAnErrorPage(t *testing.T) {
 			write(t, filepath.Join(dir, "site/about.mst"), tc.src)
 
 			s := load(t, dir)
-			c := build.NewCache(cacheSize)
+			c := build.NewCache(0)
 			d := s.Doc("/about/")
 			meta, err := d.Meta.Get(t.Context(), c)
 			if err != nil || meta.Type != site.ErrorType {
@@ -72,7 +72,7 @@ func TestDocumentErrorsRenderAnErrorPage(t *testing.T) {
 // what every document says about itself, which is all the index and the router
 // need, highlights nothing.
 func TestMetadataNeedsNoHighlighting(t *testing.T) {
-	c := build.NewCache(cacheSize)
+	c := build.NewCache(0)
 	s := load(t, fixture(t))
 
 	for _, d := range s.Docs() {
@@ -97,7 +97,7 @@ func TestMetadataNeedsNoHighlighting(t *testing.T) {
 func TestReloadReusesEverything(t *testing.T) {
 	dir := fixture(t)
 
-	c := build.NewCache(cacheSize)
+	c := build.NewCache(0)
 	forceAll(t, c, load(t, dir))
 	// Discard the first build's counts: the cache outlives a build, so the
 	// counts do too unless they are read.
@@ -115,7 +115,7 @@ func TestReloadReusesEverything(t *testing.T) {
 func TestRebuildsOnlyWhatChanged(t *testing.T) {
 	dir := fixture(t)
 
-	c := build.NewCache(cacheSize)
+	c := build.NewCache(0)
 	before := load(t, dir)
 	forceAll(t, c, before)
 	c.Stats()
@@ -160,7 +160,7 @@ func TestRebuildsOnlyWhatChanged(t *testing.T) {
 func TestProseEditReusesFragments(t *testing.T) {
 	dir := fixture(t)
 
-	c := build.NewCache(cacheSize)
+	c := build.NewCache(0)
 	forceAll(t, c, load(t, dir))
 	c.Stats()
 
@@ -182,7 +182,7 @@ func TestProseEditReusesFragments(t *testing.T) {
 func TestRebuildsOnLibraryChange(t *testing.T) {
 	dir := fixture(t)
 
-	c := build.NewCache(cacheSize)
+	c := build.NewCache(0)
 	before := load(t, dir)
 	forceAll(t, c, before)
 	c.Stats()
@@ -207,7 +207,7 @@ func TestRebuildsOnLibraryChange(t *testing.T) {
 func TestDropsDeletedDocuments(t *testing.T) {
 	dir := fixture(t)
 
-	c := build.NewCache(cacheSize)
+	c := build.NewCache(0)
 	s := load(t, dir)
 	if s.Doc("/prose/") == nil {
 		t.Fatal("/prose/ is missing from the first build")
@@ -255,7 +255,7 @@ func TestTransparency(t *testing.T) {
 
 			// Warm the cache on the unedited tree, rendering everything, since
 			// a value that was never computed cannot go stale.
-			c := build.NewCache(cacheSize)
+			c := build.NewCache(0)
 			forceAll(t, c, load(t, dir))
 
 			appendTo(t, filepath.Join(dir, filepath.FromSlash(f.Path)), edit(f.Path))
@@ -312,16 +312,16 @@ func TestRepeatedEditsSettle(t *testing.T) {
 // scroll past, so the only thing that keeps the site free of them is a test
 // that reads them all.
 func TestNoDiagnostics(t *testing.T) {
-	for _, dir := range []string{"testdata/root", ".."} {
+	for _, dir := range []string{"../testdata/root", "../.."} {
 		t.Run(dir, func(t *testing.T) {
-			c := build.NewCache(cacheSize)
+			c := build.NewCache(0)
 			tree, err := source.Scan(dir)
 			if err != nil {
 				t.Fatalf("Scan() = %v", err)
 			}
-			_, diags, err := plan(tree)
+			_, diags, err := Plan(tree)
 			if err != nil {
-				t.Fatalf("plan() = %v", err)
+				t.Fatalf("Plan() = %v", err)
 			}
 			got, err := diags.Get(t.Context(), c)
 			if err != nil {
@@ -342,9 +342,9 @@ func load(t *testing.T, dir string) *site.Site {
 	if err != nil {
 		t.Fatalf("Scan() = %v", err)
 	}
-	s, _, err := plan(tree)
+	s, _, err := Plan(tree)
 	if err != nil {
-		t.Fatalf("plan() = %v", err)
+		t.Fatalf("Plan() = %v", err)
 	}
 	return s
 }
@@ -416,7 +416,7 @@ func edit(p string) string {
 func fixture(t *testing.T) string {
 	t.Helper()
 	dst := t.TempDir()
-	const src = "testdata/root"
+	const src = "../testdata/root"
 	err := filepath.WalkDir(src, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err

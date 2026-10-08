@@ -14,6 +14,7 @@ import (
 
 	"flo.znkr.io/generator/build"
 	"flo.znkr.io/generator/markst"
+	"flo.znkr.io/generator/plan"
 	"flo.znkr.io/generator/server"
 	"flo.znkr.io/generator/site"
 	"flo.znkr.io/generator/source"
@@ -29,6 +30,11 @@ var serveCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("determining workdir: %v", err)
 		}
+		var opts plan.Options
+		opts.Drafts, err = cmd.Flags().GetBool("drafts")
+		if err != nil {
+			return err
+		}
 
 		// One cache for the life of the process. A build declares what the site
 		// is made of and computes none of it; a page is rendered when it is
@@ -36,7 +42,7 @@ var serveCmd = &cobra.Command{
 		cache := build.NewCache(cacheSize)
 
 		start := time.Now()
-		s, report, loadErr := reload(cmd.Context(), cache, dir)
+		s, report, loadErr := reload(cmd.Context(), cache, dir, opts)
 		if loadErr != nil {
 			// An empty site is served, so that the browser shows the failure
 			// and the next change to the files is picked up.
@@ -107,7 +113,7 @@ var serveCmd = &cobra.Command{
 				// Discard what serving the pages did since the last reload, so
 				// that the counts below cover only this one.
 				cache.Stats()
-				s, report, err := reload(cmd.Context(), cache, dir)
+				s, report, err := reload(cmd.Context(), cache, dir, opts)
 				if err != nil {
 					slog.Error("failed to reload site", "err", err)
 					server.ReportFailure(err)
@@ -133,7 +139,11 @@ var serveCmd = &cobra.Command{
 	},
 }
 
-// reload scans dir, plans the site, and compiles all documents. It fails only
+func init() {
+	serveCmd.Flags().Bool("drafts", false, "list drafts on the index and in the feed")
+}
+
+// reload scans dir, plans the site with opts, and compiles all documents. It fails only
 // if the site cannot be planned. A document that fails is reported and the
 // site is served regardless; its page shows the failure when it is requested.
 //
@@ -148,12 +158,12 @@ var serveCmd = &cobra.Command{
 // documents this reload did not have to compile, so that a diagnostic stays on
 // screen until the document it is about is fixed. The returned report holds
 // the warnings and every failure, formatted for the browser.
-func reload(ctx context.Context, c *build.Cache, dir string) (*site.Site, string, error) {
+func reload(ctx context.Context, c *build.Cache, dir string, opts plan.Options) (*site.Site, string, error) {
 	tree, err := source.Scan(dir)
 	if err != nil {
 		return nil, "", fmt.Errorf("scanning site: %v", err)
 	}
-	s, diags, err := plan(tree)
+	s, diags, err := opts.Plan(tree)
 	if err != nil {
 		return nil, "", err
 	}
