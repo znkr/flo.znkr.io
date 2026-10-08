@@ -828,9 +828,9 @@ func TestKeysDistinguishArgumentBoundaries(t *testing.T) {
 }
 
 // TestDifferentRulesDoNotShareAKey checks what separates two artifacts computed
-// from the same input: the rule, not the name it was declared under. plan.go
-// derives a document's summary requests and its body requests from one document
-// artifact, and nothing but the rule tells the two apart.
+// from the same input: the rule, not the name it was declared under. Package
+// plan derives a document's summary requests and its body requests from one
+// document artifact, and nothing but the rule tells the two apart.
 func TestDifferentRulesDoNotShareAKey(t *testing.T) {
 	c := unbounded()
 	summary := func(s string) (string, error) { return "summary of " + s, nil }
