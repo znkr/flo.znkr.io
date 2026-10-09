@@ -6,10 +6,12 @@ import (
 	"io/fs"
 	"log/slog"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"time"
 
 	"flo.znkr.io/generator/build"
@@ -71,7 +73,10 @@ var serveCmd = &cobra.Command{
 			return fmt.Errorf("starting watcher: %v", err)
 		}
 		defer watcher.Close()
-		for _, subdir := range source.Dirs {
+		// The generator's own source is watched too: a change to it rebuilds
+		// the generator and restarts serve with it.
+		code := filepath.Join(dir, "generator")
+		for _, subdir := range append(slices.Clone(source.Dirs), "generator") {
 			if err := watchDir(watcher, filepath.Join(dir, subdir)); err != nil {
 				return fmt.Errorf("starting watch: %v", err)
 			}
@@ -85,7 +90,7 @@ var serveCmd = &cobra.Command{
 		// event would be wasteful and, worse, would refresh the browser
 		// several times, so events are coalesced.
 		const debounceDelay = 30 * time.Millisecond
-		var debounce <-chan time.Time
+		var debounce, restart <-chan time.Time
 
 		for {
 			select {
@@ -104,7 +109,36 @@ var serveCmd = &cobra.Command{
 					slog.Info("watching directory", "dir", wd)
 				}
 
-				debounce = time.After(debounceDelay)
+				switch rel, err := filepath.Rel(code, event.Name); {
+				case err != nil || strings.HasPrefix(rel, ".."):
+					debounce = time.After(debounceDelay)
+				case isGeneratorSource(rel):
+					restart = time.After(debounceDelay)
+				}
+
+			case <-restart:
+				restart = nil
+
+				start := time.Now()
+				bin, err := buildGenerator(cmd.Context(), dir)
+				if err != nil {
+					// The running generator keeps serving, and the next change
+					// to its source tries again.
+					// The error holds the compiler's output. A message is
+					// printed line by line, an attribute quoted.
+					slog.Error(err.Error())
+					server.ReportFailure(err)
+					continue
+				}
+				slog.Info("generator rebuilt, restarting", "took", time.Since(start))
+				// Exec does not return on success, so nothing deferred runs. The
+				// server is closed here, so that the new process can listen on
+				// the same address and every browser reconnects to it.
+				server.Close()
+				watcher.Close()
+				if err := syscall.Exec(bin, os.Args, os.Environ()); err != nil {
+					return fmt.Errorf("restarting: %v", err)
+				}
 
 			case <-debounce:
 				debounce = nil
@@ -193,6 +227,41 @@ func reload(ctx context.Context, c *build.Cache, dir string, opts plan.Options) 
 	}
 	report = append(report, failures...)
 	return s, strings.Join(report, "\n"), nil
+}
+
+// isGeneratorSource reports whether the file at rel, relative to the generator's
+// directory, is part of the generator binary.
+func isGeneratorSource(rel string) bool {
+	if filepath.Ext(rel) != ".go" || strings.HasSuffix(rel, "_test.go") {
+		return false
+	}
+	return !slices.Contains(strings.Split(filepath.ToSlash(rel), "/"), "testdata")
+}
+
+// buildGenerator builds the generator from its source in dir and returns the
+// path of the binary. The error of a failed build holds the compiler's output.
+func buildGenerator(ctx context.Context, dir string) (string, error) {
+	cache, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	bin := filepath.Join(cache, "flo.znkr.io", "serve")
+	if err := os.MkdirAll(filepath.Dir(bin), 0755); err != nil {
+		return "", err
+	}
+	// The binary is built under another name and renamed into place, because
+	// the running process can have been started from bin, and macOS kills a
+	// process whose binary is written to.
+	tmp := bin + ".new"
+	cmd := exec.CommandContext(ctx, "go", "build", "-o", tmp, "./generator")
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return "", fmt.Errorf("building generator: %v\n%s", err, out)
+	}
+	if err := os.Rename(tmp, bin); err != nil {
+		return "", err
+	}
+	return bin, nil
 }
 
 func watchDir(watcher *fsnotify.Watcher, dir string) error {
